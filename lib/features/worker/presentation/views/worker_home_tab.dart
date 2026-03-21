@@ -487,6 +487,8 @@ class _FeedPostCard extends StatelessWidget {
 
             ],
           ),
+
+
         ],
       ),
     );
