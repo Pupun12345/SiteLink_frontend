@@ -6,7 +6,6 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/auth_controllers.dart';
-import 'auth_views.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  LANGUAGE SELECTION VIEW
@@ -16,7 +15,7 @@ class LanguageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.put(LanguageController());
+    final ctrl = Get.find<LanguageController>();
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -54,15 +53,11 @@ class LanguageView extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.link_rounded,
-                      color: AppColors.primary,
-                      size: 42,
-                    ),
+                    child: Image.asset("assets/images/app_logo_icon.png")
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    AppStrings.appName,
+                    AppStrings.SiteLink,
                     style: KTextStyle.poppins(
                       fs: 28,
                       fw: FontWeight.bold,
@@ -94,13 +89,13 @@ class LanguageView extends StatelessWidget {
                   children: [
                     // Heading
                     Text(
-                      AppStrings.chooseLanguage,
+                      AppStrings.ChooseYourLanguage,
                       style: KTextStyle.poppins(
                           fs: 20, fw: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      AppStrings.chooseLanguageHi,
+                      AppStrings.ChooseLanguage,
                       style: KTextStyle.poppins(
                           fs: 14, c: AppColors.textSecondary),
                     ),
@@ -109,7 +104,7 @@ class LanguageView extends StatelessWidget {
                     // ── Hindi card ──────────────────────────
                     Obx(() => _LangCard(
                       symbol: 'अ',
-                      title: AppStrings.hindi,
+                      title: AppStrings.Hindi,
                       subtitle: 'हिंदी',
                       selected:
                       ctrl.selectedLanguage.value == 'hindi',
@@ -120,7 +115,7 @@ class LanguageView extends StatelessWidget {
                     // ── English card ────────────────────────
                     Obx(() => _LangCard(
                       symbol: 'A',
-                      title: AppStrings.english,
+                      title: AppStrings.English,
                       subtitle: 'अंग्रेज़ी',
                       selected:
                       ctrl.selectedLanguage.value == 'english',
@@ -130,8 +125,8 @@ class LanguageView extends StatelessWidget {
                     const Spacer(),
 
                     CustomButton(
-                      label: AppStrings.continueBtn,
-                      onTap: () => Get.off(() => const PhoneView()),
+                      label: AppStrings.Continue,
+                      onTap: ctrl.proceed,
                     ),
                     const SizedBox(height: AppDimens.md),
                     Center(

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "162479249381",
+    "project_id": "sitelink-af317",
+    "storage_bucket": "sitelink-af317.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:162479249381:android:5d94d32fbe70d96081c10c",
+        "android_client_info": {
+          "package_name": "com.sitelink.sitelink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMxzyVSIzRzxKbi5mmevejccsptfjtc7A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

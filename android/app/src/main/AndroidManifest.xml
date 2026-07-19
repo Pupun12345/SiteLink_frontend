@@ -1,8 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- "Get Directions" — current location ko origin banane ke liye -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- API calls + Razorpay checkout ke liye zaroori (release build me implicit nahi hota) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+ (API 33+) runtime permission — push notifications dikhane ke liye -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="sitelink"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Maps SDK for Android — Play Store build only, iOS key wire nahi kiya -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCUiNpBnM_kPZZtNRoOS-vZisNg1KV4Mio"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -30,6 +41,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- FCM background/terminated notifications default into this channel
+             (must match the channel created in notification_service.dart) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="sitelink_default_channel" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -40,6 +56,17 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Razorpay checkout — Android 11+ (API 30+) package-visibility ke
+             bina UPI apps checkout sheet me nahi dikhte -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.APP_MARKET"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="upi"/>
         </intent>
     </queries>
 </manifest>

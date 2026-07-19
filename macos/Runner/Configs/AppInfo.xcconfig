@@ -8,7 +8,7 @@
 PRODUCT_NAME = sitelink
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.saraswat.sitelink
+PRODUCT_BUNDLE_IDENTIFIER = com.sitelink.sitelink
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.saraswat. All rights reserved.

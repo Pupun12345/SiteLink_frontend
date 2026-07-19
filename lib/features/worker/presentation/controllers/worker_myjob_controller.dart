@@ -1,93 +1,106 @@
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/models/job_models.dart';
+import '../../../../core/services/api_client.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  MY JOBS CONTROLLER
 // ═══════════════════════════════════════════════════════════════════
+// "Available" → /api/jobs ; "Applied/Assigned" → /api/jobs/getAppliedJobs.
+// Dono ko UI Map shape me map karte hain taaki existing cards/filters
+// unchanged rahein.
 class MyJobsController extends GetxController {
-  final isLoading = false.obs;
+  final _jobsApi = JobsApiService();
 
-  // ── Vendor-posted requirements (available to apply) ────────────
-  final availableJobs = <Map<String, dynamic>>[
-    {
-      'id': 'req_001',
-      'role': 'Mason',
-      'company': 'Rajesh Construction',
-      'location': 'Vaishali Nagar, Jaipur',
-      'rate': '₹650/day',
-      'workers': 3,
-      'duration': '30 days',
-      'startDate': '25 Mar 2026',
-      'urgent': true,
-    },
-    {
-      'id': 'req_002',
-      'role': 'Tile Worker',
-      'company': 'Sharma Builders',
-      'location': 'Malviya Nagar, Jaipur',
-      'rate': '₹600/day',
-      'workers': 5,
-      'duration': '45 days',
-      'startDate': '1 Apr 2026',
-      'urgent': false,
-    },
-    {
-      'id': 'req_003',
-      'role': 'Helper',
-      'company': 'Gupta Constructions',
-      'location': 'Mansarovar, Jaipur',
-      'rate': '₹450/day',
-      'workers': 8,
-      'duration': '60 days',
-      'startDate': '28 Mar 2026',
-      'urgent': true,
-    },
-    {
-      'id': 'req_004',
-      'role': 'Electrician',
-      'company': 'Metro Infra Pvt Ltd',
-      'location': 'Sitapura, Jaipur',
-      'rate': '₹800/day',
-      'workers': 2,
-      'duration': '20 days',
-      'startDate': '2 Apr 2026',
-      'urgent': false,
-    },
-  ].obs;
+  final isLoading = false.obs;         // available
+  final isLoadingApplied = false.obs;  // applied
 
-  // ── Admin-assigned jobs ────────────────────────────────────────
-  final jobs = <Map<String, dynamic>>[
-    {
-      'id': 'job_001',
-      'role': 'Mason',
-      'company': 'Rajesh Construction',
-      'location': 'Jaipur',
-      'rate': '₹650/day',
-      'dates': '20 Mar – 20 Apr 2026',
-      'status': 'active',
-    },
-    {
-      'id': 'job_002',
-      'role': 'Tile Worker',
-      'company': 'Sharma Builders',
-      'location': 'Jaipur',
-      'rate': '₹600/day',
-      'dates': '10 Jan – 10 Feb 2026',
-      'status': 'completed',
-    },
-    {
-      'id': 'job_003',
-      'role': 'Helper',
-      'company': 'Gupta Constructions',
-      'location': 'Jaipur',
-      'rate': '₹450/day',
-      'dates': '01 Nov – 30 Nov 2025',
-      'status': 'completed',
-    },
-  ].obs;
+  final availableJobs = <Map<String, dynamic>>[].obs;
+  final appliedJobs = <Map<String, dynamic>>[].obs;
 
-  List<Map<String, dynamic>> get activeJobs =>
-      jobs.where((j) => j['status'] == 'active').toList();
+  @override
+  void onInit() {
+    super.onInit();
+    fetchJobs();
+    fetchAppliedJobs();
+  }
 
-  List<Map<String, dynamic>> get completedJobs =>
-      jobs.where((j) => j['status'] == 'completed').toList();
+  // ── Available jobs (vendor-posted, open to apply) ──────────────────
+  Future<void> fetchJobs() async {
+    isLoading.value = true;
+    try {
+      final res = await _jobsApi.getJobs();
+      if (res.success) {
+        availableJobs.value = res.data.map(_jobToMap).toList();
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ── Applied / Assigned jobs ────────────────────────────────────────
+  Future<void> fetchAppliedJobs() async {
+    isLoadingApplied.value = true;
+    try {
+      final res = await _jobsApi.getAppliedJobs();
+      if (res.success) {
+        appliedJobs.value = res.data.map(_appliedToMap).toList();
+      }
+    } finally {
+      isLoadingApplied.value = false;
+    }
+  }
+
+  String _rate(JobModel j, bool isDaily) =>
+      j.salary != null ? '₹${j.salary}/${isDaily ? 'day' : 'month'}' : '';
+
+  /// JobModel → UI Map (Available card shape).
+  Map<String, dynamic> _jobToMap(JobModel j) {
+    final isDaily = (j.salaryType ?? '').toLowerCase() == 'daily';
+    return {
+      'apiId': j.id, // detail fetch ke liye real id
+      'id': j.id ?? '',
+      'type': isDaily ? 'daily' : 'permanent',
+      'role': j.title ?? '',
+      'company': j.companyName,
+      'location': j.location ?? '',
+      'lat': j.latitude,
+      'lng': j.longitude,
+      'rate': _rate(j, isDaily),
+      'workers': j.workersCount,
+      'duration': j.duration ?? '',
+      'startDate': j.postedAt != null
+          ? DateFormat('d MMM yyyy').format(j.postedAt!)
+          : '',
+      'urgent': j.isUrgent,
+      'notes': j.description, // list me null; detail fetch par bharta hai
+    };
+  }
+
+  /// AppliedJobModel → UI Map (Applied card shape).
+  Map<String, dynamic> _appliedToMap(AppliedJobModel a) {
+    final j = a.job;
+    final isDaily = (j?.salaryType ?? '').toLowerCase() == 'daily';
+    return {
+      'apiId': j?.id,
+      'id': a.id ?? '',
+      'type': isDaily ? 'daily' : 'permanent',
+      'role': j?.title ?? '',
+      'company': j?.companyName ?? '',
+      'location': j?.location ?? '',
+      'lat': j?.latitude,
+      'lng': j?.longitude,
+      'rate': j != null ? _rate(j, isDaily) : '',
+      'workers': j?.workersCount ?? 0,
+      'dates': a.createdAt != null
+          ? 'Applied ${DateFormat('d MMM yyyy').format(a.createdAt!)}'
+          : '',
+      // Real backend status seedha UI me — pending/shortlisted/confirmed/
+      // rejected/hired. Vendor contact gate + status badge dono isi se drive.
+      'appStatus': (a.status ?? 'pending').toLowerCase(),
+      'notes': (a.coverLetter?.isNotEmpty ?? false)
+          ? a.coverLetter
+          : j?.description,
+    };
+  }
 }

@@ -1,95 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
-
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../controllers/splash_controller.dart';
 
-
-class SplashView extends StatelessWidget {
+class SplashView extends StatefulWidget {
   const SplashView({super.key});
 
   @override
+  State<SplashView> createState() => _SplashViewState();
+}
+
+class _SplashViewState extends State<SplashView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoFade;
+  late final Animation<double> _bottomFade;
+  late final Animation<Offset> _bottomSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
+
+    // Logo: chota se bada — "pop" feel ke liye easeOutBack (thoda overshoot).
+    _logoScale = Tween(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(
+          parent: _ctrl, curve: const Interval(0.0, 0.7, curve: Curves.easeOutBack)),
+    );
+    _logoFade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+          parent: _ctrl, curve: const Interval(0.0, 0.45, curve: Curves.easeIn)),
+    );
+
+    // Bottom block (loader + powered-by) — logo settle hone ke baad fade+slide in.
+    _bottomFade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+          parent: _ctrl, curve: const Interval(0.55, 1.0, curve: Curves.easeIn)),
+    );
+    _bottomSlide = Tween(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+          parent: _ctrl, curve: const Interval(0.55, 1.0, curve: Curves.easeOut)),
+    );
+
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(SplashController());
+    final controller = Get.find<SplashController>();
 
     return Scaffold(
-      body: Container(
+      body: DecoratedBox(
         decoration: const BoxDecoration(gradient: AppColors.splashGradient),
         child: SafeArea(
           child: SizedBox.expand(
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // ── Brand Section ──────────────────────────────
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 60),
-                    // Logo circle
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 8)),
-                        ],
-                      ),
-                      child: const Center(
-                        child: _SitelinkLogoIcon(),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // App name
-                    Text(
-                      AppStrings.appName,
-                      style: KTextStyle.poppins(fs: 32, fw: FontWeight.bold, c: Colors.white),
-                    ),
-                    const SizedBox(height: 16),
-                    // Taglines
-                    Text(
-                      AppStrings.taglineHi,
-                      style: KTextStyle.poppins(fs: 14, c: Colors.white.withOpacity(0.8)),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      AppStrings.taglineEn,
-                      style: KTextStyle.poppins(fs: 13, c: Colors.white.withOpacity(0.6)),
-                    ),
-                  ],
-                ),
 
-                // ── Loading Footer ─────────────────────────────
-                Positioned(
-                  bottom: 48,
-                  child: Column(
-                    children: [
-                      Obx(() => controller.isLoading.value
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const SizedBox.shrink()),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Loading...',
-                        style: KTextStyle.poppins(fs: 11, c: Colors.white.withOpacity(0.6), letterSpacing: 1.5),
-                      ),
-                      const SizedBox(height: 32),
-                      Text(
-                        AppStrings.poweredBy,
-                        style: KTextStyle.poppins(fs: 10, c: Colors.white.withOpacity(0.5)),
-                      ),
-                    ],
+                // ── Center: Logo, animated scale + fade in ─────
+                FadeTransition(
+                  opacity: _logoFade,
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: Image.asset(
+                      'assets/images/app_logo_without_backgourd.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
+
+                // ── Bottom: Loading + Powered By ───────────────
+                Positioned(
+                  bottom: 36,
+                  child: FadeTransition(
+                    opacity: _bottomFade,
+                    child: SlideTransition(
+                      position: _bottomSlide,
+                      child: Column(
+                        children: [
+                          Obx(() => controller.isLoading.value
+                              ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: AppColors.primary.withOpacity(0.5),
+                            ),
+                          )
+                              : const SizedBox.shrink()),
+
+                          const SizedBox(height: 12),
+
+                          Text(
+                            AppStrings.PoweredBySmartnexTechnology,
+                            style: KTextStyle.poppins(
+                              fs: 11,
+                              c: Colors.black.withOpacity(0.35),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
               ],
             ),
           ),
@@ -97,61 +125,4 @@ class SplashView extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SitelinkLogoIcon extends StatelessWidget {
-  const _SitelinkLogoIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(60, 60),
-      painter: _LogoPainter(),
-    );
-  }
-}
-
-class _LogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    // Location pin body
-    paint.color = AppColors.primaryDark;
-    final path = Path();
-    path.moveTo(size.width * 0.5, size.height * 0.08);
-    path.cubicTo(size.width * 0.25, size.height * 0.08, size.width * 0.08, size.height * 0.38,
-        size.width * 0.08, size.height * 0.5);
-    path.cubicTo(size.width * 0.08, size.height * 0.75, size.width * 0.5, size.height * 0.95,
-        size.width * 0.5, size.height * 0.95);
-    path.cubicTo(size.width * 0.5, size.height * 0.95, size.width * 0.92, size.height * 0.75,
-        size.width * 0.92, size.height * 0.5);
-    path.cubicTo(size.width * 0.92, size.height * 0.38, size.width * 0.75, size.height * 0.08,
-        size.width * 0.5, size.height * 0.08);
-    canvas.drawPath(path, paint);
-
-    // Hard hat shape (white)
-    paint.color = Colors.white;
-    final hatPath = Path();
-    hatPath.moveTo(size.width * 0.22, size.height * 0.52);
-    hatPath.lineTo(size.width * 0.78, size.height * 0.52);
-    hatPath.lineTo(size.width * 0.78, size.height * 0.58);
-    hatPath.lineTo(size.width * 0.22, size.height * 0.58);
-    hatPath.close();
-    canvas.drawPath(hatPath, paint);
-
-    final arcRect = Rect.fromCenter(
-      center: Offset(size.width * 0.5, size.height * 0.52),
-      width: size.width * 0.42,
-      height: size.height * 0.32,
-    );
-    canvas.drawArc(arcRect, 3.14, 3.14, false, paint);
-
-    // Center dot
-    paint.color = AppColors.primaryDark;
-    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.43), size.width * 0.06, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/new_request_controller.dart';
+import 'location_picker_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  NEW REQUEST VIEW
@@ -19,7 +21,7 @@ class NewRequestView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.newRequestTitle),
+      appBar: GradientAppBar(title: AppStrings.NewRequest),
       body: SafeArea(
         top: false,
         child: Column(
@@ -30,52 +32,157 @@ class NewRequestView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Section 1: Role Required ───────────
-                    _SectionCard(
-                      title: AppStrings.roleRequired,
-                      icon: Icons.engineering_rounded,
-                      child: Obx(() => Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: AppStrings.allSkills.map((s) {
-                          final sel =
-                          ctrl.selectedRoles.contains(s);
-                          return GestureDetector(
-                            onTap: () => sel
-                                ? ctrl.selectedRoles.remove(s)
-                                : ctrl.selectedRoles.add(s),
-                            child: Container(
-                              padding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: sel
-                                    ? AppColors.primary
-                                    : AppColors.surface,
-                                borderRadius:
-                                BorderRadius.circular(
-                                    AppDimens.radiusMax),
-                                border: Border.all(
-                                    color: sel
-                                        ? AppColors.primary
-                                        : AppColors.border),
-                              ),
-                              child: Text(
-                                s,
-                                style: KTextStyle.poppins(
-                                  fs: 12,
-                                  fw: sel
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                  c: sel
-                                      ? Colors.white
-                                      : AppColors.textSecondary,
-                                ),
+
+                    // ── Pre-filled worker banner ───────────
+                    Obx(() {
+                      if (ctrl.preFilledWorkerName.value.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return Container(
+                        margin: const EdgeInsets.only(
+                            bottom: AppDimens.md),
+                        padding: const EdgeInsets.all(AppDimens.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(
+                              AppDimens.radiusMd),
+                          border: Border.all(
+                              color:
+                              AppColors.primary.withOpacity(0.25)),
+                        ),
+                        child: Row(
+                          children: [
+                            AvatarCircle(
+                              initials: ctrl.preFilledWorkerName.value
+                                  .substring(0, 2)
+                                  .toUpperCase(),
+                              size: 36,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Hiring: ${ctrl.preFilledWorkerName.value}',
+                                    style: KTextStyle.poppins(
+                                        fs: 13,
+                                        fw: FontWeight.w600,
+                                        c: AppColors.primary),
+                                  ),
+                                  Text(
+                                    'Skill: ${ctrl.preFilledSkill.value}  ·  ${ctrl.preFilledWorkerId.value}',
+                                    style: KTextStyle.poppins(
+                                        fs: 11,
+                                        c: AppColors.textSecondary),
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        }).toList(),
-                      )),
+                            GestureDetector(
+                              onTap: () {
+                                ctrl.preFilledWorkerName.value = '';
+                                ctrl.preFilledWorkerId.value = '';
+                                ctrl.preFilledSkill.value = '';
+                              },
+                              child: const Icon(Icons.close_rounded,
+                                  size: 18, color: AppColors.textHint),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // ── Section 1: Role Required ───────────
+                    _SectionCard(
+                      title: AppStrings.RoleRequired,
+                      icon: Icons.engineering_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _showRolePicker(context, ctrl),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 13),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                border: Border.all(color: AppColors.border),
+                                borderRadius:
+                                    BorderRadius.circular(AppDimens.radiusMd),
+                              ),
+                              child: Row(children: [
+                                const Icon(Icons.engineering_outlined,
+                                    size: 18, color: AppColors.textHint),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Obx(() {
+                                    final count = ctrl.selectedRoles.length;
+                                    return Text(
+                                      count == 0
+                                          ? 'Select roles...'
+                                          : '$count role${count == 1 ? '' : 's'} selected',
+                                      style: KTextStyle.poppins(
+                                        fs: 13,
+                                        c: count == 0
+                                            ? AppColors.textHint
+                                            : AppColors.textPrimary,
+                                      ),
+                                    );
+                                  }),
+                                ),
+                                const Icon(Icons.keyboard_arrow_down_rounded,
+                                    size: 20, color: AppColors.textHint),
+                              ]),
+                            ),
+                          ),
+                          Obx(() {
+                            if (ctrl.selectedRoles.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: ctrl.selectedRoles.map((s) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withOpacity(0.08),
+                                      borderRadius:
+                                          BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: AppColors.primary
+                                              .withOpacity(0.3)),
+                                    ),
+                                    child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(s,
+                                              style: KTextStyle.poppins(
+                                                  fs: 12,
+                                                  c: AppColors.primary)),
+                                          const SizedBox(width: 4),
+                                          GestureDetector(
+                                            onTap: () => ctrl.selectedRoles
+                                                .remove(s),
+                                            child: const Icon(
+                                                Icons.close_rounded,
+                                                size: 14,
+                                                color: AppColors.primary),
+                                          ),
+                                        ]),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: AppDimens.md),
 
@@ -83,21 +190,23 @@ class NewRequestView extends StatelessWidget {
                     Obx(() => ctrl.selectedRoles.isEmpty
                         ? const SizedBox.shrink()
                         : _SectionCard(
-                      title: AppStrings.quantity,
+                      title: AppStrings.Quantity,
                       icon: Icons.people_outline_rounded,
                       child: Column(
-                        children: ctrl.selectedRoles.map((role) {
+                        children:
+                        ctrl.selectedRoles.map((role) {
                           return Padding(
                             padding: const EdgeInsets.only(
                                 bottom: 10),
                             child: Row(
                               children: [
                                 SkillChip(
-                                    label: role, selected: true),
+                                    label: role,
+                                    selected: true),
                                 const Spacer(),
                                 Obx(() => CounterWidget(
-                                  value:
-                                  ctrl.quantities[role] ??
+                                  value: ctrl.quantities[
+                                  role] ??
                                       1,
                                   onIncrement: () => ctrl
                                       .incrementQty(role),
@@ -116,12 +225,12 @@ class NewRequestView extends StatelessWidget {
 
                     // ── Section 3: Location ────────────────
                     _SectionCard(
-                      title: AppStrings.siteLocation,
+                      title: AppStrings.SiteLocation,
                       icon: Icons.location_on_outlined,
                       child: Column(
                         children: [
                           SitelinkTextField(
-                            label: '${AppStrings.city} *',
+                            label: '${AppStrings.City} *',
                             hint: 'Enter city',
                             controller: ctrl.cityCtrl,
                             prefixIcon:
@@ -130,11 +239,61 @@ class NewRequestView extends StatelessWidget {
                           const SizedBox(height: AppDimens.md),
                           SitelinkTextField(
                             label: 'Area / Landmark',
-                            hint:
-                            'Area or landmark (optional)',
+                            hint: 'Area or landmark (optional)',
                             controller: ctrl.areaCtrl,
                             prefixIcon: Icons.place_outlined,
                             isOptional: true,
+                          ),
+                          const SizedBox(height: AppDimens.md),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await Get.to<LatLng>(
+                                  () => const LocationPickerView());
+                              if (picked != null) {
+                                ctrl.setPickedLocation(picked);
+                              }
+                            },
+                            child: Obx(() {
+                              final set = ctrl.pickedLat.value != null;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 13),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  border:
+                                      Border.all(color: AppColors.border),
+                                  borderRadius: BorderRadius.circular(
+                                      AppDimens.radiusMd),
+                                ),
+                                child: Row(children: [
+                                  Icon(
+                                    set
+                                        ? Icons.location_on_rounded
+                                        : Icons.map_outlined,
+                                    size: 18,
+                                    color: set
+                                        ? AppColors.success
+                                        : AppColors.textHint,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      set
+                                          ? 'Location set — Change'
+                                          : 'Pick exact location on map',
+                                      style: KTextStyle.poppins(
+                                        fs: 13,
+                                        c: set
+                                            ? AppColors.textPrimary
+                                            : AppColors.textHint,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right_rounded,
+                                      size: 18, color: AppColors.textHint),
+                                ]),
+                              );
+                            }),
                           ),
                         ],
                       ),
@@ -143,12 +302,12 @@ class NewRequestView extends StatelessWidget {
 
                     // ── Section 4: Timeline ────────────────
                     _SectionCard(
-                      title: AppStrings.timeline,
+                      title: AppStrings.Timeline,
                       icon: Icons.calendar_today_rounded,
                       child: Column(
                         children: [
                           SitelinkTextField(
-                            label: AppStrings.startDate,
+                            label: AppStrings.StartDate,
                             hint: 'Select date',
                             controller: ctrl.startDateCtrl,
                             prefixIcon: Icons.event_rounded,
@@ -156,8 +315,8 @@ class NewRequestView extends StatelessWidget {
                             onTap: () async {
                               final d = await showDatePicker(
                                 context: context,
-                                initialDate: DateTime.now()
-                                    .add(const Duration(days: 1)),
+                                initialDate: DateTime.now().add(
+                                    const Duration(days: 1)),
                                 firstDate: DateTime.now(),
                                 lastDate: DateTime.now().add(
                                     const Duration(days: 365)),
@@ -165,7 +324,8 @@ class NewRequestView extends StatelessWidget {
                                   data: ThemeData.light().copyWith(
                                     colorScheme:
                                     const ColorScheme.light(
-                                        primary: AppColors.primary),
+                                        primary:
+                                        AppColors.primary),
                                   ),
                                   child: child!,
                                 ),
@@ -178,7 +338,7 @@ class NewRequestView extends StatelessWidget {
                           ),
                           const SizedBox(height: AppDimens.md),
                           Text(
-                            AppStrings.duration,
+                            AppStrings.Duration,
                             style: KTextStyle.poppins(
                                 fs: 12,
                                 fw: FontWeight.w500,
@@ -186,7 +346,8 @@ class NewRequestView extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Obx(() => DropdownButtonFormField<String>(
-                            value: ctrl.duration.value.isEmpty
+                            value:
+                            ctrl.duration.value.isEmpty
                                 ? null
                                 : ctrl.duration.value,
                             hint: Text(
@@ -209,14 +370,16 @@ class NewRequestView extends StatelessWidget {
                                 borderSide: const BorderSide(
                                     color: AppColors.border),
                               ),
-                              enabledBorder: OutlineInputBorder(
+                              enabledBorder:
+                              OutlineInputBorder(
                                 borderRadius:
                                 BorderRadius.circular(
                                     AppDimens.radiusMd),
                                 borderSide: const BorderSide(
                                     color: AppColors.border),
                               ),
-                              focusedBorder: OutlineInputBorder(
+                              focusedBorder:
+                              OutlineInputBorder(
                                 borderRadius:
                                 BorderRadius.circular(
                                     AppDimens.radiusMd),
@@ -233,20 +396,268 @@ class NewRequestView extends StatelessWidget {
                                 .map((d) => DropdownMenuItem(
                                 value: d,
                                 child: Text(d,
-                                    style: KTextStyle.poppins(
-                                        fs: 13))))
+                                    style: KTextStyle
+                                        .poppins(fs: 13))))
                                 .toList(),
                             onChanged: (v) =>
                             ctrl.duration.value = v ?? '',
                           )),
+                          Obx(() => ctrl.duration.value != 'Custom'
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: AppDimens.md),
+                                  child: SitelinkTextField(
+                                    label: 'Custom Duration *',
+                                    hint: 'e.g. 6 Weeks',
+                                    controller: ctrl.customDurationCtrl,
+                                    prefixIcon: Icons.edit_calendar_outlined,
+                                  ),
+                                )),
                         ],
                       ),
                     ),
                     const SizedBox(height: AppDimens.md),
 
+                    // ── Section 4b: Pay & Experience ───────
+                    _SectionCard(
+                      title: 'Pay & Experience',
+                      icon: Icons.currency_rupee_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SitelinkTextField(
+                            label: 'Salary (₹) *',
+                            hint: 'e.g. 900',
+                            controller: ctrl.salaryCtrl,
+                            keyboardType: TextInputType.number,
+                            prefixIcon: Icons.payments_outlined,
+                          ),
+                          const SizedBox(height: AppDimens.md),
+                          Text('Salary Type',
+                              style: KTextStyle.poppins(
+                                  fs: 12,
+                                  fw: FontWeight.w500,
+                                  c: AppColors.textSecondary)),
+                          const SizedBox(height: 6),
+                          Obx(() => Row(
+                                children:
+                                    ['daily', 'weekly', 'monthly'].map((t) {
+                                  final sel = ctrl.salaryType.value == t;
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.only(right: 8),
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          ctrl.salaryType.value = t,
+                                      child: Container(
+                                        padding: const EdgeInsets
+                                            .symmetric(
+                                            horizontal: 14,
+                                            vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: sel
+                                              ? AppColors.primary
+                                              : AppColors.surface,
+                                          borderRadius:
+                                              BorderRadius.circular(
+                                                  AppDimens.radiusMax),
+                                          border: Border.all(
+                                              color: sel
+                                                  ? AppColors.primary
+                                                  : AppColors.border),
+                                        ),
+                                        child: Text(
+                                          t[0].toUpperCase() +
+                                              t.substring(1),
+                                          style: KTextStyle.poppins(
+                                            fs: 12,
+                                            fw: sel
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                            c: sel
+                                                ? Colors.white
+                                                : AppColors
+                                                    .textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              )),
+                          const SizedBox(height: AppDimens.md),
+                          SitelinkTextField(
+                            label: 'Experience Required (years)',
+                            hint: 'e.g. 3',
+                            controller: ctrl.experienceCtrl,
+                            keyboardType: TextInputType.number,
+                            isOptional: true,
+                          ),
+                          const SizedBox(height: AppDimens.md),
+                          Obx(() => Row(children: [
+                                Expanded(
+                                  child: Text('Urgent hiring?',
+                                      style: KTextStyle.poppins(
+                                          fs: 12,
+                                          fw: FontWeight.w500,
+                                          c: AppColors.textSecondary)),
+                                ),
+                                Switch(
+                                  value: ctrl.isUrgent.value,
+                                  onChanged: (v) =>
+                                      ctrl.isUrgent.value = v,
+                                  activeColor: AppColors.primary,
+                                ),
+                              ])),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.md),
+
+                    // ── Section 4c: Amenities & Benefits ───
+                    Column(children: [
+                      _SectionCard(
+                        title: 'Amenities & Benefits',
+                        icon: Icons.card_giftcard_rounded,
+                        action: GestureDetector(
+                          onTap: () => _showAddAmenity(context, ctrl),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.add_circle_outline_rounded,
+                                size: 15, color: AppColors.primary),
+                            const SizedBox(width: 3),
+                            Text('Add',
+                                style: KTextStyle.poppins(
+                                    fs: 12,
+                                    fw: FontWeight.w600,
+                                    c: AppColors.primary)),
+                          ]),
+                        ),
+                        child: Obx(() {
+                          if (ctrl.amenitiesLoading.value) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: AppColors.primary),
+                                ),
+                              ),
+                            );
+                          }
+                          if (ctrl.groupedAmenities.isEmpty) {
+                            return Row(children: [
+                              Expanded(
+                                child: Text(
+                                  'No amenities loaded — tap "Add" to create one.',
+                                  style: KTextStyle.poppins(
+                                      fs: 12, c: AppColors.textHint),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: ctrl.loadAmenities,
+                                child: Text('Retry',
+                                    style: KTextStyle.poppins(
+                                        fs: 12,
+                                        fw: FontWeight.w600,
+                                        c: AppColors.primary)),
+                              ),
+                            ]);
+                          }
+                          return Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: ctrl.groupedAmenities.entries
+                                .map((entry) => Padding(
+                                      padding: const EdgeInsets.only(
+                                          bottom: 10),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(entry.key,
+                                              style: KTextStyle.poppins(
+                                                  fs: 11.5,
+                                                  fw: FontWeight.w600,
+                                                  c: AppColors
+                                                      .textSecondary)),
+                                          const SizedBox(height: 6),
+                                          Obx(() => Wrap(
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                children: entry.value
+                                                    .map((a) {
+                                                  final numId =
+                                                      a.numericId;
+                                                  final sel = ctrl
+                                                      .selectedAmenityIds
+                                                      .contains(numId);
+                                                  return GestureDetector(
+                                                    onTap: () => ctrl
+                                                        .toggleAmenity(
+                                                            numId),
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 6),
+                                                      decoration:
+                                                          BoxDecoration(
+                                                        color: sel
+                                                            ? AppColors
+                                                                .selectionBg
+                                                            : AppColors
+                                                                .surface,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(
+                                                                    20),
+                                                        border: Border.all(
+                                                            color: sel
+                                                                ? AppColors
+                                                                    .primary
+                                                                : AppColors
+                                                                    .border),
+                                                      ),
+                                                      child: Text(
+                                                        '${a.icon ?? ''} ${a.name ?? ''}'
+                                                            .trim(),
+                                                        style: KTextStyle
+                                                            .poppins(
+                                                          fs: 11.5,
+                                                          fw: sel
+                                                              ? FontWeight
+                                                                  .w600
+                                                              : FontWeight
+                                                                  .normal,
+                                                          c: sel
+                                                              ? AppColors
+                                                                  .primary
+                                                              : AppColors
+                                                                  .textSecondary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              )),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: AppDimens.md),
+                    ]),
+
                     // ── Section 5: Special Requirements ───
                     _SectionCard(
-                      title: AppStrings.specialReq,
+                      title: AppStrings.SpecialRequirements,
                       icon: Icons.note_alt_outlined,
                       child: TextFormField(
                         controller: ctrl.specialReqCtrl,
@@ -275,9 +686,11 @@ class NewRequestView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(
                                 AppDimens.radiusMd),
                             borderSide: const BorderSide(
-                                color: AppColors.primary, width: 1.5),
+                                color: AppColors.primary,
+                                width: 1.5),
                           ),
-                          contentPadding: const EdgeInsets.all(14),
+                          contentPadding:
+                          const EdgeInsets.all(14),
                         ),
                       ),
                     ),
@@ -312,7 +725,7 @@ class NewRequestView extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '$summary  ·  ${ctrl.cityCtrl.text.isEmpty ? 'Location' : ctrl.cityCtrl.text}  ·  ${ctrl.duration.value.isEmpty ? 'Duration' : ctrl.duration.value.split('/').first}',
+                                '$summary  ·  ${ctrl.cityCtrl.text.isEmpty ? 'Location' : ctrl.cityCtrl.text}  ·  ${ctrl.effectiveDuration.isEmpty ? 'Duration' : ctrl.effectiveDuration.split('/').first}',
                                 style: KTextStyle.poppins(
                                     fs: 12,
                                     fw: FontWeight.w500,
@@ -332,20 +745,17 @@ class NewRequestView extends StatelessWidget {
 
             // ── Sticky Submit ──────────────────────────────
             Container(
-              padding: EdgeInsets.fromLTRB(
-                AppDimens.lg,
-                AppDimens.md,
-                AppDimens.lg,
-                AppDimens.md +
-                    MediaQuery.of(context).padding.bottom,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.lg,
+                vertical: AppDimens.md,
               ),
               decoration: const BoxDecoration(
                 color: AppColors.surface,
-                border:
-                Border(top: BorderSide(color: AppColors.divider)),
+                border: Border(
+                    top: BorderSide(color: AppColors.divider)),
               ),
               child: Obx(() => CustomButton(
-                label: AppStrings.submitRequest,
+                label: AppStrings.SubmitRequest,
                 onTap: ctrl.submitRequest,
                 isLoading: ctrl.isLoading.value,
               )),
@@ -363,6 +773,240 @@ class NewRequestView extends StatelessWidget {
     ];
     return months[m - 1];
   }
+
+  // ── Role picker — searchable bottom sheet (scales past a handful) ──
+  void _showRolePicker(BuildContext context, NewRequestController ctrl) {
+    final searchCtrl = TextEditingController();
+    final query = ''.obs;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollController) => Padding(
+          padding: EdgeInsets.only(
+            left: AppDimens.lg,
+            right: AppDimens.lg,
+            top: AppDimens.md,
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + AppDimens.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text('Select Roles',
+                  style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: searchCtrl,
+                style: KTextStyle.poppins(fs: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search roles...',
+                  hintStyle:
+                      KTextStyle.poppins(fs: 12, c: AppColors.textHint),
+                  prefixIcon: const Icon(Icons.search_outlined,
+                      size: 18, color: AppColors.textHint),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                ),
+                onChanged: (v) => query.value = v,
+              ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: Obx(() {
+                  final q = query.value.toLowerCase().trim();
+                  final filtered = AppStrings.allSkills
+                      .where((s) =>
+                          q.isEmpty || s.toLowerCase().contains(q))
+                      .toList()
+                    ..sort(
+                        (a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Text('No roles found',
+                          style: KTextStyle.poppins(
+                              fs: 13, c: AppColors.textHint)),
+                    );
+                  }
+
+                  // Har letter ka pehla index — A-Z bar isse jump karta hai.
+                  final firstIndexOfLetter = <String, int>{};
+                  for (int i = 0; i < filtered.length; i++) {
+                    final letter = filtered[i][0].toUpperCase();
+                    firstIndexOfLetter.putIfAbsent(letter, () => i);
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          controller: scrollController,
+                          itemExtent: _RoleAlphabetIndex.tileExtent,
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final s = filtered[i];
+                            return Obx(() {
+                              final sel = ctrl.selectedRoles.contains(s);
+                              return Container(
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          color: AppColors.divider,
+                                          width: 1)),
+                                ),
+                                child: CheckboxListTile(
+                                  value: sel,
+                                  onChanged: (_) {
+                                    if (sel) {
+                                      ctrl.selectedRoles.remove(s);
+                                    } else {
+                                      ctrl.selectedRoles.add(s);
+                                      ctrl.quantities[s] =
+                                          ctrl.quantities[s] ?? 1;
+                                    }
+                                  },
+                                  title: Text(s,
+                                      style: KTextStyle.poppins(fs: 13)),
+                                  activeColor: AppColors.primary,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                ),
+                              );
+                            });
+                          },
+                        ),
+                      ),
+                      _RoleAlphabetIndex(
+                        availableLetters: firstIndexOfLetter.keys.toSet(),
+                        onLetterSelected: (letter) {
+                          final idx = firstIndexOfLetter[letter];
+                          if (idx == null || !scrollController.hasClients) {
+                            return;
+                          }
+                          final target = (idx * _RoleAlphabetIndex.tileExtent)
+                              .clamp(0.0, scrollController.position.maxScrollExtent);
+                          scrollController.animateTo(
+                            target,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              SafeArea(
+                child: CustomButton(
+                  label: 'Done',
+                  onTap: () => Navigator.pop(sheetCtx),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Add custom amenity dialog ─────────────────────────────────────
+  void _showAddAmenity(BuildContext context, NewRequestController ctrl) {
+    final nameCtrl = TextEditingController();
+    final category = NewRequestController.amenityCategories.first.obs;
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: Text('Add Amenity',
+            style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SitelinkTextField(
+                label: 'Amenity Name',
+                controller: nameCtrl,
+                hint: 'e.g. Provident Fund'),
+            const SizedBox(height: 12),
+            Text('Category',
+                style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Obx(() => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: category.value,
+                      isExpanded: true,
+                      items: NewRequestController.amenityCategories
+                          .map((c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(c,
+                                  style: KTextStyle.poppins(fs: 13))))
+                          .toList(),
+                      onChanged: (v) => category.value = v ?? category.value,
+                    ),
+                  ),
+                )),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Get.back();
+              ctrl.addCustomAmenity(name, category.value);
+            },
+            child: Text('Add',
+                style: KTextStyle.poppins(
+                    fs: 13, fw: FontWeight.w600, c: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Section Card ──────────────────────────────────────────────────
@@ -370,11 +1014,13 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Widget child;
+  final Widget? action;
 
   const _SectionCard(
       {required this.title,
-        required this.icon,
-        required this.child});
+      required this.icon,
+      required this.child,
+      this.action});
 
   @override
   Widget build(BuildContext context) {
@@ -401,6 +1047,7 @@ class _SectionCard extends StatelessWidget {
                 style: KTextStyle.poppins(
                     fs: 14, fw: FontWeight.w700),
               ),
+              if (action != null) ...[const Spacer(), action!],
             ],
           ),
           const SizedBox(height: AppDimens.md),
@@ -410,5 +1057,155 @@ class _SectionCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ROLE PICKER — right-side A-Z fast-scroll index
+// ═══════════════════════════════════════════════════════════════════
+// Tap ya vertical drag se list us letter ke pehle role tak jump karti hai.
+// Jin letters ke roles nahi hai wo dim/disabled dikhte hai lekin drag
+// unhe nazdeeki available letter par snap kar deta hai.
+class _RoleAlphabetIndex extends StatefulWidget {
+  static const double tileExtent = 46.0;
+  static const List<String> _alphabet = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+  ];
+
+  final Set<String> availableLetters;
+  final ValueChanged<String> onLetterSelected;
+
+  const _RoleAlphabetIndex({
+    required this.availableLetters,
+    required this.onLetterSelected,
+  });
+
+  @override
+  State<_RoleAlphabetIndex> createState() => _RoleAlphabetIndexState();
+}
+
+class _RoleAlphabetIndexState extends State<_RoleAlphabetIndex> {
+  String? _activeLetter;
+
+  String _nearestAvailableLetter(int rawIndex) {
+    final clamped = rawIndex.clamp(0, _RoleAlphabetIndex._alphabet.length - 1);
+    if (widget.availableLetters.isEmpty) {
+      return _RoleAlphabetIndex._alphabet[clamped];
+    }
+    for (int offset = 0; offset < _RoleAlphabetIndex._alphabet.length; offset++) {
+      final down = clamped - offset;
+      if (down >= 0 &&
+          widget.availableLetters
+              .contains(_RoleAlphabetIndex._alphabet[down])) {
+        return _RoleAlphabetIndex._alphabet[down];
+      }
+      final up = clamped + offset;
+      if (up < _RoleAlphabetIndex._alphabet.length &&
+          widget.availableLetters
+              .contains(_RoleAlphabetIndex._alphabet[up])) {
+        return _RoleAlphabetIndex._alphabet[up];
+      }
+    }
+    return _RoleAlphabetIndex._alphabet[clamped];
+  }
+
+  void _handleTouch(BuildContext context, double globalDy, double barHeight, double barTop) {
+    final local = (globalDy - barTop).clamp(0.0, barHeight);
+    final rowHeight = barHeight / _RoleAlphabetIndex._alphabet.length;
+    final rawIndex = (local / rowHeight).floor();
+    final letter = _nearestAvailableLetter(rawIndex);
+    if (letter != _activeLetter) {
+      setState(() => _activeLetter = letter);
+    }
+    widget.onLetterSelected(letter);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final barHeight = constraints.maxHeight;
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onVerticalDragStart: (d) {
+              final box = context.findRenderObject() as RenderBox;
+              final barTop = box.localToGlobal(Offset.zero).dy;
+              _handleTouch(context, d.globalPosition.dy, barHeight, barTop);
+            },
+            onVerticalDragUpdate: (d) {
+              final box = context.findRenderObject() as RenderBox;
+              final barTop = box.localToGlobal(Offset.zero).dy;
+              _handleTouch(context, d.globalPosition.dy, barHeight, barTop);
+            },
+            onVerticalDragEnd: (_) => setState(() => _activeLetter = null),
+            onTapUp: (d) {
+              final box = context.findRenderObject() as RenderBox;
+              final barTop = box.localToGlobal(Offset.zero).dy;
+              _handleTouch(context, d.globalPosition.dy, barHeight, barTop);
+              setState(() => _activeLetter = null);
+            },
+            child: Container(
+              width: 20,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              alignment: Alignment.center,
+              child: Column(
+                children: _RoleAlphabetIndex._alphabet.map((letter) {
+                  final isAvailable = widget.availableLetters.contains(letter);
+                  final isActive = _activeLetter == letter;
+                  // Expanded — sheet resize par bhi 26 letters hamesha
+                  // available height ke andar fit hote hai, overflow nahi.
+                  return Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        letter,
+                        style: KTextStyle.poppins(
+                          fs: 9,
+                          fw: isActive ? FontWeight.w800 : FontWeight.w600,
+                          c: isActive
+                              ? AppColors.primary
+                              : (isAvailable
+                                  ? AppColors.textSecondary
+                                  : AppColors.textHint.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          if (_activeLetter != null)
+            Positioned(
+              right: 26,
+              top: (barHeight / 2) - 24,
+              child: Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _activeLetter!,
+                  style: KTextStyle.poppins(
+                      fs: 20, fw: FontWeight.w800, c: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      );
+    });
   }
 }

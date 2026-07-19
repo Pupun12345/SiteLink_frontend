@@ -1,174 +1,190 @@
+// AppStrings getters intentionally PascalCase (backward-compat with
+// existing call-sites) — naming lint yahan expected hai.
+// ignore_for_file: non_constant_identifier_names
+import 'package:get/get.dart';
+
+// ═══════════════════════════════════════════════════════════════════
+//  APP STRINGS — locale-aware (GetX .tr backed)
+// ═══════════════════════════════════════════════════════════════════
+// Har string ab `AppTranslations` (lib/core/i18n/app_translations.dart)
+// ki key se `.tr` ke through aati hai — locale switch hone par live
+// badalti hai. Call-sites waise hi hain: `AppStrings.SendOTP`.
+// Lists (allSkills/durations/idTypes/replacementReasons) backend ko
+// as-is bheji jaati hain (enum-like values) — inhe translate NAHI karte.
 class AppStrings {
   AppStrings._();
 
   // ── App ───────────────────────────────────────────────────────
-  static const String appName     = 'SiteLink';
-  static const String taglineHi   = 'Need Work? Need Workers?';
-  static const String taglineEn   = 'Find Work. Hire Workers.';
-  static const String poweredBy   = 'Powered by Smartnex technology';
+  static String get SiteLink => 'site_link'.tr;
+  static String get NeedWorkNeedWorkers => 'need_work_need_workers'.tr;
+  static String get FindWorkHireWorkers => 'find_work_hire_workers'.tr;
+  static String get PoweredBySmartnexTechnology => 'powered_by_smartnex'.tr;
+  static String get SkillsExperience => 'skills_experience'.tr;
 
   // ── Auth ──────────────────────────────────────────────────────
-  static const String login           = 'Login';
-  static const String enterMobile     = 'Enter Mobile Number';
-  static const String enterMobileHi   = 'Enter Mobile Number';
-  static const String mobileLabel     = 'Mobile Number';
-  static const String sendOtp         = 'Send OTP';
-  static const String verifyOtp       = 'Verify OTP';
-  static const String enterOtp        = 'Enter OTP';
-  static const String verifyBtn       = 'Verify & Continue';
-  static const String resendOtp       = 'Resend OTP';
-  static const String otpSentTo       = '6-digit OTP sent to';
-  static const String otpSentToHi     = 'OTP Sent';
-  static const String termsHint       = 'By continuing, you agree to our';
-  static const String terms           = 'Terms';
-  static const String privacyPolicy   = 'Privacy Policy';
+  static String get Login => 'login'.tr;
+  static String get EnterMobileNumber => 'enter_mobile_number'.tr;
+  static String get MobileNumber => 'mobile_number'.tr;
+  static String get SendOTP => 'send_otp'.tr;
+  static String get VerifyOTP => 'verify_otp'.tr;
+  static String get EnterOTP => 'enter_otp'.tr;
+  static String get VerifyContinue => 'verify_continue'.tr;
+  static String get ResendOTP => 'resend_otp'.tr;
+  static String get SixDigitOTPSentTo => 'six_digit_otp_sent_to'.tr;
+  static String get OTPSent => 'otp_sent'.tr;
+  static String get ByContinuingYouAgreeToOur => 'by_continuing_you_agree'.tr;
+  static String get Terms => 'terms'.tr;
+  static String get PrivacyPolicy => 'privacy_policy'.tr;
 
   // ── Language ──────────────────────────────────────────────────
-  static const String chooseLanguage  = 'Choose Your Language';
-  static const String chooseLanguageHi= 'Choose Language';
-  static const String hindi           = 'Hindi';
-  static const String english         = 'English';
-  static const String continueBtn     = 'Continue';
+  static String get ChooseYourLanguage => 'choose_your_language'.tr;
+  static String get ChooseLanguage => 'choose_language'.tr;
+  static String get Hindi => 'hindi'.tr;
+  static String get English => 'english'.tr;
+  static String get Continue => 'continue_'.tr;
 
   // ── Role ──────────────────────────────────────────────────────
-  static const String iAm            = 'I Am';
-  static const String selectRole     = 'Select your role to continue';
-  static const String selectRoleHi   = 'Select Role';
-  static const String vendor         = 'Vendor';
-  static const String vendorSubEn    = 'I want to hire workers';
-  static const String vendorSubHi    = 'Hire workers';
-  static const String worker         = 'Worker';
-  static const String workerSubEn    = 'I am looking for work';
-  static const String workerSubHi    = 'Looking for work';
+  static String get IAm => 'i_am'.tr;
+  static String get SelectYourRoleToContinue =>
+      'select_your_role_to_continue'.tr;
+  static String get SelectRole => 'select_role'.tr;
+  static String get Vendor => 'vendor'.tr;
+  static String get IWantToHireWorkers => 'i_want_to_hire_workers'.tr;
+  static String get HireWorkers => 'hire_workers'.tr;
+  static String get Worker => 'worker'.tr;
+  static String get IAmLookingForWork => 'i_am_looking_for_work'.tr;
+  static String get LookingForWork => 'looking_for_work'.tr;
 
   // ── Vendor Registration ───────────────────────────────────────
-  static const String companyProfile   = 'Company Profile';
-  static const String companyInfo      = 'Tell us about your company';
-  static const String companyInfoHi    = 'Enter company details';
-  static const String companyName      = 'Company Name';
-  static const String contactPerson    = 'Contact Person';
-  static const String designation      = 'Designation';
-  static const String city             = 'City';
-  static const String workArea         = 'Work Area';
-  static const String gst             = 'GST Number';
-  static const String gstOptional     = '(Optional)';
-  static const String createAccount   = 'Create Account';
-  static const String activationNote  = 'Your account will be activated within 12 hours after review.';
-  static const String activationNoteHi = 'Account will be activated soon.';
+  static String get CompanyProfile => 'company_profile'.tr;
+  static String get TellUsAboutYourCompany => 'tell_us_about_your_company'.tr;
+  static String get EnterCompanyDetails => 'enter_company_details'.tr;
+  static String get CompanyName => 'company_name'.tr;
+  static String get ContactPerson => 'contact_person'.tr;
+  static String get Designation => 'designation'.tr;
+  static String get City => 'city'.tr;
+  static String get WorkArea => 'work_area'.tr;
+  static String get GSTNumber => 'gst_number'.tr;
+  static String get Optional => 'optional'.tr;
+  static String get CreateAccount => 'create_account'.tr;
+  static String get YourAccountWillBeActivatedWithin12HoursAfterReview =>
+      'account_activated_12_hours'.tr;
+  static String get AccountWillBeActivatedSoon => 'account_activated_soon'.tr;
+  static String get ProfileUnderReviewSubtitle =>
+      'profile_under_review_subtitle'.tr;
 
   // ── Worker Registration ───────────────────────────────────────
-  static const String createProfile   = 'Create Profile';
-  static const String personalDetails = 'Personal Details';
-  static const String fullName        = 'Full Name';
-  static const String dob             = 'Date of Birth';
-  static const String gender          = 'Gender';
-  static const String male            = 'Male';
-  static const String female          = 'Female';
-  static const String other           = 'Other';
-  static const String yourSkills      = 'Your Skills';
-  static const String primarySkill    = 'Primary Skill';
-  static const String additionalSkills= 'Additional Skills';
-  static const String experienceYears = 'Total Experience';
-  static const String expDescription  = 'Experience Description';
-  static const String expPlaceholder  = 'Describe your past work';
-  static const String workPreferences = 'Work Preferences';
-  static const String workCity        = 'Work City';
-  static const String preferredArea   = 'Preferred Area';
-  static const String relocate        = 'Willing to Relocate?';
-  static const String yes             = 'Yes';
-  static const String no              = 'No';
-  static const String salaryType      = 'Salary Type';
-  static const String daily           = 'Daily';
-  static const String monthly         = 'Monthly';
-  static const String expectedSalary  = 'Expected Salary';
-  static const String submitProfile   = 'Submit Profile';
-  static const String nextBtn         = 'Next';
+  static String get CreateProfile => 'create_profile'.tr;
+  static String get PersonalDetails => 'personal_details'.tr;
+  static String get FullName => 'full_name'.tr;
+  static String get DateOfBirth => 'date_of_birth'.tr;
+  static String get Gender => 'gender'.tr;
+  static String get Male => 'male'.tr;
+  static String get Female => 'female'.tr;
+  static String get Other => 'other'.tr;
+  static String get YourSkills => 'your_skills'.tr;
+  static String get PrimarySkill => 'primary_skill'.tr;
+  static String get AdditionalSkills => 'additional_skills'.tr;
+  static String get TotalExperience => 'total_experience'.tr;
+  static String get ExperienceDescription => 'experience_description'.tr;
+  static String get DescribeYourPastWork => 'describe_your_past_work'.tr;
+  static String get WorkPreferences => 'work_preferences'.tr;
+  static String get WorkCity => 'work_city'.tr;
+  static String get PreferredArea => 'preferred_area'.tr;
+  static String get WillingToRelocate => 'willing_to_relocate'.tr;
+  static String get Yes => 'yes'.tr;
+  static String get No => 'no'.tr;
+  static String get SalaryType => 'salary_type'.tr;
+  static String get Daily => 'daily'.tr;
+  static String get Monthly => 'monthly'.tr;
+  static String get ExpectedSalary => 'expected_salary'.tr;
+  static String get SubmitProfile => 'submit_profile'.tr;
+  static String get Next => 'next'.tr;
 
   // ── Document Upload ───────────────────────────────────────────
-  static const String uploadDocs      = 'Upload Documents';
-  static const String govId           = 'Government ID';
-  static const String workPhotos      = 'Work Sample Photos';
-  static const String submitVerify    = 'Submit for Verification';
+  static String get UploadDocuments => 'upload_documents'.tr;
+  static String get GovernmentID => 'government_id'.tr;
+  static String get WorkSamplePhotos => 'work_sample_photos'.tr;
+  static String get SubmitForVerification => 'submit_for_verification'.tr;
 
   // ── Pending Screen ────────────────────────────────────────────
-  static const String profileUnderReview = 'Profile Under Review';
-  static const String profileUnderReviewHi = 'Profile Under Review';
-  static const String whatHappensNext  = 'What happens next?';
-  static const String goToHome         = 'Go to Home';
+  static String get ProfileUnderReview => 'profile_under_review'.tr;
+  static String get WhatHappensNext => 'what_happens_next'.tr;
+  static String get GoToHome => 'go_to_home'.tr;
 
   // ── Vendor Dashboard ──────────────────────────────────────────
-  static const String welcome          = 'Welcome';
-  static const String activeRequests   = 'Active Requests';
-  static const String workersAssigned  = 'Workers Assigned';
-  static const String replacements     = 'Replacements';
-  static const String recentRequests   = 'Recent Requests';
-  static const String viewAll          = 'View All';
-  static const String newRequest       = 'New Request';
+  static String get Welcome => 'welcome'.tr;
+  static String get ActiveRequests => 'active_requests'.tr;
+  static String get WorkersAssigned => 'workers_assigned'.tr;
+  static String get Replacements => 'replacements'.tr;
+  static String get RecentRequests => 'recent_requests'.tr;
+  static String get ViewAll => 'view_all'.tr;
+  static String get NewRequest => 'new_request'.tr;
 
   // ── New Manpower Request ──────────────────────────────────────
-  static const String newRequestTitle  = 'New Request';
-  static const String roleRequired     = 'Role Required';
-  static const String quantity         = 'Quantity';
-  static const String siteLocation     = 'Site Location';
-  static const String timeline         = 'Timeline';
-  static const String startDate        = 'Start Date';
-  static const String duration         = 'Duration';
-  static const String specialReq      = 'Special Requirements';
-  static const String submitRequest    = 'Submit Request';
+  static String get RoleRequired => 'role_required'.tr;
+  static String get Quantity => 'quantity'.tr;
+  static String get SiteLocation => 'site_location'.tr;
+  static String get Timeline => 'timeline'.tr;
+  static String get StartDate => 'start_date'.tr;
+  static String get Duration => 'duration'.tr;
+  static String get SpecialRequirements => 'special_requirements'.tr;
+  static String get SubmitRequest => 'submit_request'.tr;
 
   // ── Request Detail ────────────────────────────────────────────
-  static const String requestDetails   = 'Request Details';
-  static const String statusTimeline   = 'Progress';
-  static const String assignedWorkers  = 'Assigned Workers';
-  static const String requestReplacement = 'Request Replacement';
+  static String get RequestDetails => 'request_details'.tr;
+  static String get Progress => 'progress'.tr;
+  static String get AssignedWorkers => 'assigned_workers'.tr;
+  static String get RequestReplacement => 'request_replacement'.tr;
 
   // ── Replacement ───────────────────────────────────────────────
-  static const String replacementTitle = 'Request Replacement';
-  static const String replacementSla   = 'Replacement guaranteed within 48 hours';
-  static const String reasonForReplacement = 'Reason for Replacement';
-  static const String description      = 'Description';
+  static String get ReplacementGuaranteedWithin48Hours =>
+      'replacement_guaranteed_48_hours'.tr;
+  static String get ReasonForReplacement => 'reason_for_replacement'.tr;
+  static String get Description => 'description'.tr;
 
   // ── Rate Worker ───────────────────────────────────────────────
-  static const String rateWorker       = 'Rate Worker';
-  static const String rateExperience   = 'Rate your experience';
-  static const String submitRating     = 'Submit Rating';
+  static String get RateWorker => 'rate_worker'.tr;
+  static String get RateYourExperience => 'rate_your_experience'.tr;
+  static String get SubmitRating => 'submit_rating'.tr;
 
   // ── Worker Dashboard ──────────────────────────────────────────
-  static const String verified         = 'Verified';
-  static const String pending          = 'Pending';
-  static const String currentAssignment = 'Current Assignment';
-  static const String markArrived      = 'Mark Arrived';
-  static const String waitingForJob    = 'Waiting for your next job';
-  static const String teamWillContact  = 'Our team will contact you soon';
-  static const String yourSkillsLabel  = 'Your Skills';
+  static String get Verified => 'verified'.tr;
+  static String get Pending => 'pending'.tr;
+  static String get CurrentAssignment => 'current_assignment'.tr;
+  static String get MarkArrived => 'mark_arrived'.tr;
+  static String get WaitingForYourNextJob => 'waiting_for_your_next_job'.tr;
+  static String get OurTeamWillContactYouSoon =>
+      'our_team_will_contact_you_soon'.tr;
 
   // ── Job Offer ─────────────────────────────────────────────────
-  static const String newJobOffer      = 'New Job Offer';
-  static const String respondIn2Hrs    = 'Please respond within 2 hours';
-  static const String acceptJob        = 'Accept';
-  static const String declineJob       = 'Decline';
+  static String get NewJobOffer => 'new_job_offer'.tr;
+  static String get PleaseRespondWithin2Hours =>
+      'please_respond_within_2_hours'.tr;
+  static String get Accept => 'accept'.tr;
+  static String get Decline => 'decline'.tr;
 
   // ── My Jobs ───────────────────────────────────────────────────
-  static const String myJobs           = 'My Jobs';
+  static String get MyJobs => 'my_jobs'.tr;
 
   // ── Notifications ─────────────────────────────────────────────
-  static const String notifications    = 'Notifications';
-  static const String markAllRead      = 'Mark all read';
+  static String get Notifications => 'notifications'.tr;
+  static String get MarkAllRead => 'mark_all_read'.tr;
 
   // ── Profile ───────────────────────────────────────────────────
-  static const String profile          = 'Profile';
-  static const String language         = 'Language';
-  static const String helpSupport      = 'Help & Support';
-  static const String aboutApp         = 'About SiteLink';
-  static const String logout           = 'Logout';
+  static String get Profile => 'profile'.tr;
+  static String get Language => 'language'.tr;
+  static String get HelpSupport => 'help_support'.tr;
+  static String get AboutSiteLink => 'about_site_link'.tr;
+  static String get Logout => 'logout'.tr;
 
   // ── Help ──────────────────────────────────────────────────────
-  static const String helpTitle        = 'Help & Support';
-  static const String callAdmin        = 'Call Admin';
-  static const String whatsapp         = 'WhatsApp';
-  static const String faqTitle         = 'Frequently Asked Questions';
+  static String get CallAdmin => 'call_admin'.tr;
+  static String get WhatsApp => 'whatsapp'.tr;
+  static String get FrequentlyAskedQuestions =>
+      'frequently_asked_questions'.tr;
 
-  // ── Skills ────────────────────────────────────────────────────
+  // ── Skills (backend values — translate NAHI karte) ────────────
   static const List<String> allSkills = [
     'Mason',
     'Carpenter',

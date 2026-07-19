@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_dimens.dart';
 import '../constants/k_text_style.dart';
@@ -31,12 +32,14 @@ class CustomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget content = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: Colors.white,
+              // Outlined button ka background halka hota hai — white spinner
+              // usme dikhta hi nahi, isliye outlined pe primary color.
+              color: isOutlined ? AppColors.primary : Colors.white,
             ),
           )
         : Row(
@@ -56,24 +59,26 @@ class CustomButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.primary, width: 1.5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
+            foregroundColor: AppColors.primary,
+            textStyle: KTextStyle.poppins(fs: 15, fw: FontWeight.w600, c: AppColors.primary),
           ),
           child: content,
         ),
       );
     }
 
-    return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        width: width ?? double.infinity,
-        height: height,
-        decoration: BoxDecoration(
-          gradient: isLoading ? null : AppColors.buttonGradient,
-          color: isLoading ? AppColors.primary.withOpacity(0.6) : null,
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: AppColors.buttonShadow,
+    return SizedBox(
+      width: width ?? double.infinity,
+      height: height,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.08),
         ),
-        alignment: Alignment.center,
         child: content,
       ),
     );
@@ -87,34 +92,48 @@ class SitelinkTextField extends StatelessWidget {
   final String label;
   final String? hint;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final IconData? prefixIcon;
+  final Widget? prefix; // custom leading widget (e.g. +91 box) — prefixIcon ko override karta hai
   final Widget? suffix;
   final TextInputType keyboardType;
+  final TextInputAction? textInputAction;
+  final List<TextInputFormatter>? inputFormatters;
   final bool obscureText;
   final bool readOnly;
   final int maxLines;
   final int? maxLength;
+  final String? errorText;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
+  final void Function(String)? onSubmitted;
   final VoidCallback? onTap;
   final bool isOptional;
+  final bool showLabel;
 
   const SitelinkTextField({
     super.key,
     required this.label,
     this.hint,
     this.controller,
+    this.focusNode,
     this.prefixIcon,
+    this.prefix,
     this.suffix,
     this.keyboardType = TextInputType.text,
+    this.textInputAction,
+    this.inputFormatters,
     this.obscureText = false,
     this.readOnly = false,
     this.maxLines = 1,
     this.maxLength,
+    this.errorText,
     this.validator,
     this.onChanged,
+    this.onSubmitted,
     this.onTap,
     this.isOptional = false,
+    this.showLabel = true,
   });
 
   @override
@@ -122,44 +141,52 @@ class SitelinkTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(label, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: AppColors.textSecondary)),
-            if (isOptional) ...[
-              const SizedBox(width: 4),
-              Text('(Optional)', style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
+        if (showLabel) ...[
+          Row(
+            children: [
+              Text(label, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: AppColors.textSecondary)),
+              if (isOptional) ...[
+                const SizedBox(width: 4),
+                Text('(Optional)', style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
+              ],
             ],
-          ],
-        ),
-        const SizedBox(height: 6),
+          ),
+          const SizedBox(height: 6),
+        ],
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          inputFormatters: inputFormatters,
           obscureText: obscureText,
           readOnly: readOnly,
           maxLines: maxLines,
           maxLength: maxLength,
           onChanged: onChanged,
+          onFieldSubmitted: onSubmitted,
           onTap: onTap,
           validator: validator,
           style: KTextStyle.poppins(fs: 14, c: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: KTextStyle.poppins(fs: 13, c: AppColors.textHint),
-            prefixIcon: prefixIcon != null
-                ? Icon(prefixIcon, color: AppColors.primary, size: AppDimens.iconMd)
-                : null,
+            errorText: errorText,
+            prefixIcon: prefix ??
+                (prefixIcon != null
+                    ? Icon(prefixIcon, color: AppColors.primary, size: AppDimens.iconMd)
+                    : null),
             suffixIcon: suffix,
             filled: true,
-            fillColor: const Color(0xFFF9F9F9),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            fillColor: const Color(0xFFF3F7FB),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusMd),
               borderSide: const BorderSide(color: AppColors.border, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.borderFocus, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusMd),
@@ -227,6 +254,8 @@ class AppCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double borderRadius;
   final VoidCallback? onTap;
+  final bool showShadow;   // false = flat card (border ke saath, elevation nahi)
+  final Color? borderColor; // showShadow:false ke waqt outline color
 
   const AppCard({
     super.key,
@@ -236,6 +265,8 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.borderRadius = AppDimens.radiusLg,
     this.onTap,
+    this.showShadow = true,
+    this.borderColor,
   });
 
   @override
@@ -245,10 +276,8 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: AppColors.cardShadow,
-        border: showLeftBorder
-            ? Border(left: BorderSide(color: leftBorderColor, width: 4))
-            : null,
+        boxShadow: showShadow ? AppColors.cardShadow : null,
+        border: _resolveBorder(),
       ),
       padding: padding ?? const EdgeInsets.all(AppDimens.cardPadding),
       child: child,
@@ -257,6 +286,21 @@ class AppCard extends StatelessWidget {
       return GestureDetector(onTap: onTap, child: card);
     }
     return card;
+  }
+
+  Border? _resolveBorder() {
+    final flatSide = !showShadow
+        ? BorderSide(color: borderColor ?? AppColors.divider)
+        : BorderSide.none;
+    if (showLeftBorder) {
+      return Border(
+        left: BorderSide(color: leftBorderColor, width: 4),
+        top: flatSide,
+        right: flatSide,
+        bottom: flatSide,
+      );
+    }
+    return showShadow ? null : Border.all(color: borderColor ?? AppColors.divider);
   }
 }
 
@@ -283,7 +327,10 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.appBarGradient),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border.withOpacity(0.75), width: 1)),
+      ),
       child: SafeArea(
         bottom: false,
         child: SizedBox(
@@ -293,13 +340,13 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
               if (showBack)
                 leading ??
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
                       onPressed: () => Navigator.of(context).pop(),
                     )
               else
                 leading ?? const SizedBox(width: 16),
               Expanded(
-                child: Text(title, style: KTextStyle.poppins(fs: 18, fw: FontWeight.w600, c: Colors.white), overflow: TextOverflow.ellipsis),
+                child: Text(title, style: KTextStyle.poppins(fs: 18, fw: FontWeight.w600, c: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
               ),
               if (actions != null) ...actions!,
             ],
@@ -325,15 +372,15 @@ class SkillChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
+          color: selected ? AppColors.primary.withOpacity(0.12) : AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimens.radiusMax),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+          border: Border.all(color: selected ? AppColors.primary.withOpacity(0.28) : AppColors.border),
         ),
         child: Text(
           label,
-          style: KTextStyle.poppins(fs: 11, fw: FontWeight.w500, c: selected ? Colors.white : AppColors.textSecondary),
+          style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: selected ? AppColors.primary : AppColors.textSecondary),
         ),
       ),
     );
@@ -441,18 +488,18 @@ class InfoBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: bgColor ?? AppColors.warningLight,
+        color: bgColor ?? AppColors.infoLight,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: Border(left: BorderSide(color: textColor ?? AppColors.primary, width: 4)),
+        border: Border(left: BorderSide(color: textColor ?? AppColors.primary.withOpacity(0.5), width: 4)),
       ),
       child: Row(
         children: [
           Icon(icon, color: textColor ?? AppColors.primary, size: 18),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(text, style: KTextStyle.poppins(fs: 12, c: textColor ?? AppColors.primary)),
+            child: Text(text, style: KTextStyle.poppins(fs: 12, c: textColor ?? AppColors.textPrimary)),
           ),
         ],
       ),
@@ -468,6 +515,7 @@ class AvatarCircle extends StatelessWidget {
   final double size;
   final Color? bgColor;
   final double fontSize;
+  final String? imageUrl; // diya to network image, warna initials fallback
 
   const AvatarCircle({
     super.key,
@@ -475,10 +523,12 @@ class AvatarCircle extends StatelessWidget {
     this.size = AppDimens.avatarMd,
     this.bgColor,
     this.fontSize = 16,
+    this.imageUrl,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = (imageUrl ?? '').isNotEmpty;
     return Container(
       width: size,
       height: size,
@@ -487,12 +537,26 @@ class AvatarCircle extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
-      child: Text(
-        initials.toUpperCase(),
-        style: KTextStyle.poppins(fs: fontSize, fw: FontWeight.bold, c: Colors.white),
-      ),
+      clipBehavior: Clip.antiAlias,
+      child: hasImage
+          ? Image.network(
+              imageUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _initialsText(),
+            )
+          : _initialsText(),
     );
   }
+
+  Widget _initialsText() => Center(
+        child: Text(
+          initials.toUpperCase(),
+          style: KTextStyle.poppins(
+              fs: fontSize, fw: FontWeight.bold, c: Colors.white),
+        ),
+      );
 }
 
 // ═══════════════════════════════════════════════════════════════════

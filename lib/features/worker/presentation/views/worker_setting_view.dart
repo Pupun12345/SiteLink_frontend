@@ -5,19 +5,54 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../app/routes/app_routes.dart';
+import '../../../../core/services/api_client.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/locale_service.dart';
+import '../../../../core/services/session_service.dart';
+import '../../../shared/presentation/views/help_support_views.dart';
+import 'edit_profile_view.dart';
+import 'worker_documents_view.dart';
+import 'worker_plans_view.dart';
+
+// Worker-specific FAQ content (shared FaqView UI, apna content)
+const _kWorkerFaqs = [
+  ('How does SiteLink work?',
+      'SiteLink connects workers with vendors through an admin-mediated system. Vendors post requirements, workers apply, and our admin assigns verified workers to ensure quality and trust.'),
+  ('How do I get assigned to a job?',
+      'Once you complete your profile and upload required documents, our admin team will verify your profile. After verification, you become eligible for job assignments.'),
+  ('How long does profile verification take?',
+      'Profile verification typically takes 24–48 hours after all documents are submitted.'),
+  ('What if I need to report an issue on site?',
+      'Use the "Report Issue" button on your Active Job screen to notify our team. We respond within 2 hours.'),
+  ('How are payments processed?',
+      'Payments are handled directly between you and the vendor. SiteLink provides the platform and admin support — payment terms are agreed upon at the time of assignment.'),
+  ('Can I work for multiple vendors?',
+      'You can only have one active job assignment at a time through SiteLink. Once a job is completed, you become available for new assignments.'),
+];
 
 // ═══════════════════════════════════════════════════════════════════
 //  SETTINGS CONTROLLER
 // ═══════════════════════════════════════════════════════════════════
 class WorkerSettingsController extends GetxController {
   final notificationsEnabled = true.obs;
-  final languageCode         = 'en'.obs;  // 'en' | 'hi'
+  // Current app language se init — 'en' | 'hi'
+  final languageCode = (LocaleService.to.isHindi ? 'hi' : 'en').obs;
 
   void toggleNotifications(bool v) => notificationsEnabled.value = v;
 
-  void logout() {
-    // TODO: clear auth tokens, Get.offAllNamed('/login')
-    Get.back();
+  /// Language select — locale live switch + persist + backend sync.
+  void setLanguage(String code) {
+    languageCode.value = code;
+    LocaleService.to.setLanguage(code == 'hi' ? 'hindi' : 'english');
+  }
+
+  Future<void> logout() async {
+    // Backend token blacklist (fail ho to bhi local logout hota hai)
+    await MiscApiService().logout();
+    await AuthService.instance.signOut();
+    await SessionService.to.clear();
+    Get.offAllNamed(AppRoutes.language);
   }
 }
 
@@ -47,9 +82,7 @@ class WorkerSettingsView extends StatelessWidget {
                   _SettingsTile(
                     icon: Icons.person_outline_rounded,
                     title: 'Edit Profile',
-                    onTap: () {
-                      // TODO: Get.to(() => WorkerEditProfileView());
-                    },
+                    onTap: () => Get.to(() => const EditProfileView()),
                   ),
                   _Divider(),
                   _SettingsTile(
@@ -63,9 +96,14 @@ class WorkerSettingsView extends StatelessWidget {
                   _SettingsTile(
                     icon: Icons.badge_outlined,
                     title: 'My Documents',
-                    onTap: () {
-                      // TODO: Get.to(() => WorkerDocumentsView());
-                    },
+                    onTap: () => Get.to(() => const WorkerDocumentsView()),
+                  ),
+                  _Divider(),
+                  _SettingsTile(
+                    icon: Icons.workspace_premium_rounded,
+                    title: 'SiteLink Premium',
+                    subtitle: 'Upgrade — ₹299/Year',
+                    onTap: () => Get.to(() => const WorkerPlansView()),
                   ),
                 ],
               ),
@@ -106,13 +144,14 @@ class WorkerSettingsView extends StatelessWidget {
                   _SettingsTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Help & FAQ',
-                    onTap: () => Get.to(() => const _HelpView()),
+                    onTap: () => Get.to(
+                        () => const FaqView(faqs: _kWorkerFaqs)),
                   ),
                   _Divider(),
                   _SettingsTile(
                     icon: Icons.support_agent_outlined,
                     title: 'Contact Support',
-                    onTap: () => Get.to(() => const _ContactSupportView()),
+                    onTap: () => Get.to(() => const ContactSupportView()),
                   ),
                   _Divider(),
                   _SettingsTile(
@@ -135,18 +174,20 @@ class WorkerSettingsView extends StatelessWidget {
                   _SettingsTile(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
-                    onTap: () => Get.to(() => const _PolicyView(
+                    onTap: () => Get.to(() => const PolicyView(
                       title: 'Privacy Policy',
                       content: _kPrivacyPolicy,
+                      policyType: 'PRIVACY_POLICY',
                     )),
                   ),
                   _Divider(),
                   _SettingsTile(
                     icon: Icons.description_outlined,
                     title: 'Terms of Service',
-                    onTap: () => Get.to(() => const _PolicyView(
+                    onTap: () => Get.to(() => const PolicyView(
                       title: 'Terms of Service',
                       content: _kTermsOfService,
+                      policyType: 'TERMS_AND_CONDITIONS',
                     )),
                   ),
                 ],
@@ -157,7 +198,7 @@ class WorkerSettingsView extends StatelessWidget {
             // ── App version ───────────────────────────────────
             Center(
               child: Text(
-                '${AppStrings.appName}  v1.0.0',
+                '${AppStrings.SiteLink}  v1.0.0',
                 style: KTextStyle.poppins(fs: 11, c: AppColors.textHint),
               ),
             ),
@@ -211,14 +252,14 @@ class WorkerSettingsView extends StatelessWidget {
                       label: 'English',
                       code: 'en',
                       selected: ctrl.languageCode.value == 'en',
-                      onTap: () { ctrl.languageCode.value = 'en'; Get.back(); },
+                      onTap: () { ctrl.setLanguage('en'); Get.back(); },
                     ),
                     const SizedBox(height: 8),
                     _LanguageOption(
                       label: 'Hindi',
                       code: 'hi',
                       selected: ctrl.languageCode.value == 'hi',
-                      onTap: () { ctrl.languageCode.value = 'hi'; Get.back(); },
+                      onTap: () { ctrl.setLanguage('hi'); Get.back(); },
                     ),
                   ],
                 )),
@@ -254,284 +295,6 @@ class WorkerSettingsView extends StatelessWidget {
             child: Text('Logout', style: KTextStyle.poppins(fs: 13, c: Colors.red, fw: FontWeight.w600)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  HELP & FAQ VIEW
-// ═══════════════════════════════════════════════════════════════════
-class _HelpView extends StatelessWidget {
-  const _HelpView();
-
-  static const _faqs = [
-    ('How does SiteLink work?',
-    'SiteLink connects workers with vendors through an admin-mediated system. Vendors post requirements, workers apply, and our admin assigns verified workers to ensure quality and trust.'),
-    ('How do I get assigned to a job?',
-    'Once you complete your profile and upload required documents, our admin team will verify your profile. After verification, you become eligible for job assignments.'),
-    ('How long does profile verification take?',
-    'Profile verification typically takes 24–48 hours after all documents are submitted.'),
-    ('What if I need to report an issue on site?',
-    'Use the "Report Issue" button on your Active Job screen to notify our team. We respond within 2 hours.'),
-    ('How are payments processed?',
-    'Payments are handled directly between you and the vendor. SiteLink provides the platform and admin support — payment terms are agreed upon at the time of assignment.'),
-    ('Can I work for multiple vendors?',
-    'You can only have one active job assignment at a time through SiteLink. Once a job is completed, you become available for new assignments.'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Help & FAQ'),
-      body: SafeArea(
-        top: false,
-        child: ListView.separated(
-          padding: const EdgeInsets.all(AppDimens.lg),
-          itemCount: _faqs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppDimens.md),
-          itemBuilder: (_, i) => _FaqCard(faq: _faqs[i]),
-        ),
-      ),
-    );
-  }
-}
-
-class _FaqCard extends StatefulWidget {
-  final (String, String) faq;
-  const _FaqCard({required this.faq});
-
-  @override
-  State<_FaqCard> createState() => _FaqCardState();
-}
-
-class _FaqCardState extends State<_FaqCard> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: () => setState(() => _expanded = !_expanded),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.faq.$1,
-                  style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600),
-                ),
-              ),
-              Icon(
-                _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ],
-          ),
-          if (_expanded) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: AppColors.divider),
-            const SizedBox(height: 10),
-            Text(
-              widget.faq.$2,
-              style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  CONTACT SUPPORT VIEW
-// ═══════════════════════════════════════════════════════════════════
-class _ContactSupportView extends StatelessWidget {
-  const _ContactSupportView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Contact Support'),
-      body: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimens.lg),
-          child: Column(
-            children: [
-              AppCard(
-                child: Column(
-                  children: [
-                    _ContactOption(
-                      icon: Icons.phone_rounded,
-                      title: 'Call Support',
-                      subtitle: '+91 80000 00000',
-                      color: AppColors.success,
-                      onTap: () { /* TODO: launch phone */ },
-                    ),
-                    const Divider(height: 1, color: AppColors.divider),
-                    _ContactOption(
-                      icon: Icons.chat_rounded,
-                      title: 'WhatsApp',
-                      subtitle: '+91 80000 00001',
-                      color: const Color(0xFF25D366),
-                      onTap: () { /* TODO: launch WhatsApp */ },
-                    ),
-                    const Divider(height: 1, color: AppColors.divider),
-                    _ContactOption(
-                      icon: Icons.email_outlined,
-                      title: 'Email Support',
-                      subtitle: 'support@sitelink.in',
-                      color: AppColors.info,
-                      onTap: () { /* TODO: launch email */ },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppDimens.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Support Hours', style: KTextStyle.poppins(fs: 14, fw: FontWeight.w600)),
-                    const SizedBox(height: 10),
-                    _InfoRow(label: 'Monday – Saturday', value: '9:00 AM – 7:00 PM'),
-                    const SizedBox(height: 6),
-                    _InfoRow(label: 'Sunday',            value: '10:00 AM – 4:00 PM'),
-                    const SizedBox(height: 6),
-                    _InfoRow(label: 'Emergency',         value: '24/7 on WhatsApp'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppDimens.lg),
-              const _InfoBannerCard(
-                icon: Icons.access_time_rounded,
-                text: 'Average response time: under 2 hours',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ContactOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-  const _ContactOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: KTextStyle.poppins(fs: 14, fw: FontWeight.w600)),
-                  Text(subtitle, style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary)),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textHint),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(child: Text(label, style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary))),
-      Text(value, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500)),
-    ],
-  );
-}
-
-class _InfoBannerCard extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoBannerCard({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(AppDimens.md),
-    decoration: BoxDecoration(
-      color: AppColors.primary.withOpacity(0.06),
-      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, size: 16, color: AppColors.primary),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: KTextStyle.poppins(fs: 12, c: AppColors.primary))),
-      ],
-    ),
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  POLICY VIEW  (Privacy Policy + Terms of Service)
-// ═══════════════════════════════════════════════════════════════════
-class _PolicyView extends StatelessWidget {
-  final String title;
-  final String content;
-  const _PolicyView({required this.title, required this.content});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: title),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppDimens.lg),
-          child: AppCard(
-            child: Text(
-              content,
-              style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary),
-            ),
-          ),
-        ),
       ),
     );
   }

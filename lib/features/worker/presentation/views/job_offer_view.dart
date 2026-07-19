@@ -5,7 +5,7 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
-import 'active_job_view.dart';
+import '../../../../app/routes/app_routes.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  JOB OFFER VIEW — Screen 23
@@ -73,7 +73,7 @@ class JobOfferView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  AppStrings.newJobOffer,
+                  AppStrings.NewJobOffer,
                   style: KTextStyle.poppins(
                       fs: 22, fw: FontWeight.bold, c: Colors.white),
                   textAlign: TextAlign.center,
@@ -254,7 +254,7 @@ class JobOfferView extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      AppStrings.respondIn2Hrs,
+                                      AppStrings.PleaseRespondWithin2Hours,
                                       style: KTextStyle.poppins(
                                           fs: 12,
                                           fw: FontWeight.w500,
@@ -290,7 +290,7 @@ class JobOfferView extends StatelessWidget {
               children: [
                 Expanded(
                   child: CustomButton(
-                    label: AppStrings.declineJob,
+                    label: AppStrings.Decline,
                     isOutlined: true,
                     onTap: () => Get.back(),
                   ),
@@ -298,10 +298,10 @@ class JobOfferView extends StatelessWidget {
                 const SizedBox(width: AppDimens.md),
                 Expanded(
                   child: CustomButton(
-                    label: AppStrings.acceptJob,
+                    label: AppStrings.Accept,
                     onTap: () {
                       Get.back();
-                      Get.to(() => const ActiveJobView());
+                      Get.toNamed(AppRoutes.activeJob);
                     },
                   ),
                 ),

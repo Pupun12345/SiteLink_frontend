@@ -5,6 +5,7 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/app_snackbar.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  REPLACEMENT REQUEST VIEW
@@ -18,7 +19,7 @@ class ReplacementRequestView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.replacementTitle),
+      appBar: GradientAppBar(title: AppStrings.RequestReplacement),
       body: SafeArea(
         top: false,
         child: Column(
@@ -31,7 +32,7 @@ class ReplacementRequestView extends StatelessWidget {
                   children: [
                     // ── SLA Banner ────────────────────────
                     InfoBanner(
-                      text: AppStrings.replacementSla,
+                      text: AppStrings.ReplacementGuaranteedWithin48Hours,
                       icon: Icons.timer_outlined,
                     ),
                     const SizedBox(height: AppDimens.lg),
@@ -100,7 +101,7 @@ class ReplacementRequestView extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                AppStrings.reasonForReplacement,
+                                AppStrings.ReasonForReplacement,
                                 style: KTextStyle.poppins(
                                     fs: 14, fw: FontWeight.w700),
                               ),
@@ -221,7 +222,7 @@ class ReplacementRequestView extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                AppStrings.description,
+                                AppStrings.Description,
                                 style: KTextStyle.poppins(
                                     fs: 14, fw: FontWeight.w700),
                               ),
@@ -412,7 +413,7 @@ class ReplacementRequestView extends StatelessWidget {
                     top: BorderSide(color: AppColors.divider)),
               ),
               child: Obx(() => CustomButton(
-                label: AppStrings.submitRequest,
+                label: AppStrings.SubmitRequest,
                 onTap: ctrl.submit,
                 isLoading: ctrl.isLoading.value,
               )),
@@ -432,24 +433,16 @@ class _ReplacementCtrl extends GetxController {
 
   void submit() async {
     if (selectedReason.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please select a reason',
-        backgroundColor: const Color(0xFFFFEBEE),
-        colorText: const Color(0xFFC62828),
-      );
+      AppSnackbar.error(message: 'Please select a reason');
       return;
     }
     isLoading.value = true;
     await Future.delayed(const Duration(seconds: 1));
     isLoading.value = false;
     Get.back();
-    Get.snackbar(
-      'Submitted ✅',
-      'Replacement request received. We will respond within 48 hours.',
-      backgroundColor: const Color(0xFFE8F5E9),
-      colorText: const Color(0xFF2E7D32),
-      duration: const Duration(seconds: 3),
+    AppSnackbar.success(
+      message: 'Replacement request received. We will respond within 48 hours.',
+      duration: const Duration(seconds: 4),
     );
   }
 

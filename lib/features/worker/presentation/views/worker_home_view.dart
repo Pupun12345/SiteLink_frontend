@@ -43,7 +43,7 @@ class WorkerHomeView extends StatelessWidget {
       case 3:
         return const WorkerProfileTab();
       default:
-        return WorkerHomeTab(homeCtrl: ctrl);
+        return WorkerHomeTab(onNotificationTap: () => ctrl.changeTab(2));
     }
   }
 }

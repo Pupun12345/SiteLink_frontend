@@ -6,9 +6,6 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
 
-// ═══════════════════════════════════════════════════════════════════
-//  ACTIVE JOB VIEW — Screen 21
-// ═══════════════════════════════════════════════════════════════════
 class ActiveJobView extends StatelessWidget {
   const ActiveJobView({super.key});
 
@@ -20,66 +17,104 @@ class ActiveJobView extends StatelessWidget {
       backgroundColor: AppColors.scaffoldBg,
       appBar: GradientAppBar(title: 'My Assignment / मेरा काम'),
       body: SafeArea(
-        top: false, // AppBar already handles top
+        top: false,
         child: Column(
           children: [
-            // ── Status banner ──────────────────────────────────
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.successLight,
-                border: Border(
-                  bottom: BorderSide(color: AppColors.success.withOpacity(0.2)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppDimens.lg, AppDimens.md, AppDimens.lg, 0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.md, vertical: AppDimens.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.selectionBg,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Job Active / काम जारी है',
+                      style: KTextStyle.poppins(
+                        fs: 12,
+                        fw: FontWeight.w600,
+                        c: AppColors.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.circle, size: 8, color: AppColors.success),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Job Active / काम जारी है',
-                    textAlign: TextAlign.center,
-                    style: KTextStyle.poppins(
-                        fs: 13, fw: FontWeight.w600, c: AppColors.success),
-                  ),
-                ],
-              ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppDimens.lg),
                 child: Column(
                   children: [
-                    // ── Assignment summary ──────────────────────
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              SkillChip(label: 'Mason / राजमिस्त्री', selected: true),
+                              _CardHeader(
+                                icon: Icons.work_outline_rounded,
+                                title: 'Current Assignment',
+                              ),
                               const Spacer(),
-                              StatusBadge(type: BadgeType.active),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.selectionBg,
+                                  borderRadius:
+                                  BorderRadius.circular(AppDimens.radiusMax),
+                                ),
+                                child: Text(
+                                  'Active',
+                                  style: KTextStyle.poppins(
+                                    fs: 10,
+                                    fw: FontWeight.w700,
+                                    c: AppColors.primary,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppDimens.md),
+                          Text(
+                            'Mason',
+                            style: KTextStyle.poppins(
+                                fs: 16, fw: FontWeight.w700),
+                          ),
+                          const SizedBox(height: AppDimens.sm),
                           Text(
                             'Rajesh Construction',
-                            style: KTextStyle.poppins(fs: 17, fw: FontWeight.w700),
+                            style: KTextStyle.poppins(
+                                fs: 12, c: AppColors.textSecondary),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: AppDimens.md),
                           const _SectionDivider(),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: AppDimens.md),
                           Row(
-                            children: [
+                            children: const [
                               _InfoPill(
                                 icon: Icons.calendar_today_rounded,
                                 text: '20 Mar – 20 Apr',
                               ),
-                              const SizedBox(width: 10),
+                              SizedBox(width: 10),
                               _InfoPill(
                                 icon: Icons.currency_rupee_rounded,
                                 text: '₹650 / day',
@@ -91,8 +126,6 @@ class ActiveJobView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppDimens.md),
-
-                    // ── Site details ──────────────────────────
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,42 +135,44 @@ class ActiveJobView extends StatelessWidget {
                             title: 'Site Details / साइट विवरण',
                           ),
                           const SizedBox(height: AppDimens.md),
-                          _DetailRow(
+                          const _DetailRow(
                             icon: Icons.location_on_outlined,
                             text: 'Plot 45, Vaishali Nagar, Jaipur 302021',
                           ),
-                          const SizedBox(height: 10),
-                          _DetailRow(
+                          const SizedBox(height: AppDimens.lg),
+                          const _DetailRow(
                             icon: Icons.access_time_rounded,
                             text: 'Reporting Time: 8:00 AM daily',
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: AppDimens.lg),
                           InkWell(
                             onTap: () {},
                             borderRadius:
                             BorderRadius.circular(AppDimens.radiusSm),
                             child: Container(
+                              width: double.infinity,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppColors.selectionBg,
+                                color: AppColors.surface,
                                 borderRadius:
                                 BorderRadius.circular(AppDimens.radiusSm),
-                                border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.3)),
+                                border: Border.all(color: AppColors.border),
                               ),
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.map_outlined,
                                       color: AppColors.primary, size: 16),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: 8),
                                   Text(
                                     'View on Map / मानचित्र',
                                     style: KTextStyle.poppins(
-                                        fs: 13,
-                                        fw: FontWeight.w500,
-                                        c: AppColors.primary),
+                                      fs: 12,
+                                      fw: FontWeight.w600,
+                                      c: AppColors.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -147,8 +182,6 @@ class ActiveJobView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppDimens.md),
-
-                    // ── Vendor contact ────────────────────────
                     AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,79 +202,34 @@ class ActiveJobView extends StatelessWidget {
                                     Text(
                                       'Rajesh Sharma',
                                       style: KTextStyle.poppins(
-                                          fs: 15, fw: FontWeight.w600),
+                                          fs: 14, fw: FontWeight.w600),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 4),
                                     Text(
                                       'Rajesh Construction',
                                       style: KTextStyle.poppins(
-                                          fs: 12, c: AppColors.textHint),
+                                          fs: 11,
+                                          c: AppColors.textSecondary),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 4),
                                     Text(
                                       '+91 98765 43210',
                                       style: KTextStyle.poppins(
-                                          fs: 12, c: AppColors.textSecondary),
+                                          fs: 11,
+                                          c: AppColors.textSecondary),
                                     ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: AppDimens.lg),
                           CustomButton(
-                            label: '📞  Call Now / अभी कॉल करें',
+                            label: 'Call Now',
                             height: 44,
+                            isOutlined: true,
                             onTap: () {},
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.md),
-
-                    // ── Attendance ────────────────────────────
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _CardHeader(
-                            icon: Icons.how_to_reg_rounded,
-                            title: "Today's Attendance / आज की उपस्थिति",
-                          ),
-                          const SizedBox(height: AppDimens.md),
-                          Obx(() => isCheckedIn.value
-                              ? Container(
-                            padding: const EdgeInsets.all(AppDimens.md),
-                            decoration: BoxDecoration(
-                              color: AppColors.successLight,
-                              borderRadius: BorderRadius.circular(
-                                  AppDimens.radiusMd),
-                              border: Border.all(
-                                  color:
-                                  AppColors.success.withOpacity(0.3)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.check_circle_rounded,
-                                    color: AppColors.success, size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Arrived at 8:05 AM ✅',
-                                  style: KTextStyle.poppins(
-                                      fs: 13,
-                                      fw: FontWeight.w600,
-                                      c: AppColors.success),
-                                ),
-                              ],
-                            ),
-                          )
-                              : CustomButton(
-                            label: AppStrings.markArrived,
-                            onTap: () {
-                              isCheckedIn.value = true;
-                              Get.to(() => const CheckInConfirmView());
-                            },
-                          )),
                         ],
                       ),
                     ),
@@ -250,33 +238,12 @@ class ActiveJobView extends StatelessWidget {
                 ),
               ),
             ),
-
-            // ── Bottom action ─────────────────────────────────
-            Container(
-              padding: EdgeInsets.fromLTRB(
-                AppDimens.lg,
-                AppDimens.md,
-                AppDimens.lg,
-                AppDimens.md + MediaQuery.of(context).padding.bottom,
-              ),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(top: BorderSide(color: AppColors.divider)),
-              ),
-              child: CustomButton(
-                label: '⚠️  Report Issue / समस्या बताएं',
-                isOutlined: true,
-                onTap: () {},
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 }
-
-// ── Shared small widgets ──────────────────────────────────────────
 
 class _CardHeader extends StatelessWidget {
   final IconData icon;
@@ -294,13 +261,16 @@ class _CardHeader extends StatelessWidget {
             color: AppColors.selectionBg,
             borderRadius: BorderRadius.circular(AppDimens.radiusSm),
           ),
-          child: Icon(icon, color: AppColors.primary, size: 16),
+          child: Icon(icon, color: AppColors.textPrimary, size: 16),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Text(
           title,
           style: KTextStyle.poppins(
-              fs: 14, fw: FontWeight.w600, c: AppColors.primary),
+            fs: 13,
+            fw: FontWeight.w600,
+            c: AppColors.textPrimary,
+          ),
         ),
       ],
     );
@@ -311,30 +281,37 @@ class _InfoPill extends StatelessWidget {
   final IconData icon;
   final String text;
   final bool highlight;
-  const _InfoPill(
-      {required this.icon, required this.text, this.highlight = false});
+  const _InfoPill({
+    required this.icon,
+    required this.text,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: highlight ? AppColors.successLight : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+        color: highlight ? AppColors.selectionBg : AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimens.radiusMax),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              size: 13,
-              color: highlight ? AppColors.success : AppColors.textSecondary),
-          const SizedBox(width: 4),
+          Icon(
+            icon,
+            size: 14,
+            color: highlight ? AppColors.primary : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 6),
           Text(
             text,
             style: KTextStyle.poppins(
-                fs: 12,
-                fw: FontWeight.w600,
-                c: highlight ? AppColors.success : AppColors.textPrimary),
+              fs: 11,
+              fw: FontWeight.w600,
+              c: highlight ? AppColors.primary : AppColors.textPrimary,
+            ),
           ),
         ],
       ),
@@ -344,9 +321,10 @@ class _InfoPill extends StatelessWidget {
 
 class _SectionDivider extends StatelessWidget {
   const _SectionDivider();
+
   @override
   Widget build(BuildContext context) =>
-      const Divider(height: 1, color: AppColors.divider);
+      const Divider(color: AppColors.divider, height: 1);
 }
 
 class _DetailRow extends StatelessWidget {
@@ -355,147 +333,20 @@ class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.icon, required this.text});
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Icon(icon, size: 16, color: AppColors.textSecondary),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(
-          text,
-          style:
-          KTextStyle.poppins(fs: 13, c: AppColors.textPrimary),
-        ),
-      ),
-    ],
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  CHECK-IN CONFIRMATION — Screen 22
-// ═══════════════════════════════════════════════════════════════════
-class CheckInConfirmView extends StatelessWidget {
-  const CheckInConfirmView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Check-in / उपस्थिति'),
-      body: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppDimens.lg),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-
-              // ── Success icon ────────────────────────────────
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.successLight,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: AppColors.success.withOpacity(0.3), width: 2),
-                ),
-                child: const Icon(Icons.check_circle_rounded,
-                    color: AppColors.success, size: 56),
-              ),
-              const SizedBox(height: 20),
-
-              Text(
-                'Arrived at Site!',
-                style:
-                KTextStyle.poppins(fs: 22, fw: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'पहुँच गए! 🎉',
-                style: KTextStyle.poppins(
-                    fs: 16, fw: FontWeight.w500, c: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Your attendance has been recorded.\nआपकी उपस्थिति दर्ज कर ली गई है।',
-                style: KTextStyle.poppins(fs: 13, c: AppColors.textHint),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 28),
-
-              // ── Timestamp card ───────────────────────────────
-              AppCard(
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.selectionBg,
-                        borderRadius:
-                        BorderRadius.circular(AppDimens.radiusMd),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.access_time_filled_rounded,
-                              color: AppColors.primary, size: 20),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Checked in at 8:05 AM',
-                                style: KTextStyle.poppins(
-                                    fs: 15, fw: FontWeight.w600),
-                              ),
-                              Text(
-                                '20 March 2026',
-                                style: KTextStyle.poppins(
-                                    fs: 11, c: AppColors.textHint),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.successLight,
-                        borderRadius:
-                        BorderRadius.circular(AppDimens.radiusMax),
-                        border: Border.all(
-                            color: AppColors.success.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        'Job Started ✅',
-                        style: KTextStyle.poppins(
-                            fs: 12,
-                            fw: FontWeight.w600,
-                            c: AppColors.success),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(flex: 3),
-
-              CustomButton(
-                label: 'Back to Home / होम पर जाएं',
-                onTap: () => Get.until((r) => r.isFirst),
-              ),
-              const SizedBox(height: AppDimens.lg),
-            ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: AppDimens.md),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: KTextStyle.poppins(
+                fs: 12, c: AppColors.textPrimary),
           ),
         ),
-      ),
-    );
-  }
-}
+      ],
+    ),
+  );}

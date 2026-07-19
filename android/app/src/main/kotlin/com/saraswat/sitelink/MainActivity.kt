@@ -1,4 +1,4 @@
-package com.saraswat.sitelink
+package com.sitelink.sitelink
 
 import io.flutter.embedding.android.FlutterActivity
 

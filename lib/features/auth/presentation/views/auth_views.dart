@@ -123,38 +123,42 @@ class _AuthShell extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════
 //  PHONE VIEW
 // ═══════════════════════════════════════════════════════════════════
+// lib/features/auth/presentation/views/auth_views.dart
+// Sirf PhoneView update — baaki sab same rehta hai
+// PhoneView ke body mein yeh add karo existing CustomButton ke neeche:
+
+// ─────────────────────────────────────────────────────────────────
+// Yeh poora PhoneView replace karo apne auth_views.dart mein
+// ─────────────────────────────────────────────────────────────────
+
 class PhoneView extends StatelessWidget {
   const PhoneView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.put(PhoneController());
+    final ctrl       = Get.find<PhoneController>();
+    final googleCtrl = Get.find<GoogleAuthController>();
 
     return _AuthShell(
-      title: 'Login',
+      title: 'Login / Register',
       subtitle: 'Enter your mobile number to continue',
       headerIcon: Icons.phone_android_rounded,
       bottomBar: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          style:
-          KTextStyle.poppins(fs: 11, c: AppColors.textHint),
+          style: KTextStyle.poppins(fs: 11, c: AppColors.textHint),
           children: [
             const TextSpan(text: 'By continuing, you agree to our '),
             TextSpan(
               text: 'Terms',
               style: KTextStyle.poppins(
-                  fs: 11,
-                  c: AppColors.primary,
-                  fw: FontWeight.w600),
+                  fs: 11, c: AppColors.primary, fw: FontWeight.w600),
             ),
             const TextSpan(text: ' & '),
             TextSpan(
               text: 'Privacy Policy',
               style: KTextStyle.poppins(
-                  fs: 11,
-                  c: AppColors.primary,
-                  fw: FontWeight.w600),
+                  fs: 11, c: AppColors.primary, fw: FontWeight.w600),
             ),
           ],
         ),
@@ -162,48 +166,42 @@ class PhoneView extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Phone input card ───────────────────────────
+
+          // ── Phone input card ──────────────────────────────
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppStrings.mobileLabel,
+                  AppStrings.MobileNumber,
                   style: KTextStyle.poppins(
-                      fs: 12,
-                      fw: FontWeight.w500,
-                      c: AppColors.textSecondary),
+                      fs: 12, fw: FontWeight.w500, c: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    // +91 prefix box
+                    // +91 prefix
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 14),
                       decoration: BoxDecoration(
                         color: AppColors.selectionBg,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(AppDimens.radiusMd),
-                          bottomLeft:
-                          Radius.circular(AppDimens.radiusMd),
+                          topLeft:    Radius.circular(AppDimens.radiusMd),
+                          bottomLeft: Radius.circular(AppDimens.radiusMd),
                         ),
                         border: const Border(
                             right: BorderSide(color: AppColors.border)),
                       ),
-                      child: Row(
-                        children: [
-                          const Text('🇮🇳', style: TextStyle(fontSize: 16)),
-                          const SizedBox(width: 6),
-                          Text(
-                            '+91',
+                      child: Row(children: [
+                        const Text('🇮🇳', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Text('+91',
                             style: KTextStyle.poppins(
                                 fs: 14,
                                 fw: FontWeight.w700,
-                                c: AppColors.primary),
-                          ),
-                        ],
-                      ),
+                                c: AppColors.primary)),
+                      ]),
                     ),
                     // Number input
                     Expanded(
@@ -222,37 +220,31 @@ class PhoneView extends StatelessWidget {
                               fs: 14, c: AppColors.textHint),
                           border: OutlineInputBorder(
                             borderRadius: const BorderRadius.only(
-                              topRight:
-                              Radius.circular(AppDimens.radiusMd),
-                              bottomRight:
-                              Radius.circular(AppDimens.radiusMd),
+                              topRight:    Radius.circular(AppDimens.radiusMd),
+                              bottomRight: Radius.circular(AppDimens.radiusMd),
                             ),
-                            borderSide: const BorderSide(
-                                color: AppColors.border),
+                            borderSide:
+                            const BorderSide(color: AppColors.border),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: const BorderRadius.only(
-                              topRight:
-                              Radius.circular(AppDimens.radiusMd),
-                              bottomRight:
-                              Radius.circular(AppDimens.radiusMd),
+                              topRight:    Radius.circular(AppDimens.radiusMd),
+                              bottomRight: Radius.circular(AppDimens.radiusMd),
                             ),
                             borderSide: const BorderSide(
                                 color: AppColors.primary, width: 1.5),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: const BorderRadius.only(
-                              topRight:
-                              Radius.circular(AppDimens.radiusMd),
-                              bottomRight:
-                              Radius.circular(AppDimens.radiusMd),
+                              topRight:    Radius.circular(AppDimens.radiusMd),
+                              bottomRight: Radius.circular(AppDimens.radiusMd),
                             ),
-                            borderSide: const BorderSide(
-                                color: AppColors.border),
+                            borderSide:
+                            const BorderSide(color: AppColors.border),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 14),
-                          filled: true,
+                          filled:    true,
                           fillColor: Colors.grey.shade50,
                         ),
                       ),
@@ -260,45 +252,130 @@ class PhoneView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 13, color: AppColors.textHint),
-                    const SizedBox(width: 5),
-                    Text(
-                      'A 6-digit OTP will be sent to this number',
-                      style: KTextStyle.poppins(
-                          fs: 11, c: AppColors.textHint),
-                    ),
-                  ],
-                ),
+                Row(children: [
+                  const Icon(Icons.info_outline_rounded,
+                      size: 13, color: AppColors.textHint),
+                  const SizedBox(width: 5),
+                  Text(
+                    'A 6-digit OTP will be sent to this number',
+                    style: KTextStyle.poppins(fs: 11, c: AppColors.textHint),
+                  ),
+                ]),
               ],
             ),
           ),
           const SizedBox(height: AppDimens.lg),
 
-          // ── Trust badges ───────────────────────────────
-          Row(
-            children: [
-              _TrustBadge(
-                  icon: Icons.lock_outline_rounded, label: 'Secure'),
-              const SizedBox(width: 10),
-              _TrustBadge(
-                  icon: Icons.verified_user_outlined,
-                  label: 'Verified'),
-              const SizedBox(width: 10),
-              _TrustBadge(
-                  icon: Icons.flash_on_rounded, label: 'Instant OTP'),
-            ],
-          ),
+          // ── Trust badges ──────────────────────────────────
+          Row(children: [
+            _TrustBadge(icon: Icons.lock_outline_rounded,    label: 'Secure'),
+            const SizedBox(width: 10),
+            _TrustBadge(icon: Icons.verified_user_outlined,  label: 'Verified'),
+            const SizedBox(width: 10),
+            _TrustBadge(icon: Icons.flash_on_rounded,        label: 'Instant OTP'),
+          ]),
           const SizedBox(height: AppDimens.xl),
 
+          // ── Send OTP button ───────────────────────────────
           Obx(() => CustomButton(
-            label: AppStrings.sendOtp,
-            onTap: ctrl.sendOtp,
+            label:     AppStrings.SendOTP,
+            onTap:     ctrl.sendOtp,
             isLoading: ctrl.isLoading.value,
           )),
+          const SizedBox(height: 20),
+
+          // ── Divider ───────────────────────────────────────
+          Row(children: [
+            const Expanded(child: Divider(color: AppColors.divider)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Text(
+                'OR',
+                style: KTextStyle.poppins(
+                    fs: 12,
+                    c: AppColors.textHint,
+                    fw: FontWeight.w500),
+              ),
+            ),
+            const Expanded(child: Divider(color: AppColors.divider)),
+          ]),
+          const SizedBox(height: 20),
+
+          // ── Google Sign-In button ─────────────────────────
+          Obx(() => _GoogleSignInButton(
+            isLoading: googleCtrl.isLoading.value,
+            onTap:     googleCtrl.signInWithGoogle,
+          )),
         ],
+      ),
+    );
+  }
+}
+
+// ── Google Sign-In Button ─────────────────────────────────────────
+class _GoogleSignInButton extends StatelessWidget {
+  final bool         isLoading;
+  final VoidCallback onTap;
+  const _GoogleSignInButton({required this.isLoading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: Container(
+        width:   double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color:        Colors.white,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(color: AppColors.border, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color:      Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset:     const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: isLoading
+            ? const Center(
+          child: SizedBox(
+            width: 22, height: 22,
+            child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.primary),
+          ),
+        )
+            : Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Google 'G' logo
+            Container(
+              width:  24,
+              height: 24,
+              decoration: const BoxDecoration(shape: BoxShape.circle),
+              child: Image.network(
+                'https://www.google.com/favicon.ico',
+                width:  22,
+                height: 22,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.g_mobiledata_rounded,
+                  color:  Colors.red,
+                  size:   26,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Continue with Google',
+              style: KTextStyle.poppins(
+                fs: 15,
+                fw: FontWeight.w600,
+                c: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -340,15 +417,15 @@ class _TrustBadge extends StatelessWidget {
 //  OTP VIEW
 // ═══════════════════════════════════════════════════════════════════
 class OtpView extends StatelessWidget {
-  final String phone;
-  const OtpView({super.key, required this.phone});
+  const OtpView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.put(OtpController(phone: phone));
+    final ctrl = Get.find<OtpController>();
+    final phone = ctrl.phone;
 
     return _AuthShell(
-      title: AppStrings.verifyOtp,
+      title: AppStrings.VerifyOTP,
       subtitle: 'Enter the 6-digit code sent to +91 $phone',
       headerIcon: Icons.shield_rounded,
       body: Column(
@@ -447,7 +524,7 @@ class OtpView extends StatelessWidget {
                             color: AppColors.primary),
                         const SizedBox(width: 5),
                         Text(
-                          AppStrings.resendOtp,
+                          AppStrings.ResendOTP,
                           style: KTextStyle.poppins(
                               fs: 13,
                               fw: FontWeight.w600,
@@ -490,7 +567,7 @@ class OtpView extends StatelessWidget {
           const SizedBox(height: AppDimens.xl),
 
           Obx(() => CustomButton(
-            label: AppStrings.verifyBtn,
+            label: AppStrings.VerifyContinue,
             onTap: ctrl.verify,
             isLoading: ctrl.isLoading.value,
           )),
@@ -567,7 +644,7 @@ class RoleSelectionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.put(RoleController());
+    final ctrl = Get.find<RoleController>();
     final size = MediaQuery.of(context).size;
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
@@ -603,7 +680,7 @@ class RoleSelectionView extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    AppStrings.iAm,
+                    AppStrings.IAm,
                     style: KTextStyle.poppins(
                         fs: 24, fw: FontWeight.bold, c: Colors.white),
                   ),
@@ -630,47 +707,48 @@ class RoleSelectionView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppStrings.selectRole,
+                      AppStrings.SelectYourRoleToContinue,
                       style: KTextStyle.poppins(
                           fs: 15, fw: FontWeight.w600),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      AppStrings.selectRoleHi,
+                      AppStrings.SelectRole,
                       style: KTextStyle.poppins(
                           fs: 13, c: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 20),
 
                     // Vendor
+                    // Vendor
                     Obx(() => _RoleCard(
                       icon: Icons.corporate_fare_rounded,
-                      title: AppStrings.vendor,
-                      subtitleEn: AppStrings.vendorSubEn,
-                      subtitleHi: AppStrings.vendorSubHi,
+                      title: AppStrings.Vendor,
+                      subtitleEn: AppStrings.IWantToHireWorkers,
+                      subtitleHi: AppStrings.HireWorkers,
                       tag: 'Contractor / ठेकेदार',
-                      selected:
-                      ctrl.selectedRole.value == 'vendor',
+                      selected: ctrl.selectedRole.value == 'vendor',
                       onTap: () => ctrl.select('vendor'),
                     )),
                     const SizedBox(height: AppDimens.md),
 
-                    // Worker
+// Worker
                     Obx(() => _RoleCard(
                       icon: Icons.engineering_rounded,
-                      title: AppStrings.worker,
-                      subtitleEn: AppStrings.workerSubEn,
-                      subtitleHi: AppStrings.workerSubHi,
-                      tag: 'Labour / मज़दूर',
-                      selected:
-                      ctrl.selectedRole.value == 'worker',
+                      title: AppStrings.Worker,
+                      subtitleEn: AppStrings.IAmLookingForWork,
+                      subtitleHi: AppStrings.LookingForWork,
+
+                      // Updated Professional Tag
+                      tag: 'Employee / कर्मचारी',
+
+                      selected: ctrl.selectedRole.value == 'worker',
                       onTap: () => ctrl.select('worker'),
                     )),
-
                     const Spacer(),
 
                     Obx(() => CustomButton(
-                      label: AppStrings.continueBtn,
+                      label: AppStrings.Continue,
                       onTap: ctrl.selectedRole.isNotEmpty
                           ? ctrl.proceed
                           : null,

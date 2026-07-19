@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../../../core/services/notification_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  WORKER HOME CONTROLLER
@@ -9,4 +10,16 @@ class WorkerHomeController extends GetxController {
   final hasActiveJob = true.obs;
 
   void changeTab(int i) => tabIndex.value = i;
+
+  @override
+  void onInit() {
+    super.onInit();
+    HomeTabSwitcher.register(changeTab);
+  }
+
+  @override
+  void onClose() {
+    HomeTabSwitcher.unregister(changeTab);
+    super.onClose();
+  }
 }

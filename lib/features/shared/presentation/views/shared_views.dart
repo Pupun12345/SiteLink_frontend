@@ -5,6 +5,12 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../app/routes/app_routes.dart';
+import '../../../../core/models/notification_models.dart';
+import '../../../../core/services/api_client.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/session_service.dart';
+import '../controllers/notifications_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  NOTIFICATIONS VIEW — Screen 24
@@ -12,159 +18,174 @@ import '../../../../core/theme/shared_widgets.dart';
 class NotificationsView extends StatelessWidget {
   const NotificationsView({super.key});
 
-  final _notifs = const [
-    {'type': 'job',    'title': 'New Job Offer / नया काम मिला',         'body': 'Mason job available in Jaipur — ₹650/day, 1 month', 'time': '2 hours ago',  'read': false},
-    {'type': 'status', 'title': 'Workers Assigned / मज़दूर नियुक्त हुए', 'body': 'Your request #REQ-001 has been fulfilled with 5 workers.', 'time': '5 hours ago', 'read': false},
-    {'type': 'admin',  'title': 'Admin Message / प्रशासन संदेश',         'body': 'Your profile has been verified. You are now active!', 'time': 'Yesterday',   'read': true},
-    {'type': 'alert',  'title': 'Replacement Update / बदलाव अपडेट',     'body': 'Replacement worker Suresh has been assigned to your site.', 'time': '2 days ago', 'read': true},
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final ctrl = Get.put(NotificationsController());
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
       appBar: GradientAppBar(
-        title: AppStrings.notifications,
+        title: AppStrings.Notifications,
         showBack: false,
         actions: [
           TextButton(
-            onPressed: () {},
-            child: Text(AppStrings.markAllRead,
+            onPressed: ctrl.markAllRead,
+            child: Text(AppStrings.MarkAllRead,
                 style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: Colors.white)),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Filter chips
-          Container(
-            width: double.infinity,
-            color: AppColors.surface,
-            padding: const EdgeInsets.symmetric(horizontal: AppDimens.lg, vertical: 10),
-            child: Row(
-              children: ['All', 'Jobs', 'Status', 'Admin'].map((f) {
-                final isFirst = f == 'All';
-
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Container(
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isFirst ? AppColors.primary : AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusMax),
-                        border: Border.all(
-                          color: isFirst ? AppColors.primary : AppColors.border,
-                        ),
-                      ),
-                      child: Text(
-                        f,
-                        textAlign: TextAlign.center,
-                        style: KTextStyle.poppins(
-                          fs: 12,
-                          fw: FontWeight.w500,
-                          c: isFirst ? Colors.white : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-
-          Expanded(
+      body: SafeArea(
+        top: false,
+        child: Obx(() {
+          if (ctrl.isLoading.value) {
+            return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary));
+          }
+          if (ctrl.notifications.isEmpty) {
+            return const _EmptyNotifications();
+          }
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: ctrl.fetchNotifications,
             child: ListView.builder(
               padding: const EdgeInsets.all(AppDimens.lg),
-              itemCount: _notifs.length + 2, // +2 for section headers
+              itemCount: ctrl.notifications.length,
               itemBuilder: (_, i) {
-                if (i == 0) return _SectionLabel('Today / आज');
-                if (i == 3) return _SectionLabel('Yesterday / कल');
-                final ni = i <= 2 ? i - 1 : i - 2;
-                if (ni >= _notifs.length) return const SizedBox.shrink();
-                return _NotifCard(notif: _notifs[ni]);
+                final n = ctrl.notifications[i];
+                return Dismissible(
+                  key: ValueKey(n.id),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (_) => ctrl.deleteNotification(n.id),
+                  background: Container(
+                    margin: const EdgeInsets.only(bottom: AppDimens.md),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    alignment: Alignment.centerRight,
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                  ),
+                  child: _NotifCard(
+                    notif: n,
+                    onTap: () => ctrl.onTapNotification(n),
+                  ),
+                );
               },
             ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel(this.label);
+class _EmptyNotifications extends StatelessWidget {
+  const _EmptyNotifications();
+
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8, top: 4),
-        child: Text(label, style: KTextStyle.poppins(fs: 12, fw: FontWeight.bold, c: AppColors.textHint)),
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade100, shape: BoxShape.circle),
+              child: Icon(Icons.notifications_off_outlined,
+                  size: 36, color: Colors.grey.shade400),
+            ),
+            const SizedBox(height: 14),
+            Text('No notifications',
+                style: KTextStyle.poppins(fs: 14, c: AppColors.textSecondary)),
+          ],
+        ),
       );
 }
 
 class _NotifCard extends StatelessWidget {
-  final Map<String, dynamic> notif;
-  const _NotifCard({required this.notif});
+  final AppNotification notif;
+  final VoidCallback onTap;
+  const _NotifCard({required this.notif, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final typeIcons = {
-      'job':    (Icons.work_rounded,           AppColors.primary),
-      'status': (Icons.check_circle_rounded,   AppColors.success),
-      'admin':  (Icons.admin_panel_settings_rounded, AppColors.info),
-      'alert':  (Icons.notifications_rounded,  AppColors.warning),
+    const typeIcons = {
+      'job_approved':      (Icons.check_circle_rounded, AppColors.success),
+      'job_rejected':      (Icons.cancel_rounded, AppColors.error),
+      'new_application':   (Icons.work_rounded, AppColors.primary),
+      'application_status':(Icons.assignment_turned_in_rounded, AppColors.info),
+      'new_comment':       (Icons.chat_bubble_rounded, AppColors.secondary),
+      'vendor_verified':   (Icons.verified_rounded, AppColors.success),
+      'vendor_rejected':   (Icons.report_rounded, AppColors.error),
     };
-    final t = typeIcons[notif['type']] ?? (Icons.notifications_outlined, AppColors.textSecondary);
-    final unread = !(notif['read'] as bool);
+    final t = typeIcons[notif.type] ??
+        (Icons.notifications_outlined, AppColors.textSecondary);
+    final unread = !notif.isRead;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppDimens.md),
-      decoration: BoxDecoration(
-        color: unread ? AppColors.selectionBg : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: unread
-            ? const Border(left: BorderSide(color: AppColors.primary, width: 4))
-            : null,
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimens.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: t.$2.withOpacity(0.1),
-                shape: BoxShape.circle,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppDimens.md),
+        decoration: BoxDecoration(
+          color: unread ? AppColors.selectionBg : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          border: unread
+              ? const Border(left: BorderSide(color: AppColors.primary, width: 4))
+              : null,
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimens.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: t.$2.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(t.$1, color: t.$2, size: 22),
               ),
-              child: Icon(t.$1, color: t.$2, size: 22),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(notif['title']!,
-                      style: KTextStyle.poppins(
-                          fs: 13, fw: unread ? FontWeight.w600 : FontWeight.w500)),
-                  const SizedBox(height: 3),
-                  Text(notif['body']!,
-                      style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary),
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text(notif['time']!,
-                      style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
-                ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(notif.title,
+                        style: KTextStyle.poppins(
+                            fs: 13, fw: unread ? FontWeight.w600 : FontWeight.w500)),
+                    const SizedBox(height: 3),
+                    Text(notif.body,
+                        style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary),
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(_timeAgo(notif.createdAt),
+                        style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
+                  ],
+                ),
               ),
-            ),
-            if (unread)
-              const Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: 20),
-          ],
+              if (unread)
+                const Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: 20),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  String _timeAgo(DateTime? dt) {
+    if (dt == null) return '';
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    if (d.inDays < 7) return '${d.inDays}d ago';
+    return '${(d.inDays / 7).floor()}w ago';
   }
 }
 
@@ -179,7 +200,7 @@ class VendorProfileView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
       appBar: GradientAppBar(
-        title: AppStrings.profile,
+        title: AppStrings.Profile,
         showBack: false,
         actions: [
           IconButton(
@@ -262,7 +283,7 @@ class WorkerProfileView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
       appBar: GradientAppBar(
-        title: AppStrings.profile,
+        title: AppStrings.Profile,
         showBack: false,
         actions: [
           IconButton(
@@ -413,10 +434,10 @@ class _SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.language_rounded,        AppStrings.language,    false),
+      (Icons.language_rounded,        AppStrings.Language,    false),
       (Icons.notifications_rounded,   'Notifications',        true),
-      (Icons.help_outline_rounded,    AppStrings.helpSupport, false),
-      (Icons.info_outline_rounded,    AppStrings.aboutApp,    false),
+      (Icons.help_outline_rounded,    AppStrings.HelpSupport, false),
+      (Icons.info_outline_rounded,    AppStrings.AboutSiteLink,    false),
     ];
 
     return Padding(
@@ -442,7 +463,7 @@ class _SettingsCard extends StatelessWidget {
                               )
                             : const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.textHint),
-                        onTap: item.$3 ? null : () => Get.to(() => const HelpView()),
+                        onTap: item.$3 ? null : () => Get.toNamed(AppRoutes.help),
                       ),
                       if (!isLast)
                         const Divider(height: 0, indent: 52, color: AppColors.divider),
@@ -454,7 +475,7 @@ class _SettingsCard extends StatelessWidget {
           ),
           const SizedBox(height: AppDimens.md),
           CustomButton(
-            label: '🚪 ${AppStrings.logout}',
+            label: '🚪 ${AppStrings.Logout}',
             isOutlined: true,
             onTap: () => Get.dialog(
               AlertDialog(
@@ -464,7 +485,13 @@ class _SettingsCard extends StatelessWidget {
                 actions: [
                   TextButton(onPressed: Get.back, child: const Text('Cancel')),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      Get.back(); // dialog band karo
+                      await MiscApiService().logout(); // token blacklist
+                      await AuthService.instance.signOut();
+                      await SessionService.to.clear();
+                      Get.offAllNamed(AppRoutes.language);
+                    },
                     child: Text('Logout',
                         style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600, c: AppColors.error)),
                   ),
@@ -501,7 +528,7 @@ class HelpView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.helpTitle),
+      appBar: GradientAppBar(title: AppStrings.HelpSupport),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimens.lg),
         child: Column(
@@ -536,7 +563,7 @@ class HelpView extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.call_rounded, size: 18),
-                          label: Text(AppStrings.callAdmin,
+                          label: Text(AppStrings.CallAdmin,
                               style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600,
                                   c: AppColors.primary)),
                         ),
@@ -553,7 +580,7 @@ class HelpView extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.chat_rounded, size: 18),
-                          label: Text(AppStrings.whatsapp,
+                          label: Text(AppStrings.WhatsApp,
                               style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600,
                                   c: const Color(0xFF25D366))),
                         ),
@@ -565,7 +592,7 @@ class HelpView extends StatelessWidget {
             ),
             const SizedBox(height: AppDimens.xl),
 
-            Text(AppStrings.faqTitle,
+            Text(AppStrings.FrequentlyAskedQuestions,
                 style: KTextStyle.poppins(fs: 14, fw: FontWeight.bold)),
             const SizedBox(height: AppDimens.md),
 

@@ -1,12 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/models/location_models.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/vendor_reg_controller.dart';
-import 'vendor_home_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  VENDOR REGISTRATION VIEW
@@ -20,7 +22,7 @@ class VendorRegistrationView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.companyProfile),
+      appBar: GradientAppBar(title: AppStrings.CompanyProfile),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -48,14 +50,14 @@ class VendorRegistrationView extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        AppStrings.companyInfo,
+                        AppStrings.TellUsAboutYourCompany,
                         style: KTextStyle.poppins(
                             fs: 16, fw: FontWeight.w700),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        AppStrings.companyInfoHi,
+                        AppStrings.EnterCompanyDetails,
                         style: KTextStyle.poppins(
                             fs: 13, c: AppColors.textSecondary),
                         textAlign: TextAlign.center,
@@ -75,7 +77,7 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: AppStrings.companyName,
+                  label: AppStrings.CompanyName,
                   hint: 'Enter company name',
                   controller: ctrl.companyNameCtrl,
                   prefixIcon: Icons.business_rounded,
@@ -83,7 +85,7 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: AppStrings.contactPerson,
+                  label: AppStrings.ContactPerson,
                   hint: 'Enter name',
                   controller: ctrl.contactPersonCtrl,
                   prefixIcon: Icons.person_outline_rounded,
@@ -91,9 +93,27 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: AppStrings.designation,
+                  label: AppStrings.Designation,
                   hint: 'e.g., Manager, Owner, Site Engineer',
                   controller: ctrl.designationCtrl,
+                ),
+                const SizedBox(height: AppDimens.md),
+
+                SitelinkTextField(
+                  label: 'Email',
+                  hint: 'company@email.com',
+                  controller: ctrl.emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  isOptional: true,
+                ),
+                const SizedBox(height: AppDimens.md),
+
+                SitelinkTextField(
+                  label: 'WhatsApp Number',
+                  hint: '10-digit number',
+                  controller: ctrl.whatsappCtrl,
+                  keyboardType: TextInputType.phone,
+                  isOptional: true,
                 ),
                 const SizedBox(height: AppDimens.xl),
 
@@ -105,68 +125,66 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: AppDimens.md),
 
                 Text(
-                  AppStrings.city,
+                  'State',
                   style: KTextStyle.poppins(
                       fs: 12,
                       fw: FontWeight.w500,
                       c: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  hint: Text(
-                    'Select city',
-                    style: KTextStyle.poppins(
-                        fs: 13, c: AppColors.textHint),
-                  ),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                        Icons.location_on_outlined,
-                        color: AppColors.primary,
-                        size: 22),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(AppDimens.radiusMd),
-                      borderSide: const BorderSide(
-                          color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(AppDimens.radiusMd),
-                      borderSide: const BorderSide(
-                          color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(AppDimens.radiusMd),
-                      borderSide: const BorderSide(
-                          color: AppColors.primary, width: 1.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
-                  ),
-                  items: [
-                    'Jaipur',
-                    'Delhi',
-                    'Mumbai',
-                    'Pune',
-                    'Ahmedabad',
-                    'Surat',
-                    'Lucknow',
-                    'Bhopal'
-                  ]
-                      .map((c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(c,
-                          style: KTextStyle.poppins(fs: 13))))
-                      .toList(),
-                  onChanged: (v) => ctrl.city.value = v ?? '',
+                Obx(() => _apiDropdown<StateModel>(
+                      value: ctrl.selectedState.value,
+                      hint: 'Select state',
+                      icon: Icons.map_outlined,
+                      items: ctrl.allStates
+                          .map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.name ?? '',
+                                  style: KTextStyle.poppins(fs: 13))))
+                          .toList(),
+                      onChanged: ctrl.onStateChanged,
+                    )),
+                const SizedBox(height: AppDimens.md),
+
+                Text(
+                  AppStrings.City,
+                  style: KTextStyle.poppins(
+                      fs: 12,
+                      fw: FontWeight.w500,
+                      c: AppColors.textSecondary),
                 ),
+                const SizedBox(height: 6),
+                Obx(() {
+                  if (ctrl.isLoadingCities.value) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.primary),
+                        ),
+                      ),
+                    );
+                  }
+                  return _apiDropdown<CityModel>(
+                    value: ctrl.selectedCity.value,
+                    hint: 'Select city',
+                    icon: Icons.location_on_outlined,
+                    items: ctrl.allCities
+                        .map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c.name ?? '',
+                                style: KTextStyle.poppins(fs: 13))))
+                        .toList(),
+                    onChanged: (c) => ctrl.selectedCity.value = c,
+                  );
+                }),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: AppStrings.workArea,
+                  label: AppStrings.WorkArea,
                   hint: 'Areas where you hire',
                   controller: ctrl.workAreaCtrl,
                   isOptional: true,
@@ -176,16 +194,54 @@ class VendorRegistrationView extends StatelessWidget {
                 // ── Optional Section ────────────────────────
                 _FieldSectionLabel(
                   icon: Icons.receipt_long_rounded,
-                  title: 'Tax Details (Optional)',
+                  title: 'Tax Details',
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: AppStrings.gst,
+                  label: 'PAN Number *',
+                  hint: 'ABCDE1234F',
+                  controller: ctrl.panCtrl,
+                ),
+                const SizedBox(height: AppDimens.md),
+
+                SitelinkTextField(
+                  label: AppStrings.GSTNumber,
                   hint: 'Enter GSTIN',
                   controller: ctrl.gstCtrl,
                   isOptional: true,
                 ),
+                const SizedBox(height: AppDimens.xl),
+
+                // ── Documents Section ───────────────────────
+                _FieldSectionLabel(
+                  icon: Icons.upload_file_rounded,
+                  title: 'Documents',
+                ),
+                const SizedBox(height: AppDimens.md),
+
+                Obx(() => _DocUploadTile(
+                      label: 'PAN Card Photo *',
+                      file: ctrl.panCardImage.value,
+                      onPick: (src) => ctrl.pickFile(ctrl.panCardImage, src),
+                      onRemove: () => ctrl.panCardImage.value = null,
+                    )),
+                const SizedBox(height: AppDimens.md),
+
+                Obx(() => _DocUploadTile(
+                      label: 'GST Certificate *',
+                      file: ctrl.gstCertificate.value,
+                      onPick: (src) => ctrl.pickFile(ctrl.gstCertificate, src),
+                      onRemove: () => ctrl.gstCertificate.value = null,
+                    )),
+                const SizedBox(height: AppDimens.md),
+
+                Obx(() => _DocUploadTile(
+                      label: 'Company Logo (optional)',
+                      file: ctrl.companyLogo.value,
+                      onPick: (src) => ctrl.pickFile(ctrl.companyLogo, src),
+                      onRemove: () => ctrl.companyLogo.value = null,
+                    )),
                 const SizedBox(height: AppDimens.xl),
 
                 // ── Info Note ───────────────────────────────
@@ -208,7 +264,7 @@ class VendorRegistrationView extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              AppStrings.activationNote,
+                              AppStrings.YourAccountWillBeActivatedWithin12HoursAfterReview,
                               style: KTextStyle.poppins(
                                   fs: 12,
                                   fw: FontWeight.w500,
@@ -221,7 +277,7 @@ class VendorRegistrationView extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(left: 21),
                         child: Text(
-                          AppStrings.activationNoteHi,
+                          AppStrings.AccountWillBeActivatedSoon,
                           style: KTextStyle.poppins(
                               fs: 11, c: AppColors.textHint),
                         ),
@@ -233,7 +289,7 @@ class VendorRegistrationView extends StatelessWidget {
 
                 // ── Submit ──────────────────────────────────
                 Obx(() => CustomButton(
-                  label: AppStrings.createAccount,
+                  label: AppStrings.CreateAccount,
                   onTap: ctrl.submit,
                   isLoading: ctrl.isLoading.value,
                   leading: const Icon(
@@ -247,6 +303,144 @@ class VendorRegistrationView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── API-driven dropdown (state/city) ──────────────────────────────
+Widget _apiDropdown<T>({
+  required T? value,
+  required String hint,
+  required IconData icon,
+  required List<DropdownMenuItem<T>> items,
+  required void Function(T?) onChanged,
+}) {
+  return DropdownButtonFormField<T>(
+    value: value,
+    isExpanded: true,
+    hint: Text(hint, style: KTextStyle.poppins(fs: 13, c: AppColors.textHint)),
+    decoration: InputDecoration(
+      prefixIcon: Icon(icon, color: AppColors.primary, size: 22),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    ),
+    items: items,
+    onChanged: onChanged,
+  );
+}
+
+// ── Document upload tile (pick camera/gallery + preview) ───────────
+class _DocUploadTile extends StatelessWidget {
+  final String label;
+  final File? file;
+  final void Function(ImageSource) onPick;
+  final VoidCallback onRemove;
+
+  const _DocUploadTile({
+    required this.label,
+    required this.file,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  void _showSourceSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt_outlined),
+            title: const Text('Camera'),
+            onTap: () {
+              Get.back();
+              onPick(ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Gallery'),
+            onTap: () {
+              Get.back();
+              onPick(ImageSource.gallery);
+            },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFile = file != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: KTextStyle.poppins(
+                fs: 12, fw: FontWeight.w500, c: AppColors.textSecondary)),
+        const SizedBox(height: 6),
+        if (hasFile)
+          Stack(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+              child: Image.file(file!,
+                  height: 120, width: double.infinity, fit: BoxFit.cover),
+            ),
+            Positioned(
+              top: 6,
+              right: 6,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                      color: Colors.black54, shape: BoxShape.circle),
+                  child: const Icon(Icons.close_rounded,
+                      color: Colors.white, size: 14),
+                ),
+              ),
+            ),
+          ])
+        else
+          GestureDetector(
+            onTap: () => _showSourceSheet(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(children: [
+                const Icon(Icons.cloud_upload_outlined,
+                    color: AppColors.primary, size: 26),
+                const SizedBox(height: 6),
+                Text('Tap to upload',
+                    style:
+                        KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
+              ]),
+            ),
+          ),
+      ],
     );
   }
 }

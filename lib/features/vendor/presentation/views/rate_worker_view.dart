@@ -5,6 +5,7 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/app_snackbar.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  RATE WORKER VIEW
@@ -18,7 +19,7 @@ class RateWorkerView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.rateWorker),
+      appBar: GradientAppBar(title: AppStrings.RateWorker),
       body: SafeArea(
         top: false,
         child: Column(
@@ -93,7 +94,7 @@ class RateWorkerView extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            AppStrings.rateExperience,
+                            AppStrings.RateYourExperience,
                             style: KTextStyle.poppins(
                                 fs: 14,
                                 fw: FontWeight.w600,
@@ -270,7 +271,7 @@ class RateWorkerView extends StatelessWidget {
                     top: BorderSide(color: AppColors.divider)),
               ),
               child: Obx(() => CustomButton(
-                label: AppStrings.submitRating,
+                label: AppStrings.SubmitRating,
                 onTap: ctrl.rating.value > 0
                     ? ctrl.submit
                     : null,
@@ -312,12 +313,7 @@ class _RateCtrl extends GetxController {
     await Future.delayed(const Duration(seconds: 1));
     isLoading.value = false;
     Get.back();
-    Get.snackbar(
-      'Thank you! 🙏',
-      'Rating submitted successfully.',
-      backgroundColor: const Color(0xFFE8F5E9),
-      colorText: const Color(0xFF2E7D32),
-    );
+    AppSnackbar.success(message: 'Rating submitted successfully.');
   }
 
   @override

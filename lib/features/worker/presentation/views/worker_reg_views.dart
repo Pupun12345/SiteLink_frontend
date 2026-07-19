@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:sitelink/features/worker/presentation/views/worker_home_view.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/worker_reg_controller.dart';
+import '../../../../core/models/skill_models.dart';
+import 'dart:io';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STEPPER WIDGET
@@ -74,9 +77,7 @@ class _RegStepper extends StatelessWidget {
                             : (isDone
                             ? AppColors.success
                             : AppColors.textHint),
-                        fw: isActive
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fw: isActive ? FontWeight.w600 : FontWeight.normal,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -88,9 +89,7 @@ class _RegStepper extends StatelessWidget {
                       height: 2,
                       margin: const EdgeInsets.only(bottom: 22),
                       decoration: BoxDecoration(
-                        color: isDone
-                            ? AppColors.success
-                            : AppColors.divider,
+                        color: isDone ? AppColors.success : AppColors.divider,
                         borderRadius: BorderRadius.circular(1),
                       ),
                     ),
@@ -116,7 +115,7 @@ class WorkerReg1View extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.createProfile),
+      appBar: GradientAppBar(title: AppStrings.CreateProfile),
       body: SafeArea(
         top: false,
         child: Column(
@@ -130,24 +129,24 @@ class WorkerReg1View extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _StepSectionHeader(
-                        title: AppStrings.personalDetails,
+                        title: AppStrings.PersonalDetails,
                         subtitle: 'Fill in your basic information below',
                       ),
                       const SizedBox(height: AppDimens.xl),
 
-                      // Name
+                      // ── Name ──────────────────────────────────────
                       SitelinkTextField(
-                        label: AppStrings.fullName,
+                        label: AppStrings.FullName,
                         hint: 'Enter your full name',
                         controller: ctrl.nameCtrl,
                         prefixIcon: Icons.person_outline_rounded,
                       ),
                       const SizedBox(height: AppDimens.lg),
 
-                      // DOB
+                      // ── Date of Birth ─────────────────────────────
                       SitelinkTextField(
-                        label: AppStrings.dob,
-                        hint: 'DD / MM / YYYY',
+                        label: AppStrings.DateOfBirth,
+                        hint: 'YYYY-MM-DD',
                         controller: ctrl.dobCtrl,
                         prefixIcon: Icons.calendar_today_rounded,
                         keyboardType: TextInputType.datetime,
@@ -160,8 +159,7 @@ class WorkerReg1View extends StatelessWidget {
                             lastDate: DateTime.now(),
                             builder: (ctx, child) => Theme(
                               data: ThemeData.light().copyWith(
-                                colorScheme:
-                                const ColorScheme.light(
+                                colorScheme: const ColorScheme.light(
                                     primary: AppColors.primary),
                               ),
                               child: child!,
@@ -169,15 +167,15 @@ class WorkerReg1View extends StatelessWidget {
                           );
                           if (d != null) {
                             ctrl.dobCtrl.text =
-                            '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+                            '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
                           }
                         },
                       ),
                       const SizedBox(height: AppDimens.lg),
 
-                      // Gender
+                      // ── Gender ────────────────────────────────────
                       Text(
-                        AppStrings.gender,
+                        AppStrings.Gender,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -190,20 +188,17 @@ class WorkerReg1View extends StatelessWidget {
                           final sel = ctrl.gender.value == g;
                           return Expanded(
                             child: GestureDetector(
-                              onTap: () =>
-                              ctrl.gender.value = g,
+                              onTap: () => ctrl.gender.value = g,
                               child: Container(
-                                margin: const EdgeInsets.only(
-                                    right: 8),
-                                padding:
-                                const EdgeInsets.symmetric(
+                                margin:
+                                const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
                                     vertical: 10),
                                 decoration: BoxDecoration(
                                   color: sel
                                       ? AppColors.primary
                                       : Colors.grey.shade100,
-                                  borderRadius:
-                                  BorderRadius.circular(
+                                  borderRadius: BorderRadius.circular(
                                       AppDimens.radiusSm),
                                   border: Border.all(
                                       color: sel
@@ -218,8 +213,7 @@ class WorkerReg1View extends StatelessWidget {
                                     fw: FontWeight.w500,
                                     c: sel
                                         ? Colors.white
-                                        : AppColors
-                                        .textSecondary,
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ),
@@ -227,21 +221,12 @@ class WorkerReg1View extends StatelessWidget {
                           );
                         }).toList(),
                       )),
-                      const SizedBox(height: AppDimens.lg),
 
-                      // City
-                      SitelinkTextField(
-                        label: AppStrings.city,
-                        hint: 'Select your city',
-                        controller: ctrl.cityCtrl,
-                        prefixIcon: Icons.location_on_outlined,
-                      ),
                       const SizedBox(height: AppDimens.xl),
 
                       CustomButton(
-                        label: AppStrings.nextBtn,
-                        onTap: () =>
-                            Get.to(() => const WorkerReg2View()),
+                        label: AppStrings.Next,
+                        onTap: () => Get.toNamed(AppRoutes.workerReg2),
                       ),
                     ],
                   ),
@@ -267,7 +252,7 @@ class WorkerReg2View extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.createProfile),
+      appBar: GradientAppBar(title: AppStrings.CreateProfile),
       body: SafeArea(
         top: false,
         child: Column(
@@ -281,99 +266,139 @@ class WorkerReg2View extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _StepSectionHeader(
-                        title: AppStrings.yourSkills,
-                        subtitle:
-                        'Select the skills you are experienced in',
+                        title: AppStrings.SkillsExperience,
+                        subtitle: 'Tell us what you can do',
                       ),
                       const SizedBox(height: AppDimens.xl),
 
-                      // Primary Skill dropdown
+                      // ── Primary Skill ──────────────────────────────
                       Text(
-                        AppStrings.primarySkill,
+                        AppStrings.PrimarySkill,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
                             c: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 6),
-                      Obx(() =>
-                          DropdownButtonFormField<String>(
-                            value: ctrl.primarySkill.value.isEmpty
-                                ? null
-                                : ctrl.primarySkill.value,
-                            hint: Text(
-                              'Select skill',
+                      Obx(() {
+                        if (ctrl.isLoadingSkills.value) {
+                          return Container(
+                            padding: const EdgeInsets.all(AppDimens.md),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              border:
+                              Border.all(color: AppColors.border),
+                            ),
+                            child: const SizedBox(
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        return DropdownButtonFormField<int>(
+                          value: ctrl.selectedPrimarySkillId.value,
+                          hint: Text('Select skill',
                               style: KTextStyle.poppins(
-                                  fs: 13, c: AppColors.textHint),
+                                  fs: 13, c: AppColors.textHint)),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.border),
                             ),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.grey.shade50,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppDimens.radiusMd),
-                                borderSide: const BorderSide(
-                                    color: AppColors.border),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppDimens.radiusMd),
-                                borderSide: const BorderSide(
-                                    color: AppColors.border),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppDimens.radiusMd),
-                                borderSide: const BorderSide(
-                                    color: AppColors.primary,
-                                    width: 1.5),
-                              ),
-                              contentPadding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 14),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.border),
                             ),
-                            items: AppStrings.allSkills
-                                .map((s) => DropdownMenuItem(
-                                value: s,
-                                child: Text(s,
-                                    style: KTextStyle.poppins(
-                                        fs: 13))))
-                                .toList(),
-                            onChanged: (v) =>
-                            ctrl.primarySkill.value = v ?? '',
-                          )),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primary, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                          ),
+                          items: ctrl.allSkills
+                              .map((s) => DropdownMenuItem<int>(
+                              value: s.skillId,
+                              child: Text(s.name ?? '',
+                                  style:
+                                  KTextStyle.poppins(fs: 13))))
+                              .toList(),
+                          onChanged: (v) {
+                            ctrl.selectedPrimarySkillId.value = v;
+                          },
+                        );
+                      }),
                       const SizedBox(height: AppDimens.lg),
 
-                      // Additional skills
+                      // ── Additional Skills (Multi-Select Dropdown) ──
                       Text(
-                        AppStrings.additionalSkills,
+                        AppStrings.AdditionalSkills,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
                             c: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
-                      Obx(() => Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children:
-                        AppStrings.allSkills.map((s) {
-                          final sel =
-                          ctrl.additionalSkills.contains(s);
-                          return SkillChip(
-                            label: s,
-                            selected: sel,
-                            onTap: () => sel
-                                ? ctrl.additionalSkills.remove(s)
-                                : ctrl.additionalSkills.add(s),
-                          );
-                        }).toList(),
-                      )),
+                      const MultiSelectSkillField(),
+
+                      // ── Other skill field ──────────────────────────
+                      Obx(() {
+                        SkillModel? otherSkillEntry;
+                        try {
+                          otherSkillEntry = ctrl.allSkills
+                              .firstWhere((s) => s.name == 'Other');
+                        } catch (_) {
+                          otherSkillEntry = null;
+                        }
+                        final showOther = (otherSkillEntry != null &&
+                            otherSkillEntry.skillId != null &&
+                            ctrl.selectedSecondarySkillIds
+                                .contains(otherSkillEntry.skillId)) ||
+                            ctrl.otherSkillCtrl.text.isNotEmpty;
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: showOther
+                              ? Column(
+                            key: const ValueKey('otherSkillField'),
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: AppDimens.lg),
+                              Text('Other skill',
+                                  style: KTextStyle.poppins(
+                                      fs: 12,
+                                      fw: FontWeight.w500,
+                                      c: AppColors.textSecondary)),
+                              const SizedBox(height: 8),
+                              SitelinkTextField(
+                                label:
+                                'Describe your other skill',
+                                hint: 'Enter custom skill',
+                                controller: ctrl.otherSkillCtrl,
+                                prefixIcon: Icons.edit_outlined,
+                              ),
+                            ],
+                          )
+                              : const SizedBox.shrink(),
+                        );
+                      }),
+
                       const SizedBox(height: AppDimens.lg),
 
-                      // Experience years
+                      // ── Experience Years ───────────────────────────
                       Text(
-                        AppStrings.experienceYears,
+                        AppStrings.TotalExperience,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -388,8 +413,8 @@ class WorkerReg2View extends StatelessWidget {
                           color: Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(
                               AppDimens.radiusMd),
-                          border: Border.all(
-                              color: AppColors.border),
+                          border:
+                          Border.all(color: AppColors.border),
                         ),
                         child: Column(
                           children: [
@@ -410,13 +435,11 @@ class WorkerReg2View extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(
                                       bottom: 3),
-                                  child: Text(
-                                    'years',
-                                    style: KTextStyle.poppins(
-                                        fs: 14,
-                                        c: AppColors
-                                            .textSecondary),
-                                  ),
+                                  child: Text('years',
+                                      style: KTextStyle.poppins(
+                                          fs: 14,
+                                          c: AppColors
+                                              .textSecondary)),
                                 ),
                               ],
                             ),
@@ -450,9 +473,9 @@ class WorkerReg2View extends StatelessWidget {
                       )),
                       const SizedBox(height: AppDimens.lg),
 
-                      // Experience description
+                      // ── Experience Description ─────────────────────
                       Text(
-                        AppStrings.expDescription,
+                        AppStrings.ExperienceDescription,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -466,7 +489,7 @@ class WorkerReg2View extends StatelessWidget {
                             maxLines: 4,
                             style: KTextStyle.poppins(fs: 13),
                             decoration: InputDecoration(
-                              hintText: AppStrings.expPlaceholder,
+                              hintText: AppStrings.DescribeYourPastWork,
                               hintStyle: KTextStyle.poppins(
                                   fs: 12, c: AppColors.textHint),
                               filled: true,
@@ -490,8 +513,7 @@ class WorkerReg2View extends StatelessWidget {
                                     color: AppColors.primary,
                                     width: 1.5),
                               ),
-                              contentPadding:
-                              const EdgeInsets.fromLTRB(
+                              contentPadding: const EdgeInsets.fromLTRB(
                                   14, 14, 48, 14),
                             ),
                           ),
@@ -502,8 +524,7 @@ class WorkerReg2View extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: AppColors.primary
-                                    .withOpacity(0.1),
+                                color: AppColors.primary.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.mic_rounded,
@@ -513,10 +534,10 @@ class WorkerReg2View extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: AppDimens.xl),
+
                       CustomButton(
-                        label: AppStrings.nextBtn,
-                        onTap: () =>
-                            Get.to(() => const WorkerReg3View()),
+                        label: AppStrings.Next,
+                        onTap: () => Get.toNamed(AppRoutes.workerReg3),
                       ),
                     ],
                   ),
@@ -525,6 +546,390 @@ class WorkerReg2View extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MULTI SELECT SKILL FIELD
+// ═══════════════════════════════════════════════════════════════════
+class MultiSelectSkillField extends StatefulWidget {
+  const MultiSelectSkillField({super.key});
+
+  @override
+  State<MultiSelectSkillField> createState() => _MultiSelectSkillFieldState();
+}
+
+class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
+    with SingleTickerProviderStateMixin {
+  final ctrl = Get.find<WorkerRegController>();
+  final _searchCtrl = TextEditingController();
+  final _overlayKey = GlobalKey();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+  final _searchQuery = ''.obs;
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggleDropdown() {
+    _isOpen ? _closeDropdown() : _openDropdown();
+  }
+
+  void _openDropdown() {
+    _searchCtrl.clear();
+    _searchQuery.value = '';
+    _isOpen = true;
+
+    final renderBox =
+    _overlayKey.currentContext!.findRenderObject() as RenderBox;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    _overlayEntry = OverlayEntry(
+      builder: (_) => Obx(() {
+        // Rebuild when selectedSecondarySkillIds changes to update checkmarks
+        ctrl.selectedSecondarySkillIds.length;
+
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _closeDropdown,
+          child: Stack(
+            children: [
+              Positioned(
+                left: offset.dx,
+                top: offset.dy + size.height,
+                width: size.width,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(AppDimens.radiusMd),
+                    bottomRight: Radius.circular(AppDimens.radiusMd),
+                  ),
+                  child: _DropdownPanel(
+                    searchCtrl: _searchCtrl,
+                    searchQuery: _searchQuery,
+                    ctrl: ctrl,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() {});
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _isOpen = false;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Trigger button ─────────────────────────────
+        GestureDetector(
+          onTap: _toggleDropdown,
+          child: Container(
+            key: _overlayKey,
+            padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              border: Border.all(
+                color: _isOpen ? AppColors.primary : AppColors.border,
+                width: _isOpen ? 1.5 : 1.0,
+              ),
+              borderRadius: _isOpen
+                  ? const BorderRadius.only(
+                topLeft: Radius.circular(AppDimens.radiusMd),
+                topRight: Radius.circular(AppDimens.radiusMd),
+              )
+                  : BorderRadius.circular(AppDimens.radiusMd),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.build_outlined,
+                    size: 18, color: AppColors.textHint),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Obx(() {
+                    final count = ctrl.selectedSecondarySkillIds.length;
+                    String label;
+                    if (count == 0) {
+                      label = 'Select skills...';
+                    } else if (count == 1) {
+                      final id = ctrl.selectedSecondarySkillIds.first;
+                      String name = '';
+                      try {
+                        name = ctrl.allSkills
+                            .firstWhere((s) => s.skillId == id)
+                            .name ??
+                            '';
+                      } catch (_) {
+                        name = '';
+                      }
+                      label =
+                      name.isEmpty ? '1 skill selected' : name;
+                    } else {
+                      label = '$count skills selected';
+                    }
+                    return Text(
+                      label,
+                      style: KTextStyle.poppins(
+                        fs: 13,
+                        c: count == 0
+                            ? AppColors.textHint
+                            : AppColors.textPrimary,
+                      ),
+                    );
+                  }),
+                ),
+                Obx(() {
+                  final count = ctrl.selectedSecondarySkillIds.length;
+                  if (count == 0) return const SizedBox.shrink();
+                  return Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text('$count',
+                        style: KTextStyle.poppins(
+                            fs: 11,
+                            fw: FontWeight.w600,
+                            c: AppColors.primary)),
+                  );
+                }),
+                AnimatedRotation(
+                  turns: _isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 20, color: AppColors.textHint),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // ── Selected chips ──────────────────────────────
+        Obx(() {
+          if (ctrl.selectedSecondarySkillIds.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          final chips = ctrl.selectedSecondarySkillIds.map((id) {
+            String name = '';
+            try {
+              name = ctrl.allSkills
+                  .firstWhere((s) => s.skillId == id)
+                  .name ??
+                  '';
+            } catch (_) {
+              name = id.toString();
+            }
+            return {'id': id, 'name': name};
+          }).toList();
+
+          return Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: chips.map((entry) {
+                return InputChip(
+                  label: Text(entry['name'] as String? ?? '',
+                      style: KTextStyle.poppins(
+                          fs: 12, c: AppColors.primary)),
+                  backgroundColor:
+                  AppColors.primary.withOpacity(0.08),
+                  deleteIconColor: AppColors.primary,
+                  side: BorderSide(
+                      color: AppColors.primary.withOpacity(0.3)),
+                  materialTapTargetSize:
+                  MaterialTapTargetSize.shrinkWrap,
+                  onDeleted: () => ctrl
+                      .toggleSecondarySkillId(entry['id'] as int),
+                );
+              }).toList(),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _DropdownPanel extends StatelessWidget {
+  final TextEditingController searchCtrl;
+  final RxString searchQuery;
+  final WorkerRegController ctrl;
+
+  const _DropdownPanel({
+    required this.searchCtrl,
+    required this.searchQuery,
+    required this.ctrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.primary, width: 1.5),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(AppDimens.radiusMd),
+          bottomRight: Radius.circular(AppDimens.radiusMd),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: TextField(
+              controller: searchCtrl,
+              autofocus: true,
+              style: KTextStyle.poppins(fs: 13),
+              decoration: InputDecoration(
+                hintText: 'Search skills...',
+                hintStyle:
+                KTextStyle.poppins(fs: 12, c: AppColors.textHint),
+                prefixIcon: const Icon(Icons.search_outlined,
+                    size: 18, color: AppColors.textHint),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                isDense: true,
+                contentPadding:
+                const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius:
+                  BorderRadius.circular(AppDimens.radiusMd),
+                  borderSide:
+                  const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius:
+                  BorderRadius.circular(AppDimens.radiusMd),
+                  borderSide:
+                  const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius:
+                  BorderRadius.circular(AppDimens.radiusMd),
+                  borderSide: const BorderSide(
+                      color: AppColors.primary, width: 1.5),
+                ),
+              ),
+              onChanged: (val) => searchQuery.value = val,
+            ),
+          ),
+
+          const Divider(height: 1, color: AppColors.divider),
+
+          // Options list
+          Obx(() {
+            final q = searchQuery.value.toLowerCase().trim();
+            final filtered = ctrl.allSkills
+                .where((s) =>
+            q.isEmpty ||
+                (s.name ?? '').toLowerCase().contains(q))
+                .toList();
+
+            if (filtered.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                    ctrl.isLoadingSkills.value
+                        ? 'Loading...'
+                        : 'No skills found',
+                    style: KTextStyle.poppins(
+                        fs: 12, c: AppColors.textHint)),
+              );
+            }
+
+            return ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: filtered.length,
+                separatorBuilder: (_, __) =>
+                const Divider(height: 1, color: AppColors.divider),
+                itemBuilder: (_, i) {
+                  final skill = filtered[i];
+                  final sid = skill.skillId ?? -1;
+                  final isSelected =
+                  ctrl.selectedSecondarySkillIds.contains(sid);
+                  return InkWell(
+                    onTap: () => ctrl.toggleSecondarySkillId(sid),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 11),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration:
+                            const Duration(milliseconds: 150),
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border,
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: isSelected
+                                ? const Icon(Icons.check_rounded,
+                                size: 13, color: Colors.white)
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              skill.name ?? '',
+                              style: KTextStyle.poppins(
+                                fs: 13,
+                                c: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                                fw: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -542,7 +947,7 @@ class WorkerReg3View extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.createProfile),
+      appBar: GradientAppBar(title: AppStrings.CreateProfile),
       body: SafeArea(
         top: false,
         child: Column(
@@ -556,32 +961,189 @@ class WorkerReg3View extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _StepSectionHeader(
-                        title: AppStrings.workPreferences,
+                        title: AppStrings.WorkPreferences,
                         subtitle:
                         'Where do you want to work and how much do you expect?',
                       ),
                       const SizedBox(height: AppDimens.xl),
 
-                      SitelinkTextField(
-                        label: AppStrings.workCity,
-                        hint: 'e.g. Mumbai, Delhi',
-                        controller: ctrl.workCityCtrl,
-                        prefixIcon: Icons.location_on_outlined,
+                      // ── Work State ────────────────────────────────
+                      Text(
+                        'Work State',
+                        style: KTextStyle.poppins(
+                            fs: 12,
+                            fw: FontWeight.w500,
+                            c: AppColors.textSecondary),
                       ),
+                      const SizedBox(height: 6),
+                      Obx(() {
+                        if (ctrl.isLoadingStates.value) {
+                          return Container(
+                            padding:
+                            const EdgeInsets.all(AppDimens.md),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              border:
+                              Border.all(color: AppColors.border),
+                            ),
+                            child: const SizedBox(
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        return DropdownButtonFormField<int>(
+                          value: ctrl.selectedState.value?.id,
+                          hint: Text('Select state',
+                              style: KTextStyle.poppins(
+                                  fs: 13, c: AppColors.textHint)),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            prefixIcon: const Icon(
+                                Icons.location_on_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primary, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                          ),
+                          items: ctrl.allStates
+                              .map((s) => DropdownMenuItem<int>(
+                              value: s.id,
+                              child: Text(s.name ?? '',
+                                  style:
+                                  KTextStyle.poppins(fs: 13))))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              try {
+                                final sm = ctrl.allStates
+                                    .firstWhere((x) => x.id == v);
+                                ctrl.selectedState.value = sm;
+                              } catch (_) {
+                                ctrl.selectedState.value = null;
+                              }
+                              ctrl.loadCitiesForState(v);
+                            }
+                          },
+                        );
+                      }),
+                      const SizedBox(height: AppDimens.lg),
+
+                      // ── Work City ─────────────────────────────────
+                      Text(
+                        AppStrings.WorkCity,
+                        style: KTextStyle.poppins(
+                            fs: 12,
+                            fw: FontWeight.w500,
+                            c: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      Obx(() {
+                        if (ctrl.isLoadingCities.value) {
+                          return Container(
+                            padding:
+                            const EdgeInsets.all(AppDimens.md),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              border:
+                              Border.all(color: AppColors.border),
+                            ),
+                            child: const SizedBox(
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        return DropdownButtonFormField<String>(
+                          value:
+                          ctrl.selectedCity.value?.id.toString(),
+                          hint: Text('Select city',
+                              style: KTextStyle.poppins(
+                                  fs: 13, c: AppColors.textHint)),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            prefixIcon: const Icon(
+                                Icons.location_on_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppDimens.radiusMd),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primary, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 14),
+                          ),
+                          items: ctrl.allCities
+                              .map((c) => DropdownMenuItem<String>(
+                              value: c.id.toString(),
+                              child: Text(c.name ?? '',
+                                  style:
+                                  KTextStyle.poppins(fs: 13))))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              try {
+                                final cm = ctrl.allCities
+                                    .firstWhere(
+                                        (x) => x.id.toString() == v);
+                                ctrl.selectedCity.value = cm;
+                              } catch (_) {
+                                ctrl.selectedCity.value = null;
+                              }
+                            }
+                          },
+                        );
+                      }),
                       const SizedBox(height: AppDimens.lg),
 
                       SitelinkTextField(
-                        label: AppStrings.preferredArea,
-                        hint: 'Enter locality',
+                        label: AppStrings.PreferredArea,
+                        hint: 'Enter locality (optional)',
                         controller: ctrl.preferredAreaCtrl,
                         prefixIcon: Icons.map_outlined,
                         isOptional: true,
                       ),
                       const SizedBox(height: AppDimens.lg),
 
-                      // Relocate toggle
+                      // ── Relocate toggle ───────────────────────────
                       Text(
-                        AppStrings.relocate,
+                        AppStrings.WillingToRelocate,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -591,14 +1153,14 @@ class WorkerReg3View extends StatelessWidget {
                       Obx(() => Row(
                         children: [
                           _ToggleCard(
-                            label: AppStrings.yes,
+                            label: AppStrings.Yes,
                             selected: ctrl.willRelocate.value,
                             onTap: () =>
                             ctrl.willRelocate.value = true,
                           ),
                           const SizedBox(width: 12),
                           _ToggleCard(
-                            label: AppStrings.no,
+                            label: AppStrings.No,
                             selected: !ctrl.willRelocate.value,
                             onTap: () =>
                             ctrl.willRelocate.value = false,
@@ -607,9 +1169,9 @@ class WorkerReg3View extends StatelessWidget {
                       )),
                       const SizedBox(height: AppDimens.lg),
 
-                      // Salary type
+                      // ── Salary type ───────────────────────────────
                       Text(
-                        AppStrings.salaryType,
+                        AppStrings.SalaryType,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -618,11 +1180,11 @@ class WorkerReg3View extends StatelessWidget {
                       const SizedBox(height: 8),
                       Obx(() => AppSegmentedControl(
                         options: [
-                          AppStrings.daily,
-                          AppStrings.monthly
+                          AppStrings.Daily,
+                          AppStrings.Monthly
                         ],
-                        selectedIndex: ctrl.salaryType.value ==
-                            'daily'
+                        selectedIndex:
+                        ctrl.salaryType.value == 'daily'
                             ? 0
                             : 1,
                         onChanged: (i) => ctrl.salaryType.value =
@@ -630,18 +1192,19 @@ class WorkerReg3View extends StatelessWidget {
                       )),
                       const SizedBox(height: AppDimens.lg),
 
-                      // Expected salary
+                      // ── Expected salary ───────────────────────────
                       Obx(() => SitelinkTextField(
                         label:
-                        '${AppStrings.expectedSalary} (₹ per ${ctrl.salaryType.value})',
+                        '${AppStrings.ExpectedSalary} (₹ per ${ctrl.salaryType.value})',
                         hint: 'Enter amount',
                         controller: ctrl.salaryCtrl,
-                        prefixIcon: Icons.currency_rupee_rounded,
+                        prefixIcon:
+                        Icons.currency_rupee_rounded,
                         keyboardType: TextInputType.number,
                       )),
                       const SizedBox(height: AppDimens.md),
 
-                      // Info note
+                      // ── Info note ─────────────────────────────────
                       Container(
                         padding: const EdgeInsets.all(AppDimens.md),
                         decoration: BoxDecoration(
@@ -671,10 +1234,11 @@ class WorkerReg3View extends StatelessWidget {
                       ),
                       const SizedBox(height: AppDimens.xl),
 
-                      CustomButton(
-                        label: AppStrings.submitProfile,
+                      Obx(() => CustomButton(
+                        label: AppStrings.SubmitProfile,
+                        isLoading: ctrl.isSubmitting.value,
                         onTap: () => ctrl.submitStep3(),
-                      ),
+                      )),
                     ],
                   ),
                 ),
@@ -710,8 +1274,7 @@ class _StepSectionHeader extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           subtitle,
-          style:
-          KTextStyle.poppins(fs: 12, c: AppColors.textHint),
+          style: KTextStyle.poppins(fs: 12, c: AppColors.textHint),
         ),
       ],
     );
@@ -742,9 +1305,8 @@ class _ToggleCard extends StatelessWidget {
             borderRadius:
             BorderRadius.circular(AppDimens.radiusLg),
             border: Border.all(
-              color: selected
-                  ? AppColors.primary
-                  : AppColors.border,
+              color:
+              selected ? AppColors.primary : AppColors.border,
               width: selected ? 2 : 1,
             ),
           ),
@@ -777,7 +1339,7 @@ class DocumentUploadView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: AppStrings.uploadDocs),
+      appBar: GradientAppBar(title: AppStrings.UploadDocuments),
       body: SafeArea(
         top: false,
         child: Column(
@@ -790,187 +1352,390 @@ class DocumentUploadView extends StatelessWidget {
                   children: [
                     InfoBanner(
                       text:
-                      'Upload your ID and work photos for verification / सत्यापन के लिए अपने दस्तावेज़ अपलोड करें',
+                      'Upload your ID and work photos for verification / सत्यापन के लिए दस्तावेज़ अपलोड करें',
                       icon: Icons.info_outline_rounded,
                     ),
                     const SizedBox(height: AppDimens.lg),
 
-                    // ── ID Section ─────────────────────────
+                    // ── Government ID ──────────────────────
                     AppCard(
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: AppColors.selectionBg,
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                      AppDimens.radiusSm),
-                                ),
-                                child: const Icon(
-                                    Icons.badge_outlined,
-                                    color: AppColors.primary,
-                                    size: 16),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                AppStrings.govId,
-                                style: KTextStyle.poppins(
-                                    fs: 13,
-                                    fw: FontWeight.w600,
-                                    letterSpacing: 0.2),
-                              ),
+                              const Icon(Icons.badge_outlined,
+                                  color: AppColors.primary, size: 16),
+                              const SizedBox(width: 6),
+                              Text(AppStrings.GovernmentID,
+                                  style: KTextStyle.poppins(
+                                      fs: 13, fw: FontWeight.w600)),
+                              const Spacer(),
+                              Obx(() => ctrl.idProofFile.value != null
+                                  ? Row(children: [
+                                const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppColors.success,
+                                    size: 13),
+                                const SizedBox(width: 4),
+                                Text('Added',
+                                    style: KTextStyle.poppins(
+                                        fs: 11,
+                                        c: AppColors.success)),
+                              ])
+                                  : Text('*Required',
+                                  style: KTextStyle.poppins(
+                                      fs: 11,
+                                      c: Colors.red.shade400))),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          // ID type chips
-                          Obx(() => Row(
-                            children: AppStrings.idTypes
-                                .map((t) {
-                              final sel = ctrl
-                                  .selectedIdType.value ==
-                                  t;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () => ctrl
-                                      .selectedIdType
-                                      .value = t,
-                                  child: Container(
-                                    margin:
-                                    const EdgeInsets.only(
-                                        right: 6),
-                                    padding:
-                                    const EdgeInsets
-                                        .symmetric(
-                                        vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: sel
-                                          ? AppColors
-                                          .selectionBg
-                                          : AppColors.surface,
-                                      borderRadius:
-                                      BorderRadius.circular(
-                                          AppDimens
-                                              .radiusSm),
-                                      border: Border.all(
-                                          color: sel
-                                              ? AppColors
-                                              .primary
-                                              : AppColors
-                                              .border),
-                                    ),
-                                    child: Text(
-                                      t,
-                                      textAlign:
-                                      TextAlign.center,
-                                      style: KTextStyle.poppins(
-                                        fs: 11,
-                                        fw: sel
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                        c: sel
-                                            ? AppColors.primary
-                                            : AppColors
-                                            .textSecondary,
-                                      ),
+                          const SizedBox(height: 10),
+
+                          // ID Type dropdown
+                          Obx(() => DropdownButtonFormField<String>(
+                            value: ctrl.selectedIdType.value,
+                            isDense: true,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                              contentPadding:
+                              const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.circular(
+                                    AppDimens.radiusSm),
+                                borderSide: const BorderSide(
+                                    color: AppColors.border),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.circular(
+                                    AppDimens.radiusSm),
+                                borderSide: const BorderSide(
+                                    color: AppColors.border),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                BorderRadius.circular(
+                                    AppDimens.radiusSm),
+                                borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 1.5),
+                              ),
+                            ),
+                            items: AppStrings.idTypes
+                                .map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t,
+                                    style: KTextStyle.poppins(
+                                        fs: 13))))
+                                .toList(),
+                            onChanged: (v) =>
+                            ctrl.selectedIdType.value =
+                                v ?? '',
+                          )),
+                          const SizedBox(height: 10),
+
+                          // ID preview / upload box
+                          Obx(() {
+                            final file = ctrl.idProofFile.value;
+                            if (file != null) {
+                              return Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius:
+                                    BorderRadius.circular(
+                                        AppDimens.radiusSm),
+                                    child: Image.file(
+                                      file,
+                                      height: 140,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
-                                ),
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: Row(
+                                      children: [
+                                        _ActionPill(
+                                          icon: Icons.edit_outlined,
+                                          label: 'Change',
+                                          onTap: () => ctrl
+                                              .showImageSourceSheet(
+                                            context: context,
+                                            onSelect:
+                                            ctrl.pickIdProof,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        _ActionPill(
+                                          icon: Icons
+                                              .delete_outline_rounded,
+                                          label: 'Remove',
+                                          isDestructive: true,
+                                          onTap: ctrl.removeIdProof,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               );
-                            }).toList(),
-                          )),
-                          const SizedBox(height: 16),
-                          _UploadBox(
-                            onTap: () {
-                              /* TODO: image picker */
-                            },
-                            hasFile: false,
-                          ),
+                            }
+
+                            return _UploadTapBox(
+                              onTap: () =>
+                                  ctrl.showImageSourceSheet(
+                                    context: context,
+                                    onSelect: ctrl.pickIdProof,
+                                  ),
+                              label: 'Tap to upload ID',
+                              sublabel: 'Camera ya Gallery se',
+                            );
+                          }),
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppDimens.lg),
+                    const SizedBox(height: AppDimens.md),
 
-                    // ── Work Photos ───────────────────────
+                    // ── Work Sample Photos ─────────────────
                     AppCard(
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: AppColors.selectionBg,
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                      AppDimens.radiusSm),
-                                ),
-                                child: const Icon(
-                                    Icons.photo_library_outlined,
-                                    color: AppColors.primary,
-                                    size: 16),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                AppStrings.workPhotos,
-                                style: KTextStyle.poppins(
-                                    fs: 13,
-                                    fw: FontWeight.w600,
-                                    letterSpacing: 0.2),
-                              ),
+                              const Icon(
+                                  Icons.photo_library_outlined,
+                                  color: AppColors.primary,
+                                  size: 16),
+                              const SizedBox(width: 6),
+                              Text(AppStrings.WorkSamplePhotos,
+                                  style: KTextStyle.poppins(
+                                      fs: 13, fw: FontWeight.w600)),
+                              const Spacer(),
+                              Text('optional',
+                                  style: KTextStyle.poppins(
+                                      fs: 10,
+                                      c: AppColors.textHint)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Add photos of your past work (optional but recommended)',
+                            'Add photos of your past work (max 6)',
                             style: KTextStyle.poppins(
-                                fs: 12, c: AppColors.textHint),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: List.generate(
-                              3,
-                                  (i) => Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                      right: i < 2 ? 8 : 0),
-                                  child: _UploadBox(
-                                      onTap: () {},
-                                      hasFile: false,
-                                      compact: true),
-                                ),
-                              ),
-                            ),
+                                fs: 11, c: AppColors.textHint),
                           ),
                           const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Row(
-                              children: [
-                                const Icon(
-                                    Icons
-                                        .add_circle_outline_rounded,
-                                    color: AppColors.primary,
-                                    size: 18),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Add more photos',
+
+                          Obx(() {
+                            final photos = ctrl.workPhotos;
+                            final showAdd = photos.length < 6;
+                            final items = [
+                              ...photos.asMap().entries.map((e) =>
+                                  _PhotoThumb(
+                                    file: e.value,
+                                    onRemove: () =>
+                                        ctrl.removeWorkPhoto(e.key),
+                                  )),
+                              if (showAdd)
+                                _AddPhotoBox(
+                                  onTap: () =>
+                                      ctrl.showImageSourceSheet(
+                                        context: context,
+                                        onSelect: ctrl.pickWorkPhoto,
+                                      ),
+                                ),
+                            ];
+
+                            return Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: items,
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.md),
+
+                    // ── Experience Certificate ─────────────
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                  Icons.workspace_premium_outlined,
+                                  color: AppColors.primary,
+                                  size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Experience Certificate',
+                                style: KTextStyle.poppins(
+                                    fs: 13, fw: FontWeight.w600),
+                              ),
+                              const Spacer(),
+                              Text('optional',
                                   style: KTextStyle.poppins(
-                                      fs: 13,
-                                      fw: FontWeight.w500,
-                                      c: AppColors.primary),
+                                      fs: 10,
+                                      c: AppColors.textHint)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'PDF, photo, ya camera se upload karein',
+                            style: KTextStyle.poppins(
+                                fs: 11, c: AppColors.textHint),
+                          ),
+                          const SizedBox(height: 12),
+
+                          Obx(() {
+                            final file =
+                                ctrl.experienceCertFile.value;
+                            final type =
+                                ctrl.experienceCertType.value;
+
+                            if (file != null) {
+                              return Stack(
+                                children: [
+                                  Container(
+                                    height: 110,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withOpacity(0.04),
+                                      borderRadius:
+                                      BorderRadius.circular(
+                                          AppDimens.radiusSm),
+                                      border: Border.all(
+                                          color: AppColors.primary
+                                              .withOpacity(0.3)),
+                                    ),
+                                    child: type == 'pdf'
+                                        ? Column(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .center,
+                                      children: [
+                                        const Icon(
+                                            Icons
+                                                .picture_as_pdf_rounded,
+                                            color: Colors.red,
+                                            size: 40),
+                                        const SizedBox(
+                                            height: 6),
+                                        Text(
+                                          file.path
+                                              .split('/')
+                                              .last,
+                                          style: KTextStyle
+                                              .poppins(
+                                              fs: 11,
+                                              c: AppColors
+                                                  .textSecondary),
+                                          overflow: TextOverflow
+                                              .ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                        const SizedBox(
+                                            height: 2),
+                                        Row(
+                                          mainAxisAlignment:
+                                          MainAxisAlignment
+                                              .center,
+                                          children: [
+                                            const Icon(
+                                                Icons
+                                                    .check_circle_rounded,
+                                                color: AppColors
+                                                    .success,
+                                                size: 13),
+                                            const SizedBox(
+                                                width: 4),
+                                            Text(
+                                                'PDF uploaded',
+                                                style: KTextStyle
+                                                    .poppins(
+                                                    fs: 11,
+                                                    c: AppColors
+                                                        .success)),
+                                          ],
+                                        ),
+                                      ],
+                                    )
+                                        : ClipRRect(
+                                      borderRadius:
+                                      BorderRadius.circular(
+                                          AppDimens
+                                              .radiusSm),
+                                      child: Image.file(file,
+                                          height: 110,
+                                          width:
+                                          double.infinity,
+                                          fit: BoxFit.cover),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: Row(
+                                      children: [
+                                        _ActionPill(
+                                          icon: Icons.edit_outlined,
+                                          label: 'Change',
+                                          onTap: () =>
+                                              _showCertPickerSheet(
+                                                  context, ctrl),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        _ActionPill(
+                                          icon: Icons
+                                              .delete_outline_rounded,
+                                          label: 'Remove',
+                                          isDestructive: true,
+                                          onTap: ctrl
+                                              .removeExperienceCert,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                _CertUploadOption(
+                                  icon: Icons.camera_alt_outlined,
+                                  label: 'Camera',
+                                  onTap: () =>
+                                      ctrl.pickExperienceCert(
+                                          ImageSource.camera),
+                                ),
+                                const SizedBox(width: 8),
+                                _CertUploadOption(
+                                  icon:
+                                  Icons.photo_library_outlined,
+                                  label: 'Gallery',
+                                  onTap: () =>
+                                      ctrl.pickExperienceCert(
+                                          ImageSource.gallery),
+                                ),
+                                const SizedBox(width: 8),
+                                _CertUploadOption(
+                                  icon:
+                                  Icons.picture_as_pdf_outlined,
+                                  label: 'PDF',
+                                  onTap: () =>
+                                      ctrl.pickExperienceCert(null),
                                 ),
                               ],
-                            ),
-                          ),
+                            );
+                          }),
                         ],
                       ),
                     ),
@@ -979,22 +1744,23 @@ class DocumentUploadView extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Bottom submit bar
             Container(
               padding: EdgeInsets.fromLTRB(
                 AppDimens.lg,
                 AppDimens.md,
                 AppDimens.lg,
-                AppDimens.md +
-                    MediaQuery.of(context).padding.bottom,
+                AppDimens.md + MediaQuery.of(context).padding.bottom,
               ),
               decoration: const BoxDecoration(
                 color: AppColors.surface,
-                border:
-                Border(top: BorderSide(color: AppColors.divider)),
+                border: Border(
+                    top: BorderSide(color: AppColors.divider)),
               ),
               child: CustomButton(
-                label: AppStrings.submitVerify,
-                onTap: () => ctrl.submitDocuments(),
+                label: AppStrings.SubmitForVerification,
+                onTap: () => ctrl.submitWorkerProfile(),
               ),
             ),
           ],
@@ -1004,64 +1770,286 @@ class DocumentUploadView extends StatelessWidget {
   }
 }
 
-class _UploadBox extends StatelessWidget {
+// ── 3 option tiles (Camera / Gallery / PDF) ──────────────────────
+class _CertUploadOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
-  final bool hasFile;
-  final bool compact;
 
-  const _UploadBox(
-      {required this.onTap,
-        required this.hasFile,
-        this.compact = false});
+  const _CertUploadOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.04),
+            borderRadius:
+            BorderRadius.circular(AppDimens.radiusSm),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.25),
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: AppColors.primary, size: 22),
+              const SizedBox(height: 5),
+              Text(label,
+                  style: KTextStyle.poppins(
+                      fs: 11,
+                      fw: FontWeight.w500,
+                      c: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bottom sheet for cert picker ─────────────────────────────────
+void _showCertPickerSheet(
+    BuildContext context, WorkerRegController ctrl) {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius:
+      BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimens.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Upload Certificate',
+                style: KTextStyle.poppins(
+                    fs: 14, fw: FontWeight.w600)),
+            const SizedBox(height: AppDimens.md),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined,
+                  color: AppColors.primary),
+              title: Text('Camera se photo lo',
+                  style: KTextStyle.poppins(fs: 13)),
+              onTap: () {
+                Navigator.pop(context);
+                ctrl.pickExperienceCert(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: AppColors.primary),
+              title: Text('Gallery se image chuno',
+                  style: KTextStyle.poppins(fs: 13)),
+              onTap: () {
+                Navigator.pop(context);
+                ctrl.pickExperienceCert(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined,
+                  color: Colors.red),
+              title: Text('PDF file upload karo',
+                  style: KTextStyle.poppins(fs: 13)),
+              onTap: () {
+                Navigator.pop(context);
+                ctrl.pickExperienceCert(null);
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ── Upload tap box (empty state) ─────────────────────────────────
+class _UploadTapBox extends StatelessWidget {
+  final VoidCallback onTap;
+  final String label;
+  final String sublabel;
+
+  const _UploadTapBox({
+    required this.onTap,
+    required this.label,
+    required this.sublabel,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: compact ? 90 : 120,
+        height: 100,
+        width: double.infinity,
         decoration: BoxDecoration(
           color: AppColors.primary.withOpacity(0.03),
           borderRadius:
-          BorderRadius.circular(AppDimens.radiusLg),
+          BorderRadius.circular(AppDimens.radiusSm),
           border: Border.all(
             color: AppColors.primary.withOpacity(0.35),
             width: 1.5,
             style: BorderStyle.solid,
           ),
         ),
-        child: hasFile
-            ? const Icon(Icons.check_circle_rounded,
-            color: AppColors.success, size: 36)
-            : Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: compact ? 36 : 44,
-              height: compact ? 36 : 44,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: AppColors.selectionBg,
+                color: AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.upload_rounded,
-                  color: AppColors.primary,
-                  size: compact ? 20 : 24),
+              child: const Icon(Icons.upload_rounded,
+                  color: AppColors.primary, size: 20),
             ),
             const SizedBox(height: 6),
-            Text(
-              compact ? 'Upload' : 'Tap to upload',
-              textAlign: TextAlign.center,
-              style: KTextStyle.poppins(
-                  fs: compact ? 10 : 12,
-                  c: AppColors.textSecondary),
-            ),
-            if (!compact)
-              Text(
-                'अपलोड करें',
-                textAlign: TextAlign.center,
+            Text(label,
                 style: KTextStyle.poppins(
-                    fs: 11, c: AppColors.textHint),
+                    fs: 12,
+                    fw: FontWeight.w500,
+                    c: AppColors.textSecondary)),
+            const SizedBox(height: 2),
+            Text(sublabel,
+                style: KTextStyle.poppins(
+                    fs: 10, c: AppColors.textHint)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Work photo thumbnail ─────────────────────────────────────────
+class _PhotoThumb extends StatelessWidget {
+  final File file;
+  final VoidCallback onRemove;
+
+  const _PhotoThumb({required this.file, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 80.0;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius:
+            BorderRadius.circular(AppDimens.radiusSm),
+            child: Image.file(file,
+                width: size, height: size, fit: BoxFit.cover),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close_rounded,
+                    color: Colors.white, size: 13),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Add photo button ─────────────────────────────────────────────
+class _AddPhotoBox extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddPhotoBox({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.04),
+          borderRadius:
+          BorderRadius.circular(AppDimens.radiusSm),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.3),
+            width: 1.2,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_photo_alternate_outlined,
+                color: AppColors.primary.withOpacity(0.7),
+                size: 24),
+            const SizedBox(height: 4),
+            Text('Add',
+                style: KTextStyle.poppins(
+                    fs: 10, c: AppColors.textHint)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Small pill button (change / remove overlay) ──────────────────
+class _ActionPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _ActionPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+    isDestructive ? Colors.red.shade400 : Colors.white;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.55),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 13),
+            const SizedBox(width: 4),
+            Text(label,
+                style: KTextStyle.poppins(fs: 11, c: color)),
           ],
         ),
       ),
@@ -1087,7 +2075,6 @@ class ProfilePendingView extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              // ── Illustration ──────────────────────────────
               Container(
                 width: 110,
                 height: 110,
@@ -1112,27 +2099,26 @@ class ProfilePendingView extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                AppStrings.profileUnderReview,
+                AppStrings.ProfileUnderReview,
                 style: KTextStyle.poppins(
                     fs: 20, fw: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
               Text(
-                AppStrings.profileUnderReviewHi,
+                AppStrings.ProfileUnderReviewSubtitle,
                 style: KTextStyle.poppins(
                     fs: 14, c: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
 
-              // ── Steps card ────────────────────────────────
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppStrings.whatHappensNext,
+                      AppStrings.WhatHappensNext,
                       style: KTextStyle.poppins(
                           fs: 13,
                           fw: FontWeight.w600,
@@ -1166,10 +2152,9 @@ class ProfilePendingView extends StatelessWidget {
               const Spacer(flex: 3),
 
               CustomButton(
-                label: AppStrings.goToHome,
+                label: AppStrings.GoToHome,
                 isOutlined: true,
-                onTap: () =>
-                    Get.offAll(() => const WorkerHomeView()),
+                onTap: () => Get.offAllNamed(AppRoutes.workerHome),
               ),
               const SizedBox(height: AppDimens.lg),
             ],
