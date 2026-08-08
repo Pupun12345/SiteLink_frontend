@@ -8,5 +8,9 @@
 class RazorpayConfig {
   RazorpayConfig._();
 
-  static const String keyId = 'rzp_test_T0CJxzVeZJBxqQ';
+  // Sirf fallback hai — normally backend `createOrder` response me `keyId`
+  // bhejta hai (PaymentService wahi prefer karta hai). Ye tabhi use hota
+  // hai jab backend keyId na bheje, isliye ise backend ke .env wale
+  // RAZORPAY_KEY_ID ke saath sync rakhna zaroori hai.
+  static const String keyId = 'rzp_test_TKLVMznjJpwl5i';
 }

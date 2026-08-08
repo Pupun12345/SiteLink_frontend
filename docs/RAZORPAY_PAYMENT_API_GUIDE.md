@@ -2,15 +2,15 @@
 
 Worker aur Vendor dono ke "Plans" screens ab real Razorpay payment se subscribe/upgrade karte hain. Flutter app ne apni taraf se sab kar liya hai — is doc me sirf **backend** ka kaam hai: 2 naye endpoints + Razorpay Orders API se integration.
 
-Base URL: `https://sitelink-backend-4.onrender.com`
+Base URL: `http://13.235.79.210/api`
 
 ---
 
 ## ⚠️ Keys — kahan jaati hain (IMPORTANT)
 
 ```
-RAZORPAY_KEY_ID=rzp_test_T0CJxzVeZJBxqQ
-RAZORPAY_KEY_SECRET=GEdl1kGCLbcn964zxNYp0isQ
+RAZORPAY_KEY_ID=rzp_test_TKLVMznjJpwl5i
+RAZORPAY_KEY_SECRET=<YOUR_KEY_SECRET_NEVER_COMMIT>
 ```
 
 - **`KEY_ID`** — public hai, Flutter app me already hai (checkout kholne ke liye). Koi issue nahi.
@@ -18,8 +18,8 @@ RAZORPAY_KEY_SECRET=GEdl1kGCLbcn964zxNYp0isQ
 
 `.env`:
 ```
-RAZORPAY_KEY_ID=rzp_test_T0CJxzVeZJBxqQ
-RAZORPAY_KEY_SECRET=GEdl1kGCLbcn964zxNYp0isQ
+RAZORPAY_KEY_ID=rzp_test_TKLVMznjJpwl5i
+RAZORPAY_KEY_SECRET=<YOUR_KEY_SECRET_NEVER_COMMIT>
 ```
 
 Node backend me `razorpay` npm package use karo (`npm install razorpay`), ya direct REST call (Basic Auth `key_id:key_secret`).
@@ -77,7 +77,7 @@ const order = await razorpay.orders.create({
     "orderId": "order_ABC123xyz",
     "amount": 299900,
     "currency": "INR",
-    "keyId": "rzp_test_T0CJxzVeZJBxqQ"
+    "keyId": "rzp_test_TKLVMznjJpwl5i"
   }
 }
 ```
