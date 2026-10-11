@@ -4,7 +4,7 @@ description: "A new Flutter project."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.0.0+7
 
 environment:
   sdk: ^3.10.7
@@ -32,12 +32,24 @@ dependencies:
   flutter_screenutil: ^5.9.3
   dio: ^5.9.0
   get_storage: ^2.1.1
+  # Play Store ka in-app review prompt (app ke andar hi rating dene ke liye)
+  in_app_review: ^2.0.10
   google_fonts: ^8.0.0
   shimmer: ^3.0.0
   confetti: ^0.8.0
   flutter_svg:
   intl: ^0.19.0
   url_launcher: ^6.2.5
+  markdown_widget: ^2.3.2+8
+  # Experience description ka mic — bolke likhne ke liye (on-device/Google
+  # speech recognizer use karta hai, koi API key nahi chahiye)
+  speech_to_text: ^7.0.0
+  # Mic permission ka status padhne + "permanently denied" hone par app
+  # settings kholne ke liye (speech_to_text khud sirf ek baar maang sakta hai)
+  permission_handler: ^12.0.0
+  # Deep links — share kiya hua post link app me kholne ke liye
+  app_links: ^6.3.2
+  share_plus: ^10.1.4
   
   # Firebase + Google Sign-In
   firebase_core: ^4.9.0
@@ -50,17 +62,37 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   get: ^4.7.3
+  firebase_remote_config: ^6.5.6
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# ═══════════════════════════════════════════════════════════════════
+#  APP LAUNCHER ICON
+# ═══════════════════════════════════════════════════════════════════
+# Icon regenerate karne ke liye:
+#   flutter pub run flutter_launcher_icons
+# Source: assets/images/app_logo_icon.png (1024x1024)
+flutter_launcher_icons:
+  image_path: "assets/images/app_logo_icon.png"
+
+  android: "launcher_icon"
+  # Android 8+ adaptive icon — foreground logo + brand orange background.
+  # Adaptive icons ko system alag-alag shapes me mask karta hai (circle,
+  # squircle...), isliye background solid rakha hai taaki kinare na kate.
+  adaptive_icon_background: "#F97316"
+  adaptive_icon_foreground: "assets/images/app_logo_icon.png"
+  # Android 13+ themed icon (monochrome) — wallpaper ke hisaab se tint hota hai
+  adaptive_icon_monochrome: "assets/images/app_logo_icon.png"
+
+  ios: true
+  # iOS icons me alpha/transparency allowed nahi — App Store reject kar deta
+  # hai. Ye flag transparent areas ko white se bhar deta hai.
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -13,19 +13,17 @@ import 'core/constants/app_strings.dart';
 import 'core/constants/k_text_style.dart';
 import 'core/i18n/app_translations.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/deep_link_service.dart';
 import 'core/services/locale_service.dart';
+import 'core/services/app_update_service.dart';
 import 'core/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Local storage (token/session) — reads se pehle init zaroori ──────
+
   await GetStorage.init();
-
-  // ── Locale service — GetMaterialApp `locale` read se pehle available ──
   Get.put<LocaleService>(LocaleService(), permanent: true);
-
-  // ── Firebase — Google auth ke liye must (pehle missing tha) ─────────
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -37,25 +35,38 @@ Future<void> main() async {
     debugPrint('[main] AuthService init skipped: $e');
   }
 
-  // ── Push notifications — permission, listeners, background handler ──
-  // Fire-and-forget: requestPermission()/getInitialMessage() OS dialog ke
-  // response ka wait kar sakte hai — agar isse await karte to runApp() hi
-  // kabhi na chalta (bas startup logs dikhte rehte, UI kabhi na aata).
-  // (Token resync for an already-logged-in user happens in SplashController,
-  // once InitialBinding has registered SessionService/RestApi.)
+
   unawaited(NotificationService.instance.init().catchError((e) {
     debugPrint('[main] NotificationService init failed: $e');
   }));
 
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Force/soft update — Firebase Remote Config se. Await NAHI karte:
+  // Remote Config slow ya down ho to app ka launch nahi rukna chahiye.
+  // Service khud fail-open hai; value aane par dashboard par dialog
+  // dikh jaata hai (AppUpdateWatcher).
+  Get.put<AppUpdateService>(AppUpdateService(), permanent: true);
+  unawaited(AppUpdateService.to.init().catchError((e) {
+    debugPrint('[main] AppUpdateService init failed: $e');
+    return AppUpdateService.to;
+  }));
+
+
+  await SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,       // ✅ iOS — black icons
+      statusBarBrightness: Brightness.light,
     ),
   );
   runApp(const SiteLinkApp());
+
+  // Deep links — runApp ke BAAD, taaki cold-start link aane par navigator
+  // maujood ho. Fail ho to app normal chalti rahe.
+  unawaited(DeepLinkService.instance.init().catchError((e) {
+    debugPrint('[main] DeepLinkService init failed: $e');
+  }));
 }
 
 class SiteLinkApp extends StatelessWidget {
@@ -63,18 +74,39 @@ class SiteLinkApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: AppStrings.SiteLink,
-      debugShowCheckedModeBanner: false,
-      theme: _buildTheme(),
-      initialBinding: InitialBinding(),
-      initialRoute: AppRoutes.splash,
-      getPages: AppPages.pages,
-      translations: AppTranslations(),
-      locale: LocaleService.to.currentLocale,
-      fallbackLocale: const Locale('en', 'US'),
-      defaultTransition: Transition.cupertino,
-      transitionDuration: const Duration(milliseconds: 300),
+    return SafeArea(
+      bottom: true,
+      top: false,
+      child: GetMaterialApp(
+
+        title: AppStrings.SiteLink,
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(),
+        initialBinding: InitialBinding(),
+        initialRoute: AppRoutes.splash,
+        getPages: AppPages.pages,
+        translations: AppTranslations(),
+        locale: LocaleService.to.currentLocale,
+        fallbackLocale: const Locale('en', 'US'),
+        defaultTransition: Transition.cupertino,
+        transitionDuration: const Duration(milliseconds: 300),
+        // Device ki system font-size (Settings → Display → Font size) badhane/
+        // ghatane se app ka apna designed layout na tute — text scale ko
+        // 0.9x–1.15x ke andar clamp karte hain (thoda accessibility ke liye
+        // flex rakha hai, lekin extreme scale se overflow crash nahi hoga).
+        builder: (context, child) {
+          final mq = MediaQuery.of(context);
+          return MediaQuery(
+            data: mq.copyWith(
+              textScaler: mq.textScaler.clamp(
+                minScaleFactor: 0.9,
+                maxScaleFactor: 1.15,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      ),
     );
   }
 

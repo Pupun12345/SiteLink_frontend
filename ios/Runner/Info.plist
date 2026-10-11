@@ -47,5 +47,23 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>SiteLink aapki location use karta hai job tak directions dene ke liye (Get Directions).</string>
+	<!-- Deep link: sitelink://post/<id> -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.sitelink.sitelink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sitelink</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SiteLink mic use karta hai taaki aap apna experience likhne ke bajaye bol sakein.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>SiteLink aapki awaaz ko text me badalta hai taaki experience description bolke bhara ja sake.</string>
 </dict>
 </plist>

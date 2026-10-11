@@ -66,7 +66,7 @@ class LanguageView extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Construction Workforce Platform',
+                    'construction_workforce_platform'.tr,
                     style: KTextStyle.poppins(
                       fs: 12,
                       c: Colors.white.withOpacity(0.75),

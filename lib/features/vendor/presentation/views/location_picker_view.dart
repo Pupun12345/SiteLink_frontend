@@ -8,6 +8,7 @@ import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/places_api_service.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/app_snackbar.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  LOCATION PICKER — search (Places API) + drag-map-under-fixed-pin
@@ -116,8 +117,7 @@ class _LocationPickerViewState extends State<LocationPickerView> {
     if (!mounted) return;
     setState(() => _searching = false);
     if (details == null) {
-      Get.snackbar('', 'Location details nahi mil paayi',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error(message: 'location_details_failed'.tr);
       return;
     }
     final pos = LatLng(details.lat, details.lng);
@@ -133,7 +133,7 @@ class _LocationPickerViewState extends State<LocationPickerView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Pick Site Location'),
+      appBar: GradientAppBar(title: 'pick_site_location_title'.tr),
       body: Stack(
         children: [
           GoogleMap(
@@ -191,7 +191,7 @@ class _LocationPickerViewState extends State<LocationPickerView> {
                     style: KTextStyle.poppins(fs: 13),
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                      hintText: 'Search for area, street, city...',
+                      hintText: 'search_location_hint'.tr,
                       hintStyle:
                           KTextStyle.poppins(fs: 13, c: AppColors.textHint),
                       prefixIcon: const Icon(Icons.search_rounded,
@@ -219,7 +219,11 @@ class _LocationPickerViewState extends State<LocationPickerView> {
                                       size: 18, color: AppColors.textHint),
                                 )
                               : null),
+                      filled: false,
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 14),
@@ -297,7 +301,7 @@ class _LocationPickerViewState extends State<LocationPickerView> {
                     ),
                     const SizedBox(height: 10),
                     CustomButton(
-                      label: 'Confirm Location',
+                      label: 'confirm_location_btn'.tr,
                       onTap: () => Get.back(result: _center),
                     ),
                   ],

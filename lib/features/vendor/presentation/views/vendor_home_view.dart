@@ -5,6 +5,8 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/services/app_update_service.dart';
+import '../../../../core/services/maintenance_service.dart';
 import '../../../shared/presentation/views/shared_views.dart';
 import '../controllers/vendor_home_controller.dart';
 import 'my_requests_view.dart';
@@ -22,29 +24,36 @@ class VendorHomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.put(VendorHomeController());
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      body: Obx(() => _body(ctrl)),
-      floatingActionButton: Obx(
-            () =>  ctrl.tabIndex.value == 1
-            ? FloatingActionButton.extended(
-          onPressed: () => Get.toNamed(AppRoutes.newRequest),
-          backgroundColor: AppColors.primary,
-          elevation: 3,
-          icon: const Icon(Icons.person_add_rounded,
-              color: Colors.white),
-          label: Text(
-            AppStrings.NewRequest,
-            style: KTextStyle.poppins(
-                fs: 14, fw: FontWeight.w600, c: Colors.white),
-          ),
-        )
-            : const SizedBox.shrink(),
+    // Admin ne maintenance mode on kiya ho to yahan info dialog dikhta hai
+    return AppUpdateWatcher(
+      // Force/soft update pehle — purani build par baaki kuch dikhane ka
+      // matlab nahi.
+      child: MaintenanceWatcher(
+      child: Scaffold(
+        backgroundColor: AppColors.scaffoldBg,
+        body: Obx(() => _body(ctrl)),
+        floatingActionButton: Obx(
+              () =>  ctrl.tabIndex.value == 1
+              ? FloatingActionButton.extended(
+            onPressed: () => Get.toNamed(AppRoutes.newRequest),
+            backgroundColor: AppColors.primary,
+            elevation: 3,
+            icon: const Icon(Icons.person_add_rounded,
+                color: Colors.white),
+            label: Text(
+              AppStrings.NewRequest,
+              style: KTextStyle.poppins(
+                  fs: 14, fw: FontWeight.w600, c: Colors.white),
+            ),
+          )
+              : const SizedBox.shrink(),
+        ),
+        bottomNavigationBar: Obx(() => _BottomNav(
+          current: ctrl.tabIndex.value,
+          onTap: ctrl.changeTab,
+        )),
       ),
-      bottomNavigationBar: Obx(() => _BottomNav(
-        current: ctrl.tabIndex.value,
-        onTap: ctrl.changeTab,
-      )),
+      ),
     );
   }
 
@@ -89,10 +98,10 @@ class _BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.home_rounded, Icons.home_outlined, 'Home'),
-      (Icons.assignment_rounded, Icons.assignment_outlined, 'Requests'),
-      (Icons.notifications_rounded, Icons.notifications_outlined, 'Alerts'),
-      (Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
+      (Icons.home_rounded, Icons.home_outlined, 'nav_home'.tr),
+      (Icons.assignment_rounded, Icons.assignment_outlined, 'nav_requests'.tr),
+      (Icons.notifications_rounded, Icons.notifications_outlined, 'nav_alerts'.tr),
+      (Icons.person_rounded, Icons.person_outline_rounded, 'profile'.tr),
     ];
 
     return Container(

@@ -6,6 +6,8 @@ import '../../../../core/models/location_models.dart';
 import '../../../../core/models/profile_models.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/theme/app_snackbar.dart';
+import '../../../../core/utils/tax_id_formats.dart';
+import '../../../../core/utils/image_pick.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  EDIT VENDOR PROFILE — PUT /api/profile/edit/vendor (partial multipart)
@@ -120,36 +122,41 @@ class EditVendorProfileController extends GetxController {
 
   Future<void> pickLogo(ImageSource source) async {
     try {
-      final picked = await _picker.pickImage(
-          source: source, imageQuality: 85, maxWidth: 1200);
+      // Logo sirf dikhne ke liye hai — photo preset.
+      final picked = await pickPhotoImage(_picker, source);
       if (picked != null) newLogo.value = File(picked.path);
     } catch (_) {
-      AppSnackbar.error(message: 'Image pick nahi ho paayi');
+      AppSnackbar.error(message: 'image_pick_failed'.tr);
     }
   }
 
-  // ── Change phone number (OTP-gated) ────────────────────────────────
-  Future<PhoneChangeOtpResponse> sendPhoneOtp(String newPhone) {
-    return _profileApi.sendPhoneChangeOtp(newPhone);
-  }
-
-  Future<PhoneChangeOtpResponse> verifyPhoneOtp(String otp, String newPhone) async {
-    final res = await _profileApi.verifyPhoneChangeOtp(otp);
-    if (res.success) {
-      currentPhone.value = newPhone;
-    }
-    return res;
-  }
+  // Change-phone flow ab shared sheet me hai
+  // (features/shared/.../change_phone_sheet.dart) — wo ProfileApiService
+  // seedha call karti hai aur success par `onUpdated` se currentPhone
+  // yahan update kar deti hai.
 
   Future<void> save() async {
     if (isSaving.value) return;
     if (companyNameCtrl.text.trim().isEmpty) {
-      AppSnackbar.error(message: 'Company name khaali nahi ho sakta');
+      AppSnackbar.error(message: 'company_name_required_error'.tr);
       return;
     }
     if (_locationDirty &&
         (selectedState.value == null || selectedCity.value == null)) {
-      AppSnackbar.error(message: 'State aur city dono select karein');
+      AppSnackbar.error(message: 'select_state_and_city_error'.tr);
+      return;
+    }
+    // WhatsApp optional hai — par bhara ho to poore 10 digit chahiye.
+    final whatsapp = whatsappCtrl.text.trim();
+    if (whatsapp.isNotEmpty && whatsapp.length != 10) {
+      AppSnackbar.error(message: 'valid_whatsapp_error'.tr);
+      return;
+    }
+    // GSTIN optional hai — khaali chhod sakte hain, par bhara ho to
+    // format sahi hona chahiye.
+    final gst = gstCtrl.text.trim().toUpperCase();
+    if (gst.isNotEmpty && !TaxIdFormats.isValidGst(gst)) {
+      AppSnackbar.error(message: 'valid_gst_error'.tr);
       return;
     }
 
@@ -164,14 +171,13 @@ class EditVendorProfileController extends GetxController {
         'designation': designationCtrl.text.trim(),
       if (diff(emailCtrl.text, _me?.email) != null)
         'email': emailCtrl.text.trim(),
-      if (diff(whatsappCtrl.text, _me?.whatsappNumber) != null)
-        'whatsappNumber': whatsappCtrl.text.trim(),
+      if (diff(whatsapp, _me?.whatsappNumber) != null)
+        'whatsappNumber': whatsapp,
       if (diff(websiteCtrl.text, _me?.website) != null)
         'website': websiteCtrl.text.trim(),
       if (diff(workAreaCtrl.text, _me?.workArea) != null)
         'workArea': workAreaCtrl.text.trim(),
-      if (diff(gstCtrl.text, _me?.gstNumber) != null)
-        'gstNumber': gstCtrl.text.trim().toUpperCase(),
+      if (diff(gst, _me?.gstNumber) != null) 'gstNumber': gst,
       if (_locationDirty) ...{
         'workStateID': selectedState.value!.id,
         'workCityID': selectedCity.value!.id,
@@ -179,7 +185,7 @@ class EditVendorProfileController extends GetxController {
     };
 
     if (fields.isEmpty && newLogo.value == null) {
-      AppSnackbar.warning(message: 'Koi change nahi hai');
+      AppSnackbar.warning(message: 'no_changes_warning'.tr);
       return;
     }
 
@@ -190,11 +196,14 @@ class EditVendorProfileController extends GetxController {
         companyLogo: newLogo.value,
       );
       if (res.success) {
-        AppSnackbar.success(
-            message: res.message ?? 'Profile updated successfully');
+        // Pehle back, PHIR snackbar — ulta karne par `Get.back()` snackbar
+        // ko hi band karta hai (GetX me snackbar ek route hai), screen
+        // wahin reh jaati aur message bhi dikhta nahi.
         Get.back(result: true);
+        AppSnackbar.success(
+            message: res.message ?? 'profile_updated_success'.tr);
       } else {
-        AppSnackbar.error(message: res.message ?? 'Update nahi hua');
+        AppSnackbar.error(message: res.message ?? 'update_failed_generic'.tr);
       }
     } finally {
       isSaving.value = false;

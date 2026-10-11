@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/location_models.dart';
+import '../../../../core/theme/searchable_picker.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/edit_profile_controller.dart';
 import '../controllers/worker_feed_controller.dart';
+import '../../../../core/theme/experience_cert_list.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  EDIT PROFILE VIEW — Settings → Edit Profile
@@ -21,7 +24,7 @@ class EditProfileView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Edit Profile'),
+      appBar: GradientAppBar(title: 'edit_profile_tile'.tr),
       body: SafeArea(
         top: false,
         child: Obx(() {
@@ -38,11 +41,13 @@ class EditProfileView extends StatelessWidget {
                 const SizedBox(height: AppDimens.lg),
                 _basicInfoCard(context, ctrl),
                 const SizedBox(height: AppDimens.md),
-                _skillsCard(ctrl),
+                _skillsCard(context, ctrl),
                 const SizedBox(height: AppDimens.md),
                 _locationCard(ctrl),
                 const SizedBox(height: AppDimens.md),
                 _workPrefsCard(ctrl),
+                const SizedBox(height: AppDimens.md),
+                _certificatesCard(context, ctrl),
                 const SizedBox(height: AppDimens.xl),
               ],
             ),
@@ -66,7 +71,7 @@ class EditProfileView extends StatelessWidget {
           minimum:
               const EdgeInsets.fromLTRB(AppDimens.lg, 10, AppDimens.lg, 10),
           child: Obx(() => CustomButton(
-                label: 'Save Changes',
+                label: 'save_changes_btn'.tr,
                 isLoading: ctrl.isSaving.value,
                 onTap: ctrl.save,
               )),
@@ -139,7 +144,7 @@ class EditProfileView extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text('Camera'),
+            title: Text('camera_label'.tr),
             onTap: () {
               Get.back();
               ctrl.pickProfileImage(ImageSource.camera);
@@ -147,7 +152,7 @@ class EditProfileView extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Gallery'),
+            title: Text('gallery_label'.tr),
             onTap: () {
               Get.back();
               ctrl.pickProfileImage(ImageSource.gallery);
@@ -164,16 +169,24 @@ class EditProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.person_outline_rounded, 'Basic Info'),
+          _sectionTitle(Icons.person_outline_rounded, 'basic_info_section'.tr),
           const SizedBox(height: 14),
           SitelinkTextField(
-            label: 'Full Name',
+            label: AppStrings.FullName,
             controller: ctrl.nameCtrl,
-            hint: 'Your name',
+            hint: 'your_name_hint'.tr,
           ),
           const SizedBox(height: 12),
           SitelinkTextField(
-            label: 'Date of Birth',
+            label: 'nominee_name_label'.tr,
+            controller: ctrl.nomineeCtrl,
+            hint: 'nominee_name_hint'.tr,
+            textCapitalization: TextCapitalization.words,
+            maxLength: 100,
+          ),
+          const SizedBox(height: 12),
+          SitelinkTextField(
+            label: AppStrings.DateOfBirth,
             controller: ctrl.dobCtrl,
             hint: 'YYYY-MM-DD',
             readOnly: true,
@@ -182,16 +195,19 @@ class EditProfileView extends StatelessWidget {
             onTap: () => ctrl.pickDob(context),
           ),
           const SizedBox(height: 12),
-          Text('Gender',
+          Text(AppStrings.Gender,
               style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),
           Obx(() => Row(
                 children: ['male', 'female', 'other'].map((g) {
                   final selected = ctrl.gender.value == g;
+                  final genderLabel = g == 'male'
+                      ? AppStrings.Male
+                      : (g == 'female' ? AppStrings.Female : AppStrings.Other);
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: SkillChip(
-                      label: g[0].toUpperCase() + g.substring(1),
+                      label: genderLabel,
                       selected: selected,
                       onTap: () => ctrl.gender.value = g,
                     ),
@@ -204,51 +220,95 @@ class EditProfileView extends StatelessWidget {
   }
 
   // ── Skills ──────────────────────────────────────────────────────
-  Widget _skillsCard(EditProfileController ctrl) {
+  // Primary + Additional dono searchable dropdown se — skills list lambi
+  // hoti hai, isliye alphabetically sorted + search wala picker.
+  Widget _skillsCard(BuildContext context, EditProfileController ctrl) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.construction_rounded, 'Skills'),
+          _sectionTitle(Icons.construction_rounded, 'skills_section_title'.tr),
           const SizedBox(height: 14),
-          Text('Primary Skill',
+
+          // ── Primary skill (single-select) ─────────────────────────
+          Text(AppStrings.PrimarySkill,
               style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),
-          Obx(() => _dropdown<int>(
-                value: ctrl.selectedPrimarySkillId.value,
-                hint: 'Select primary skill',
-                items: ctrl.allSkills
-                    .where((s) => s.skillId != null)
-                    .map((s) => DropdownMenuItem(
-                        value: s.skillId, child: Text(s.name ?? '')))
-                    .toList(),
-                onChanged: ctrl.setPrimarySkill,
+          Obx(() => SearchablePickerField(
+                hint: 'select_primary_skill_hint'.tr,
+                icon: Icons.star_outline_rounded,
+                label: ctrl.primarySkillName,
+                onTap: () async {
+                  final picked = await showSearchablePicker<int>(
+                    context: context,
+                    title: AppStrings.PrimarySkill,
+                    searchHint: 'search_skills_hint'.tr,
+                    selected: ctrl.selectedPrimarySkillId.value,
+                    options: ctrl.skillOptions,
+                  );
+                  if (picked != null) ctrl.setPrimarySkill(picked);
+                },
               )),
           const SizedBox(height: 14),
-          Text('Additional Skills',
+
+          // ── Additional skills (multi-select) ──────────────────────
+          Text(AppStrings.AdditionalSkills,
               style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),
-          Obx(() => Wrap(
+          Obx(() {
+            final count = ctrl.selectedSecondarySkillIds.length;
+            return SearchablePickerField(
+              hint: 'select_additional_skills_hint'.tr,
+              icon: Icons.build_outlined,
+              badgeCount: count,
+              label: count == 0
+                  ? null
+                  : (count == 1
+                      ? ctrl.secondarySkillNames.first
+                      : 'skills_selected_count'
+                          .trParams({'count': '$count'})),
+              onTap: () async {
+                final picked = await showSearchableMultiPicker<int>(
+                  context: context,
+                  title: AppStrings.AdditionalSkills,
+                  searchHint: 'search_skills_hint'.tr,
+                  selected: ctrl.selectedSecondarySkillIds.toList(),
+                  // Primary skill additional me na dikhe
+                  options: ctrl.skillOptions
+                      .where((o) =>
+                          o.value != ctrl.selectedPrimarySkillId.value)
+                      .toList(),
+                );
+                if (picked != null) ctrl.setSecondarySkills(picked);
+              },
+            );
+          }),
+
+          // Selected additional skills — chips (tap = remove)
+          Obx(() {
+            if (ctrl.selectedSecondarySkillIds.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: ctrl.allSkills
-                    .where((s) =>
-                        s.skillId != null &&
-                        s.skillId != ctrl.selectedPrimarySkillId.value)
-                    .map((s) => SkillChip(
-                          label: s.name ?? '',
-                          selected: ctrl.selectedSecondarySkillIds
-                              .contains(s.skillId),
-                          onTap: () => ctrl.toggleSecondarySkill(s.skillId!),
+                children: ctrl.selectedSecondarySkillIds
+                    .map((id) => SkillChip(
+                          label: ctrl.skillNameById(id),
+                          selected: true,
+                          onTap: () => ctrl.toggleSecondarySkill(id),
                         ))
                     .toList(),
-              )),
+              ),
+            );
+          }),
           const SizedBox(height: 12),
           SitelinkTextField(
-            label: 'Other Skill',
+            label: 'other_skill_label'.tr,
             controller: ctrl.otherSkillCtrl,
-            hint: 'e.g. Tilling',
-            isOptional: true,
+            hint: 'other_skill_hint_example'.tr,
             onChanged: (_) => ctrl.markSkillsDirty(),
           ),
         ],
@@ -262,13 +322,13 @@ class EditProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.location_on_outlined, 'Work Location'),
+          _sectionTitle(Icons.location_on_outlined, 'work_location_section'.tr),
           const SizedBox(height: 14),
-          Text('State', style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
+          Text('state_label'.tr, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),
           Obx(() => _dropdown<StateModel>(
                 value: ctrl.selectedState.value,
-                hint: 'Select state',
+                hint: 'select_state_hint'.tr,
                 items: ctrl.allStates
                     .map((s) =>
                         DropdownMenuItem(value: s, child: Text(s.name ?? '')))
@@ -276,7 +336,7 @@ class EditProfileView extends StatelessWidget {
                 onChanged: ctrl.onStateChanged,
               )),
           const SizedBox(height: 12),
-          Text('City', style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
+          Text('city_label'.tr, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),
           Obx(() {
             if (ctrl.isLoadingCities.value) {
@@ -294,7 +354,7 @@ class EditProfileView extends StatelessWidget {
             }
             return _dropdown<CityModel>(
               value: ctrl.selectedCity.value,
-              hint: 'Select city',
+              hint: 'select_city_hint'.tr,
               items: ctrl.allCities
                   .map((c) =>
                       DropdownMenuItem(value: c, child: Text(c.name ?? '')))
@@ -313,11 +373,11 @@ class EditProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(Icons.work_outline_rounded, 'Work Preferences'),
+          _sectionTitle(Icons.work_outline_rounded, AppStrings.WorkPreferences),
           const SizedBox(height: 14),
           Row(children: [
             Expanded(
-              child: Text('Total Experience (years)',
+              child: Text('total_experience_years_label'.tr,
                   style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
             ),
             Obx(() => CounterWidget(
@@ -332,23 +392,25 @@ class EditProfileView extends StatelessWidget {
           ]),
           const SizedBox(height: 12),
           SitelinkTextField(
-            label: 'Experience Description',
+            label: AppStrings.ExperienceDescription,
             controller: ctrl.expDescCtrl,
-            hint: 'Apne kaam ke baare me likhein (optional)',
+            hint: 'experience_desc_hint'.tr,
             maxLines: 3,
-            isOptional: true,
           ),
           const SizedBox(height: 12),
-          Text('Salary Type',
+          Text(AppStrings.SalaryType,
               style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),
           Obx(() => Row(
                 children: ['daily', 'weekly', 'monthly'].map((t) {
                   final selected = ctrl.salaryType.value == t;
+                  final salaryLabel = t == 'daily'
+                      ? AppStrings.Daily
+                      : (t == 'weekly' ? 'weekly_label'.tr : AppStrings.Monthly);
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: SkillChip(
-                      label: t[0].toUpperCase() + t.substring(1),
+                      label: salaryLabel,
                       selected: selected,
                       onTap: () => ctrl.salaryType.value = t,
                     ),
@@ -357,16 +419,15 @@ class EditProfileView extends StatelessWidget {
               )),
           const SizedBox(height: 12),
           SitelinkTextField(
-            label: 'Expected Salary (₹)',
+            label: 'expected_salary_rupee_label'.tr,
             controller: ctrl.salaryCtrl,
-            hint: 'e.g. 15000',
+            hint: 'salary_amount_hint'.tr,
             keyboardType: TextInputType.number,
-            isOptional: true,
           ),
           const SizedBox(height: 12),
           Obx(() => Row(children: [
                 Expanded(
-                  child: Text('Willing to Relocate',
+                  child: Text(AppStrings.WillingToRelocate,
                       style:
                           KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
                 ),
@@ -377,6 +438,83 @@ class EditProfileView extends StatelessWidget {
                 ),
               ])),
         ],
+      ),
+    );
+  }
+
+  // ── Experience certificates ─────────────────────────────────────
+  // Purane (server par pade) aur naye chune gaye — dono ek hi list me.
+  // User purana hata bhi sakta hai; save par backend ko final list
+  // jaati hai.
+  Widget _certificatesCard(BuildContext context, EditProfileController ctrl) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle(Icons.workspace_premium_outlined,
+              'experience_certificate_label'.tr),
+          const SizedBox(height: 4),
+          Text('cert_upload_hint'.tr,
+              style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
+          const SizedBox(height: 12),
+          Obx(() => ExperienceCertList(
+                urls: ctrl.existingCerts
+                    .map(WorkerFeedController.fullUrl)
+                    .toList(),
+                files: ctrl.newCerts,
+                isPdf: ctrl.isPdf,
+                onRemoveUrl: ctrl.removeExistingCert,
+                onRemove: ctrl.removeNewCert,
+                onAdd: () => _showCertSheet(context, ctrl),
+                canAdd: ctrl.canAddCert,
+              )),
+        ],
+      ),
+    );
+  }
+
+  void _showCertSheet(BuildContext context, EditProfileController ctrl) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined,
+                  color: AppColors.primary),
+              title: Text('camera_label'.tr, style: KTextStyle.poppins(fs: 14)),
+              onTap: () {
+                Get.back();
+                ctrl.pickCert(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: AppColors.primary),
+              title:
+                  Text('gallery_label'.tr, style: KTextStyle.poppins(fs: 14)),
+              onTap: () {
+                Get.back();
+                ctrl.pickCert(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.picture_as_pdf_outlined, color: Colors.red),
+              title: Text('pdf_label'.tr, style: KTextStyle.poppins(fs: 14)),
+              onTap: () {
+                Get.back();
+                ctrl.pickCert(null);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

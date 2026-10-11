@@ -16,6 +16,8 @@ import '../../features/worker/presentation/views/job_offer_view.dart';
 import '../../features/worker/presentation/views/worker_home_view.dart';
 import '../../features/worker/presentation/views/worker_reg_views.dart';
 import '../../features/worker/presentation/views/worker_setting_view.dart';
+import '../../features/shared/presentation/views/post_detail_view.dart';
+import '../../features/worker/presentation/views/worker_job_detail_view.dart';
 import 'app_routes.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -74,6 +76,16 @@ class AppPages {
     GetPage(name: AppRoutes.newRequest, page: () => const NewRequestView()),
     GetPage(name: AppRoutes.myRequests, page: () => const MyRequestsView()),
     GetPage(name: AppRoutes.rateWorker, page: () => const RateWorkerView()),
+    GetPage(name: AppRoutes.postDetail, page: () => const PostDetailView()),
+    // Shared job link yahan khulta hai. Arguments me sirf `apiId` aata
+    // hai — screen baaki detail khud API se bhar leti hai.
+    GetPage(
+      name: AppRoutes.workerJobDetail,
+      page: () => WorkerJobDetailView(
+        job: Map<String, dynamic>.from(
+            (Get.arguments as Map?) ?? const <String, dynamic>{}),
+      ),
+    ),
     GetPage(
         name: AppRoutes.replacementRequest,
         page: () => const ReplacementRequestView()),

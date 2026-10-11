@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/profile_models.dart';
 import '../../../../core/services/api_client.dart';
@@ -11,8 +12,8 @@ import '../controllers/worker_feed_controller.dart';
 // ═══════════════════════════════════════════════════════════════════
 //  WORKER DOCUMENTS VIEW — Settings → My Documents
 // ═══════════════════════════════════════════════════════════════════
-// /api/profile/me se governmentID, experienceCertificate, workSamplesPhoto
-// (relative paths) → full URL → image preview + tap to view fullscreen.
+// /api/profile/me se governmentID aur experienceCertificate (relative
+// paths) → full URL → image preview + tap to view fullscreen.
 class WorkerDocumentsView extends StatefulWidget {
   const WorkerDocumentsView({super.key});
 
@@ -93,7 +94,7 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'My Documents'),
+      appBar: GradientAppBar(title: 'my_documents'.tr),
       body: SafeArea(
         top: false,
         child: _loading
@@ -108,25 +109,38 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
 
   Widget _content() {
     final p = _profile!;
-    final samples = p.workSamplesPhoto;
     return ListView(
       padding: const EdgeInsets.all(AppDimens.lg),
       children: [
         _DocCard(
-          label: 'Government ID',
+          label: AppStrings.GovernmentID,
           icon: Icons.badge_outlined,
           path: p.governmentID,
           onView: _view,
         ),
         const SizedBox(height: AppDimens.md),
-        _DocCard(
-          label: 'Experience Certificate',
-          icon: Icons.workspace_premium_outlined,
-          path: p.experienceCertificate,
-          onView: _view,
-        ),
-        const SizedBox(height: AppDimens.md),
-        _WorkSamplesCard(paths: samples, onView: _view),
+        // Ek se zyada certificate ho sakte hain — har ek apna card.
+        if (p.experienceCertificate.isEmpty)
+          _DocCard(
+            label: 'experience_certificate_label'.tr,
+            icon: Icons.workspace_premium_outlined,
+            path: null,
+            onView: _view,
+          )
+        else
+          for (int i = 0; i < p.experienceCertificate.length; i++) ...[
+            if (i > 0) const SizedBox(height: AppDimens.md),
+            _DocCard(
+              // Ek se zyada hon to number bhi dikhao, warna dono card
+              // bilkul ek jaise dikhte hain.
+              label: p.experienceCertificate.length > 1
+                  ? '${'experience_certificate_label'.tr} ${i + 1}'
+                  : 'experience_certificate_label'.tr,
+              icon: Icons.workspace_premium_outlined,
+              path: p.experienceCertificate[i],
+              onView: _view,
+            ),
+          ],
         const SizedBox(height: AppDimens.lg),
         Row(children: [
           const Icon(Icons.lock_outline_rounded,
@@ -134,7 +148,7 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              'Documents sirf identity verification ke liye securely store hote hain.',
+              'docs_secure_note'.tr,
               style: KTextStyle.poppins(fs: 11, c: AppColors.textHint),
             ),
           ),
@@ -200,84 +214,24 @@ class _DocCard extends StatelessWidget {
   }
 }
 
-// ── Work samples (multiple) ───────────────────────────────────────
-class _WorkSamplesCard extends StatelessWidget {
-  final List<String> paths;
-  final void Function(String url) onView;
-
-  const _WorkSamplesCard({required this.paths, required this.onView});
-
-  @override
-  Widget build(BuildContext context) {
-    final urls = paths
-        .map(WorkerFeedController.fullUrl)
-        .where((u) => u.isNotEmpty)
-        .toList();
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-              ),
-              child: const Icon(Icons.photo_library_outlined,
-                  size: 16, color: AppColors.primary),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text('Work Samples',
-                  style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600)),
-            ),
-            _StatusPill(uploaded: urls.isNotEmpty),
-          ]),
-          const SizedBox(height: 12),
-          if (urls.isEmpty)
-            _NotUploaded()
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: urls
-                  .map((u) => GestureDetector(
-                        onTap: () => onView(u),
-                        child: ClipRRect(
-                          borderRadius:
-                              BorderRadius.circular(AppDimens.radiusMd),
-                          child: _DocImage(url: u, height: 96, width: 96),
-                        ),
-                      ))
-                  .toList(),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Network image with loading / error states ─────────────────────
 class _DocImage extends StatelessWidget {
   final String url;
   final double height;
-  final double? width;
-  const _DocImage({required this.url, required this.height, this.width});
+  const _DocImage({required this.url, required this.height});
 
   @override
   Widget build(BuildContext context) {
     return Image.network(
       url,
       height: height,
-      width: width ?? double.infinity,
+      width: double.infinity,
       fit: BoxFit.cover,
       loadingBuilder: (_, child, progress) {
         if (progress == null) return child;
         return Container(
           height: height,
-          width: width ?? double.infinity,
+          width: double.infinity,
           color: AppColors.scaffoldBg,
           child: const Center(
             child: SizedBox(
@@ -291,7 +245,7 @@ class _DocImage extends StatelessWidget {
       },
       errorBuilder: (_, __, ___) => Container(
         height: height,
-        width: width ?? double.infinity,
+        width: double.infinity,
         color: AppColors.scaffoldBg,
         child: const Icon(Icons.broken_image_outlined,
             color: AppColors.textHint, size: 28),
@@ -316,7 +270,7 @@ class _NotUploaded extends StatelessWidget {
         const Icon(Icons.upload_file_outlined,
             color: AppColors.textHint, size: 26),
         const SizedBox(height: 6),
-        Text('Not uploaded',
+        Text('not_uploaded_label'.tr,
             style: KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
       ]),
     );
@@ -341,7 +295,7 @@ class _StatusPill extends StatelessWidget {
         Icon(uploaded ? Icons.check_circle_rounded : Icons.remove_circle_outline,
             size: 11, color: color),
         const SizedBox(width: 3),
-        Text(uploaded ? 'Uploaded' : 'Missing',
+        Text(uploaded ? 'uploaded_label'.tr : 'missing_label'.tr,
             style: KTextStyle.poppins(
                 fs: 9.5, fw: FontWeight.w600, c: color)),
       ]),
@@ -363,12 +317,12 @@ class _ErrorState extends StatelessWidget {
           const Icon(Icons.error_outline_rounded,
               size: 42, color: AppColors.textHint),
           const SizedBox(height: 12),
-          Text('Documents load nahi ho paaye',
+          Text('documents_load_failed'.tr,
               style: KTextStyle.poppins(fs: 14, c: AppColors.textSecondary)),
           const SizedBox(height: 16),
           SizedBox(
             width: 160,
-            child: CustomButton(label: 'Retry', onTap: onRetry),
+            child: CustomButton(label: 'retry_label'.tr, onTap: onRetry),
           ),
         ]),
       ),

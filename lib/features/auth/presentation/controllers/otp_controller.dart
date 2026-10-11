@@ -1,8 +1,10 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../app/config/app_config.dart';
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/api_client.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_snackbar.dart';
 
@@ -13,20 +15,13 @@ class OtpController extends GetxController {
   // phone Get.arguments se aata hai (PhoneController ne pass kiya)
   late final String phone;
 
-  final List<TextEditingController> otpCtrls =
-      List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
+  final List<TextEditingController> otpCtrls = List.generate(
+      AppConfig.otpLength, (_) => TextEditingController());
+  final List<FocusNode> focusNodes =
+      List.generate(AppConfig.otpLength, (_) => FocusNode());
   final isLoading = false.obs;
   final secondsLeft = 45.obs;
   final _authApi = AuthApiService();
-
-  /// FCM device token backend me save (login ke baad, fail-safe).
-  Future<void> _saveFcmToken() async {
-    try {
-      final token = await FirebaseMessaging.instance.getToken() ?? '';
-      if (token.isNotEmpty) await MiscApiService().saveFcmToken(token);
-    } catch (_) {/* FCM unavailable — ignore */}
-  }
 
   @override
   void onInit() {
@@ -55,8 +50,8 @@ class OtpController extends GetxController {
   String get otp => otpCtrls.map((c) => c.text).join();
 
   Future<void> verify() async {
-    if (otp.length < 6) {
-      AppSnackbar.error(message: 'Please enter complete OTP');
+    if (otp.length < AppConfig.otpLength) {
+      AppSnackbar.error(message: 'enter_complete_otp_error'.tr);
       return;
     }
     isLoading.value = true;
@@ -65,15 +60,17 @@ class OtpController extends GetxController {
       if (response.success && response.token != null) {
         await SessionService.to
             .saveSession(token: response.token!, user: response.user);
-        _saveFcmToken(); // push notifications ke liye (fire & forget)
-        AppSnackbar.success(message: 'OTP verified successfully');
+        // Push notifications ke liye FCM token backend ko bhejo — fire &
+        // forget, par debug me token + SUCCESS/FAILED dono log hote hain.
+        NotificationService.instance.syncTokenIfLoggedIn(label: 'otp-login');
+        AppSnackbar.success(message: 'otp_verified_success'.tr);
         _navigateByRole(response.user?.userType);
       } else {
         AppSnackbar.error(
-            message: response.message ?? 'Invalid OTP. Please try again.');
+            message: response.message ?? 'invalid_otp_retry_error'.tr);
       }
     } catch (_) {
-      AppSnackbar.error(message: 'Error: Unable to verify OTP');
+      AppSnackbar.error(message: 'verify_otp_error_generic'.tr);
     } finally {
       isLoading.value = false;
     }
@@ -83,8 +80,10 @@ class OtpController extends GetxController {
     final userType = (userTypeRaw ?? '').toLowerCase();
     if (userType == 'worker') {
       Get.offAllNamed(AppRoutes.workerHome);
+      DeepLinkService.instance.resumePending();
     } else if (userType == 'vendor') {
       Get.offAllNamed(AppRoutes.vendorHome);
+      DeepLinkService.instance.resumePending();
     } else {
       // Naya user — role select karna hai
       Get.offAllNamed(AppRoutes.role);
@@ -96,12 +95,17 @@ class OtpController extends GetxController {
     try {
       final response = await _authApi.resendOtp(phone);
       if (response.success) {
-        AppSnackbar.success(message: 'OTP resent successfully');
+        AppSnackbar.success(message: 'otp_resent_success'.tr);
       } else {
-        AppSnackbar.error(message: response.message ?? 'Failed to resend OTP');
+        // `message` non-nullable hai aur backend na bheje to "" hota hai —
+        // `??` yahan kabhi nahi chalta tha, isliye blank snackbar aata tha.
+        AppSnackbar.error(
+            message: response.message.isNotEmpty
+                ? response.message
+                : 'resend_otp_failed'.tr);
       }
     } catch (_) {
-      AppSnackbar.error(message: 'Error: Unable to resend OTP');
+      AppSnackbar.error(message: 'resend_otp_error_generic'.tr);
     }
   }
 

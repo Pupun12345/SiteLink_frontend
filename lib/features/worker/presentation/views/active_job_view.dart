@@ -11,11 +11,9 @@ class ActiveJobView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCheckedIn = false.obs;
-
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'My Assignment / मेरा काम'),
+      appBar: GradientAppBar(title: 'active_job_appbar_title'.tr),
       body: SafeArea(
         top: false,
         child: Column(
@@ -45,7 +43,7 @@ class ActiveJobView extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Job Active / काम जारी है',
+                      'job_active_badge'.tr,
                       style: KTextStyle.poppins(
                         fs: 12,
                         fw: FontWeight.w600,
@@ -69,7 +67,7 @@ class ActiveJobView extends StatelessWidget {
                             children: [
                               _CardHeader(
                                 icon: Icons.work_outline_rounded,
-                                title: 'Current Assignment',
+                                title: AppStrings.CurrentAssignment,
                               ),
                               const Spacer(),
                               Container(
@@ -83,7 +81,7 @@ class ActiveJobView extends StatelessWidget {
                                   BorderRadius.circular(AppDimens.radiusMax),
                                 ),
                                 child: Text(
-                                  'Active',
+                                  'active_status_label'.tr,
                                   style: KTextStyle.poppins(
                                     fs: 10,
                                     fw: FontWeight.w700,
@@ -132,7 +130,7 @@ class ActiveJobView extends StatelessWidget {
                         children: [
                           _CardHeader(
                             icon: Icons.location_on_rounded,
-                            title: 'Site Details / साइट विवरण',
+                            title: 'site_details_header'.tr,
                           ),
                           const SizedBox(height: AppDimens.md),
                           const _DetailRow(
@@ -167,7 +165,7 @@ class ActiveJobView extends StatelessWidget {
                                       color: AppColors.primary, size: 16),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'View on Map / मानचित्र',
+                                    'view_on_map_label'.tr,
                                     style: KTextStyle.poppins(
                                       fs: 12,
                                       fw: FontWeight.w600,
@@ -188,7 +186,7 @@ class ActiveJobView extends StatelessWidget {
                         children: [
                           _CardHeader(
                             icon: Icons.business_center_rounded,
-                            title: 'Vendor Contact / ठेकेदार संपर्क',
+                            title: 'vendor_contact_label'.tr,
                           ),
                           const SizedBox(height: AppDimens.md),
                           Row(
@@ -225,7 +223,7 @@ class ActiveJobView extends StatelessWidget {
                           ),
                           const SizedBox(height: AppDimens.lg),
                           CustomButton(
-                            label: 'Call Now',
+                            label: 'call_now_label'.tr,
                             height: 44,
                             isOutlined: true,
                             onTap: () {},
@@ -264,12 +262,19 @@ class _CardHeader extends StatelessWidget {
           child: Icon(icon, color: AppColors.textPrimary, size: 16),
         ),
         const SizedBox(width: 10),
-        Text(
-          title,
-          style: KTextStyle.poppins(
-            fs: 13,
-            fw: FontWeight.w600,
-            c: AppColors.textPrimary,
+        // Flexible: ye header ek Row me badge ke saath baithta hai, aur
+        // Hindi labels English se chaude hote hain. Bina iske title poori
+        // jagah le leta aur badge bahar nikal jaata.
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: KTextStyle.poppins(
+              fs: 13,
+              fw: FontWeight.w600,
+              c: AppColors.textPrimary,
+            ),
           ),
         ),
       ],

@@ -6,10 +6,12 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/job_models.dart';
 import '../../../../core/theme/app_snackbar.dart';
+import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../worker/presentation/controllers/worker_feed_controller.dart';
 import '../controllers/job_applicants_controller.dart';
 import '../controllers/vendor_jobs_controller.dart';
+import 'applicant_profile_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  JOB APPLICANTS — vendor ke liye, workers jinhone apply kiya + Confirm/Reject
@@ -25,7 +27,7 @@ class JobApplicantsView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Applicants'),
+      appBar: GradientAppBar(title: 'applicants_title'.tr),
       body: SafeArea(
         top: false,
         child: Column(children: [
@@ -38,7 +40,7 @@ class JobApplicantsView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(job.title ?? 'Job',
+                Text(job.title ?? 'job_fallback_title'.tr,
                     style: KTextStyle.poppins(fs: 15, fw: FontWeight.w700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
@@ -47,7 +49,8 @@ class JobApplicantsView extends StatelessWidget {
                   const Icon(Icons.people_outline_rounded,
                       size: 13, color: AppColors.textHint),
                   const SizedBox(width: 4),
-                  Text('${job.workersCount} needed',
+                  Text('workers_needed_suffix'
+                      .trParams({'count': '${job.workersCount}'}),
                       style: KTextStyle.poppins(
                           fs: 11.5, c: AppColors.textHint)),
                   const SizedBox(width: 12),
@@ -122,16 +125,18 @@ class JobApplicantsView extends StatelessWidget {
       AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(hire ? 'Confirm this worker?' : 'Reject this applicant?',
+        title: Text(hire ? 'confirm_worker_title'.tr : 'reject_applicant_title'.tr,
             style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
         content: Text(
           hire
-              ? '${a.name ?? 'This worker'} ko is job ke liye confirm/hire kiya jaayega.'
-              : '${a.name ?? 'This applicant'} ki application reject ho jaayegi.',
+              ? 'confirm_worker_body'.trParams(
+                  {'name': a.name ?? 'this_worker_fallback'.tr})
+              : 'reject_applicant_body'.trParams(
+                  {'name': a.name ?? 'this_applicant_fallback'.tr}),
           style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary),
         ),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
             onPressed: () {
               Get.back();
@@ -146,7 +151,7 @@ class JobApplicantsView extends StatelessWidget {
               }
             },
             child: Text(
-              hire ? 'Confirm' : 'Reject',
+              hire ? 'confirm_label'.tr : 'reject_label'.tr,
               style: KTextStyle.poppins(
                   fs: 13,
                   fw: FontWeight.w600,
@@ -179,6 +184,10 @@ class _ApplicantCard extends StatelessWidget {
 
     return AppCard(
       showShadow: false,
+      // Card tap = poora applicant profile (documents + community posts).
+      // Confirm/Reject buttons apne alag onTap rakhte hain, isliye wo
+      // isse override nahi hote.
+      onTap: () => Get.to(() => ApplicantProfileView(applicant: a)),
       borderColor: a.isConfirmed
           ? AppColors.success
           : a.isRejected
@@ -204,7 +213,7 @@ class _ApplicantCard extends StatelessWidget {
                   children: [
                     Row(children: [
                       Expanded(
-                        child: Text(a.name ?? 'Worker',
+                        child: Text(a.name ?? 'worker'.tr,
                             style: KTextStyle.poppins(
                                 fs: 15, fw: FontWeight.w700),
                             maxLines: 1,
@@ -217,29 +226,32 @@ class _ApplicantCard extends StatelessWidget {
                               size: 15, color: AppColors.primary),
                         ),
                     ]),
-                    const SizedBox(height: 4),
-                    Wrap(spacing: 6, runSpacing: 6, children: [
-                      if ((a.primarySkill ?? '').isNotEmpty)
-                        SkillChip(label: a.primarySkill!, selected: true),
-                      if (a.rating != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.12),
-                            borderRadius:
-                                BorderRadius.circular(AppDimens.radiusMax),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.star_rounded,
-                                size: 12, color: Colors.amber),
-                            const SizedBox(width: 2),
-                            Text('${a.rating}',
-                                style: KTextStyle.poppins(
-                                    fs: 10.5, fw: FontWeight.w600)),
-                          ]),
-                        ),
-                    ]),
+                    // Role — plain text (chip pill se hatakar), kyunki
+                    // skill names lambe ho sakte hai (jaise "Rope Access
+                    // Technician (Mechanical)") — chip me wrap hoke bada
+                    // sa blob ban jaata tha.
+                    if ((a.primarySkill ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(a.primarySkill!,
+                          style: KTextStyle.poppins(
+                              fs: 12.5,
+                              fw: FontWeight.w600,
+                              c: AppColors.primary),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                    // Performance rating — job outcomes se automatic banti
+                    // hai. Naya worker ho to "New" dikhta hai, 0 stars
+                    // nahi (warna naye ko kabhi koi hire hi na kare).
+                    //
+                    // `rating == null` ka matlab alag hai: worker ke paas
+                    // plan nahi hai isliye backend ne rating bheji hi
+                    // nahi. Tab kuch nahi dikhate — "New" dikhana jhooth
+                    // hota (uski rating ho sakti hai, bas chhupi hai).
+                    if (a.rating != null) ...[
+                      const SizedBox(height: 6),
+                      RatingBadge(rating: a.rating),
+                    ],
                   ],
                 ),
               ),
@@ -259,19 +271,19 @@ class _ApplicantCard extends StatelessWidget {
                   Expanded(
                     child: _infoItem(
                         Icons.work_history_outlined,
-                        'Experience',
+                        'experience_label'.tr,
                         a.totalExperience != null
-                            ? '${a.totalExperience} yrs'
+                            ? '${a.totalExperience} ${'yr_plural'.tr}'
                             : '—'),
                   ),
                   Expanded(
                     child: _infoItem(Icons.location_on_outlined,
-                        'Location', a.locationLabel.isEmpty ? '—' : a.locationLabel),
+                        'location_label'.tr, a.locationLabel.isEmpty ? '—' : a.locationLabel),
                   ),
                 ]),
                 if (a.appliedAt != null) ...[
                   const SizedBox(height: 10),
-                  _infoItem(Icons.access_time_rounded, 'Applied',
+                  _infoItem(Icons.access_time_rounded, 'status_applied'.tr,
                       _timeAgo(a.appliedAt!)),
                 ],
               ]),
@@ -303,7 +315,7 @@ class _ApplicantCard extends StatelessWidget {
 
             if ((a.coverLetter ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Cover Letter',
+              Text('cover_letter_label'.tr,
                   style: KTextStyle.poppins(fs: 11.5, fw: FontWeight.w600)),
               const SizedBox(height: 4),
               Text(a.coverLetter!,
@@ -329,7 +341,7 @@ class _ApplicantCard extends StatelessWidget {
                     ? Row(children: [
                         Expanded(
                           child: CustomButton(
-                            label: 'Reject',
+                            label: 'reject_label'.tr,
                             isOutlined: true,
                             isLoading: isActioning,
                             onTap: isActioning ? null : onReject,
@@ -338,7 +350,7 @@ class _ApplicantCard extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: CustomButton(
-                            label: 'Confirm',
+                            label: 'confirm_label'.tr,
                             isLoading: isActioning,
                             onTap: isActioning ? null : onConfirm,
                           ),
@@ -359,8 +371,8 @@ class _ApplicantCard extends StatelessWidget {
                         child: Center(
                           child: Text(
                             a.isConfirmed
-                                ? '✓ Confirmed for this job'
-                                : 'Application rejected',
+                                ? 'confirmed_for_job_label'.tr
+                                : 'application_rejected_label'.tr,
                             style: KTextStyle.poppins(
                               fs: 12.5,
                               fw: FontWeight.w600,
@@ -373,6 +385,7 @@ class _ApplicantCard extends StatelessWidget {
                       ),
               ),
             ]),
+
           ],
         ),
       ),
@@ -381,12 +394,12 @@ class _ApplicantCard extends StatelessWidget {
 
   Widget _statusBadge(JobApplicant a) {
     final (label, color) = a.isConfirmed
-        ? ('Confirmed', AppColors.success)
+        ? ('status_confirmed'.tr, AppColors.success)
         : a.isRejected
-            ? ('Rejected', AppColors.error)
+            ? ('status_rejected'.tr, AppColors.error)
             : a.isShortlisted
-                ? ('Shortlisted', AppColors.info)
-                : ('Pending', AppColors.warning);
+                ? ('status_shortlisted'.tr, AppColors.info)
+                : ('pending'.tr, AppColors.warning);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -439,9 +452,9 @@ class _ApplicantCard extends StatelessWidget {
     final uri = Uri(scheme: 'tel', path: phone);
     try {
       final ok = await launchUrl(uri);
-      if (!ok) AppSnackbar.error(message: 'Call nahi ho paayi');
+      if (!ok) AppSnackbar.error(message: 'call_failed_generic'.tr);
     } catch (_) {
-      AppSnackbar.error(message: 'Call nahi ho paayi');
+      AppSnackbar.error(message: 'call_failed_generic'.tr);
     }
   }
 
@@ -491,11 +504,11 @@ class _EmptyApplicants extends StatelessWidget {
                   size: 40, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 16),
-            Text('No applications yet',
+            Text('no_applications_yet'.tr,
                 style: KTextStyle.poppins(
                     fs: 15, fw: FontWeight.w600, c: AppColors.textPrimary)),
             const SizedBox(height: 4),
-            Text('Workers who apply will show up here',
+            Text('workers_apply_show_here'.tr,
                 style: KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
           ]),
         ],

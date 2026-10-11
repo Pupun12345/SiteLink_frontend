@@ -7,6 +7,24 @@ import '../constants/k_text_style.dart';
 // ═══════════════════════════════════════════════════════════════════
 //  APP SNACKBAR — Unified snackbar for success/error/warning/info
 // ═══════════════════════════════════════════════════════════════════
+//
+// ⚠️ NAVIGATION KE SAATH ORDER MAAYNE RAKHTA HAI
+//
+// Ye `Get.rawSnackbar` use karta hai, aur GetX me snackbar navigator par
+// ek ROUTE hai. Iska matlab:
+//
+//   AppSnackbar.success(...);   // snack route push hua
+//   Get.back();                 // ye SNACKBAR pop karta hai, screen nahi!
+//
+// Nateeja: screen wahin reh jaati hai AUR snackbar turant gayab —
+// user ko na confirmation dikhta hai, na screen badalti hai.
+//
+// Isliye HAMESHA: pehle navigate karo, phir snackbar dikhao.
+//
+//   Get.back(result: true);
+//   AppSnackbar.success(message: '...');
+//
+// Isse message destination screen par dikhta hai, jo behtar bhi hai.
 
 enum SnackbarType { success, error, warning, info }
 

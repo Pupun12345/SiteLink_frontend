@@ -4,9 +4,16 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/models/job_models.dart';
+import '../../../../core/theme/job_roles_view.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/worker_myjob_controller.dart';
 import 'worker_job_detail_view.dart';
+
+/// Job map me se roles nikalo — purani jobs me khaali.
+List<JobRole> _roles(Map<String, dynamic> job) =>
+    (job['roles'] as List?)?.whereType<JobRole>().toList() ??
+    const <JobRole>[];
 
 // ═══════════════════════════════════════════════════════════════════
 //  FILTER MODEL
@@ -165,7 +172,7 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
       child: Row(
         children: [
           Text(
-            'Jobs',
+            'jobs_header_title'.tr,
             style: KTextStyle.poppins(
                 fs: 20, fw: FontWeight.w700, c: AppColors.textPrimary),
           ),
@@ -202,7 +209,7 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      active ? 'Filtered' : 'Filter',
+                      active ? 'filtered_label'.tr : 'filter_label'.tr,
                       style: KTextStyle.poppins(
                         fs: 12,
                         fw: FontWeight.w600,
@@ -256,7 +263,7 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
           KTextStyle.poppins(fs: 13, c: AppColors.textPrimary),
           onChanged: (v) => _searchQuery.value = v,
           decoration: InputDecoration(
-            hintText: 'Search by role, company, location...',
+            hintText: 'search_jobs_hint'.tr,
             hintStyle:
             KTextStyle.poppins(fs: 13, c: AppColors.textHint),
             prefixIcon: Icon(
@@ -277,7 +284,11 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
                   size: 18, color: AppColors.textHint),
             )
                 : null,
+            filled: false,
             border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
             isDense: true,
             contentPadding:
             const EdgeInsets.symmetric(vertical: 11),
@@ -308,7 +319,7 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
                   final count =
                       _applyFilters(_ctrl.availableJobs).length;
                   return _TabLabel(
-                      label: 'Available', count: count);
+                      label: 'available_label'.tr, count: count);
                 }),
               ),
               Tab(
@@ -316,7 +327,7 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
                   final count =
                       _applyFilters(_ctrl.appliedJobs).length;
                   return _TabLabel(
-                      label: 'Applied / Assigned', count: count);
+                      label: 'applied_assigned_label'.tr, count: count);
                 }),
               ),
             ],
@@ -415,8 +426,8 @@ class _AvailableJobsList extends StatelessWidget {
     if (jobs.isEmpty) {
       return _EmptyState(
         icon: Icons.work_off_outlined,
-        message: 'No available jobs right now',
-        sub: 'Check back later for new openings',
+        message: 'no_available_jobs'.tr,
+        sub: 'check_back_later'.tr,
         onRefresh: onRefresh,
       );
     }
@@ -447,8 +458,8 @@ class _AppliedJobsList extends StatelessWidget {
     if (jobs.isEmpty) {
       return _EmptyState(
         icon: Icons.inbox_outlined,
-        message: 'No applied jobs yet',
-        sub: 'Apply to available jobs to see them here',
+        message: 'no_applied_jobs_yet'.tr,
+        sub: 'apply_to_see_here'.tr,
         onRefresh: onRefresh,
       );
     }
@@ -477,14 +488,17 @@ class _AvailableJobCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUrgent = job['urgent'] == true;
     final isDaily = job['type'] == 'daily';
+    final appStatus = job['appStatus'] as String?;
+    final isApplied = appStatus != null;
 
     return GestureDetector(
       onTap: () => Get.to(() => WorkerJobDetailView(job: job)),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: isApplied ? AppColors.scaffoldBg : AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          border: Border.all(color: AppColors.divider),
+          border: Border.all(
+              color: isApplied ? AppColors.success.withOpacity(0.3) : AppColors.divider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,6 +530,12 @@ class _AvailableJobCard extends StatelessWidget {
                     style: KTextStyle.poppins(
                         fs: 13, c: AppColors.textSecondary),
                   ),
+                  // Kaun-kaun se role chahiye — title me sirf summary
+                  // hota hai ("Welder +3 more"), asli list yahan dikhti hai.
+                  if (_roles(job).isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    JobRoleChips(roles: _roles(job)),
+                  ],
                   const SizedBox(height: 10),
 
                   // Info chips row
@@ -528,13 +548,17 @@ class _AvailableJobCard extends StatelessWidget {
                           text: job['location'] ?? ''),
                       _InfoChip(
                           icon: Icons.people_outline_rounded,
-                          text: '${job['workers']} needed'),
+                          text: 'workers_needed_suffix'
+                              .trParams({'count': '${job['workers']}'})),
                       _InfoChip(
                           icon: Icons.timelapse_rounded,
                           text: job['duration'] ?? ''),
-                      _InfoChip(
-                          icon: Icons.calendar_today_rounded,
-                          text: job['startDate'] ?? ''),
+                      // Start date purani jobs me nahi hoti — khaali chip
+                      // (sirf icon) dikhane se card toota lagta hai.
+                      if ((job['startDate'] ?? '').toString().trim().isNotEmpty)
+                        _InfoChip(
+                            icon: Icons.calendar_today_rounded,
+                            text: job['startDate']),
                     ],
                   ),
                 ],
@@ -552,26 +576,34 @@ class _AvailableJobCard extends StatelessWidget {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
-                  // Salary
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        job['rate'] ?? '',
-                        style: KTextStyle.poppins(
-                          fs: 15,
-                          fw: FontWeight.w800,
-                          c: AppColors.success,
+                  // Salary — Expanded taaki lamba rate (₹25,000 / monthly)
+                  // ya chaude Hindi labels aane par ye shrink ho, chip aur
+                  // status badge ko dhakel kar overflow na kare.
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          job['rate'] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: KTextStyle.poppins(
+                            fs: 15,
+                            fw: FontWeight.w800,
+                            c: AppColors.success,
+                          ),
                         ),
-                      ),
-                      Text(
-                        isDaily ? 'Daily rate' : 'Monthly salary',
-                        style: KTextStyle.poppins(
-                            fs: 10, c: AppColors.textHint),
-                      ),
-                    ],
+                        Text(
+                          isDaily ? 'daily_rate_footer'.tr : 'monthly_salary_footer'.tr,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: KTextStyle.poppins(
+                              fs: 10, c: AppColors.textHint),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   // Type chip
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -583,7 +615,7 @@ class _AvailableJobCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      isDaily ? 'Daily' : 'Permanent',
+                      isDaily ? AppStrings.Daily : 'permanent_label'.tr,
                       style: KTextStyle.poppins(
                         fs: 11,
                         fw: FontWeight.w600,
@@ -594,18 +626,21 @@ class _AvailableJobCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Row(
-                    children: [
-                      Text('Apply',
-                          style: KTextStyle.poppins(
-                              fs: 12,
-                              fw: FontWeight.w600,
-                              c: AppColors.primary)),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.arrow_forward_ios_rounded,
-                          size: 11, color: AppColors.primary),
-                    ],
-                  ),
+                  if (isApplied)
+                    _AppStatusBadge(status: appStatus)
+                  else
+                    Row(
+                      children: [
+                        Text('apply_link_label'.tr,
+                            style: KTextStyle.poppins(
+                                fs: 12,
+                                fw: FontWeight.w600,
+                                c: AppColors.primary)),
+                        const SizedBox(width: 2),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 11, color: AppColors.primary),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -626,7 +661,6 @@ class _AppliedJobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = job['appStatus'] ?? 'applied';
-    final isDaily = job['type'] == 'daily';
 
     return GestureDetector(
       onTap: () => Get.to(() => WorkerJobDetailView(job: job)),
@@ -715,19 +749,24 @@ class _AppliedJobCard extends StatelessWidget {
 
                   Row(
                     children: [
-                      Text(
-                        job['rate'] ?? '',
-                        style: KTextStyle.poppins(
-                          fs: 15,
-                          fw: FontWeight.w800,
-                          c: AppColors.success,
+                      // Same reason as the available-job card ka footer —
+                      // lamba rate "Details →" ko bahar dhakel deta tha.
+                      Expanded(
+                        child: Text(
+                          job['rate'] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: KTextStyle.poppins(
+                            fs: 15,
+                            fw: FontWeight.w800,
+                            c: AppColors.success,
+                          ),
                         ),
                       ),
-
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Row(
                         children: [
-                          Text('Details',
+                          Text('details_link_label'.tr,
                               style: KTextStyle.poppins(
                                   fs: 12,
                                   fw: FontWeight.w500,
@@ -806,42 +845,42 @@ class _AppStatusBadge extends StatelessWidget {
     switch (status) {
       case 'pending':
         return {
-          'label': 'Under Review',
+          'label': 'status_under_review'.tr,
           'icon': Icons.hourglass_top_rounded,
           'fg': Colors.orange.shade700,
           'bg': Colors.orange.withOpacity(0.1),
         };
       case 'shortlisted':
         return {
-          'label': 'Shortlisted',
+          'label': 'status_shortlisted'.tr,
           'icon': Icons.star_rounded,
           'fg': AppColors.info,
           'bg': AppColors.info.withOpacity(0.1),
         };
       case 'confirmed':
         return {
-          'label': 'Confirmed',
+          'label': 'status_confirmed'.tr,
           'icon': Icons.check_circle_outline_rounded,
           'fg': AppColors.success,
           'bg': AppColors.success.withOpacity(0.1),
         };
       case 'hired':
         return {
-          'label': 'Hired',
+          'label': 'status_hired'.tr,
           'icon': Icons.verified_rounded,
           'fg': AppColors.success,
           'bg': AppColors.success.withOpacity(0.1),
         };
       case 'rejected':
         return {
-          'label': 'Rejected',
+          'label': 'status_rejected'.tr,
           'icon': Icons.cancel_outlined,
           'fg': AppColors.error,
           'bg': AppColors.error.withOpacity(0.1),
         };
       default:
         return {
-          'label': 'Applied',
+          'label': 'status_applied'.tr,
           'icon': Icons.send_rounded,
           'fg': AppColors.textSecondary,
           'bg': AppColors.scaffoldBg,
@@ -866,22 +905,38 @@ class _FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<_FilterSheet> {
   late JobFilterState _draft;
 
-  final _sortOptions = const [
-    {'key': 'newest', 'label': 'Newest First', 'icon': Icons.fiber_new_rounded},
-    {'key': 'oldest', 'label': 'Oldest First', 'icon': Icons.history_rounded},
-    {'key': 'highest_salary', 'label': 'Highest Salary', 'icon': Icons.trending_up_rounded},
-    {'key': 'lowest_salary', 'label': 'Lowest Salary', 'icon': Icons.trending_down_rounded},
+  List<Map<String, dynamic>> get _sortOptions => [
+    {'key': 'newest', 'label': 'sort_newest_first'.tr, 'icon': Icons.fiber_new_rounded},
+    {'key': 'oldest', 'label': 'sort_oldest_first'.tr, 'icon': Icons.history_rounded},
+    {'key': 'highest_salary', 'label': 'sort_highest_salary'.tr, 'icon': Icons.trending_up_rounded},
+    {'key': 'lowest_salary', 'label': 'sort_lowest_salary'.tr, 'icon': Icons.trending_down_rounded},
   ];
 
-  final _salaryTypeOptions = const [
-    {'key': 'daily', 'label': 'Daily Pay'},
-    {'key': 'permanent', 'label': 'Monthly Pay'},
+  List<Map<String, String>> get _salaryTypeOptions => [
+    {'key': 'daily', 'label': 'salary_daily_pay'.tr},
+    {'key': 'permanent', 'label': 'salary_monthly_pay'.tr},
   ];
 
+  // Values stay English (matched against backend job['role']) — only the
+  // displayed chip label is translated via _categoryLabel().
   final _categories = const [
     'Mason', 'Electrician', 'Carpenter', 'Plumber',
     'Painter', 'Welder', 'Helper', 'Tile Worker', 'Other',
   ];
+
+  String _categoryLabel(String cat) {
+    switch (cat) {
+      case 'Mason': return 'skill_mason'.tr;
+      case 'Electrician': return 'skill_electrician'.tr;
+      case 'Carpenter': return 'skill_carpenter'.tr;
+      case 'Plumber': return 'skill_plumber'.tr;
+      case 'Painter': return 'skill_painter'.tr;
+      case 'Welder': return 'skill_welder'.tr;
+      case 'Helper': return 'skill_helper'.tr;
+      case 'Tile Worker': return 'skill_tile_worker'.tr;
+      default: return AppStrings.Other;
+    }
+  }
 
   @override
   void initState() {
@@ -926,7 +981,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Row(
                 children: [
-                  Text('Filter & Sort',
+                  Text('filter_sort_title'.tr,
                       style: KTextStyle.poppins(
                           fs: 16, fw: FontWeight.w700)),
                   if (_activeCount > 0) ...[
@@ -949,7 +1004,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   TextButton(
                     onPressed: () =>
                         setState(() => _draft = _draft.reset()),
-                    child: Text('Clear All',
+                    child: Text('clear_all_label'.tr,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -975,7 +1030,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Sort by ─────────────────────────────────
-                    _FilterSectionTitle(title: 'Sort by'),
+                    _FilterSectionTitle(title: 'sort_by_label'.tr),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -995,7 +1050,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                     const SizedBox(height: 18),
 
                     // ── Salary Type ──────────────────────────────
-                    _FilterSectionTitle(title: 'Salary Type'),
+                    _FilterSectionTitle(title: AppStrings.SalaryType),
                     const SizedBox(height: 10),
                     Row(
                       children: _salaryTypeOptions.map((opt) {
@@ -1017,7 +1072,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                     const SizedBox(height: 18),
 
                     // ── Category / Role ──────────────────────────
-                    _FilterSectionTitle(title: 'Job Category'),
+                    _FilterSectionTitle(title: 'job_category_label'.tr),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -1025,7 +1080,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       children: _categories.map((cat) {
                         final sel = _draft.categories.contains(cat);
                         return _FilterChip(
-                          label: cat,
+                          label: _categoryLabel(cat),
                           selected: sel,
                           onTap: () {
                             setState(() {
@@ -1056,8 +1111,8 @@ class _FilterSheetState extends State<_FilterSheet> {
               ),
               child: CustomButton(
                 label: _activeCount > 0
-                    ? 'Apply Filters ($_activeCount)'
-                    : 'Apply',
+                    ? 'apply_filters_count'.trParams({'count': '$_activeCount'})
+                    : 'apply_button_label'.tr,
                 onTap: () {
                   widget.onApply(_draft);
                   Get.back();
@@ -1177,7 +1232,7 @@ class _UrgentBadge extends StatelessWidget {
         Icon(Icons.bolt_rounded,
             size: 11, color: Colors.red.shade600),
         const SizedBox(width: 2),
-        Text('Urgent',
+        Text('urgent_label'.tr,
             style: KTextStyle.poppins(
                 fs: 10,
                 fw: FontWeight.w600,
@@ -1201,37 +1256,54 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => RefreshIndicator(
-    onRefresh: onRefresh,
-    color: AppColors.primary,
-    child: SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  shape: BoxShape.circle),
-              child: Icon(icon,
-                  size: 34, color: Colors.grey.shade400),
+        onRefresh: onRefresh,
+        color: AppColors.primary,
+        // Pehle yahan `Padding(vertical: 60)` tha — content upar se 60px
+        // par baithta tha, screen ke beech me nahi. LayoutBuilder se
+        // available height leke `minHeight` set karte hain, phir Center
+        // use theek beech me rakhta hai — aur SingleChildScrollView bana
+        // rehta hai taaki pull-to-refresh chalta rahe.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 32, vertical: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            shape: BoxShape.circle),
+                        child: Icon(icon,
+                            size: 34, color: Colors.grey.shade400),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(message,
+                          // textAlign zaroori hai — lamba message do line
+                          // me toot kar left-align dikhta tha.
+                          textAlign: TextAlign.center,
+                          style: KTextStyle.poppins(
+                              fs: 14,
+                              fw: FontWeight.w500,
+                              c: AppColors.textSecondary)),
+                      const SizedBox(height: 4),
+                      Text(sub,
+                          textAlign: TextAlign.center,
+                          style: KTextStyle.poppins(
+                              fs: 12, c: AppColors.textHint, height: 1.45)),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 14),
-            Text(message,
-                style: KTextStyle.poppins(
-                    fs: 14,
-                    fw: FontWeight.w500,
-                    c: AppColors.textSecondary)),
-            const SizedBox(height: 4),
-            Text(sub,
-                style: KTextStyle.poppins(
-                    fs: 12, c: AppColors.textHint)),
-          ],
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }

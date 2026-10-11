@@ -7,10 +7,8 @@ import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/models/notification_models.dart';
-import '../../../../core/services/api_client.dart';
-import '../../../../core/services/auth_service.dart';
-import '../../../../core/services/session_service.dart';
 import '../controllers/notifications_controller.dart';
+import '../../../../core/services/logout_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  NOTIFICATIONS VIEW — Screen 24
@@ -20,7 +18,10 @@ class NotificationsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.put(NotificationsController());
+    // Shared singleton (Home badge isi instance ka unreadCount dikhata hai)
+    // — tab khulte hi latest list refresh ho jaaye.
+    final ctrl = NotificationsController.to;
+    ctrl.fetchNotifications();
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
@@ -31,7 +32,8 @@ class NotificationsView extends StatelessWidget {
           TextButton(
             onPressed: ctrl.markAllRead,
             child: Text(AppStrings.MarkAllRead,
-                style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: Colors.white)),
+                style: KTextStyle.poppins(
+                    fs: 12, fw: FontWeight.w500, c: AppColors.primary)),
           ),
         ],
       ),
@@ -98,7 +100,7 @@ class _EmptyNotifications extends StatelessWidget {
                   size: 36, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 14),
-            Text('No notifications',
+            Text('no_notifications_label'.tr,
                 style: KTextStyle.poppins(fs: 14, c: AppColors.textSecondary)),
           ],
         ),
@@ -204,7 +206,7 @@ class VendorProfileView extends StatelessWidget {
         showBack: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.white),
+            icon: const Icon(Icons.edit_outlined),
             onPressed: () {},
           ),
         ],
@@ -242,11 +244,11 @@ class VendorProfileView extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _ProfileStat('12', 'Requests'),
+                      _ProfileStat('12', 'nav_requests'.tr),
                       Container(width: 1, height: 32, color: AppColors.divider),
-                      _ProfileStat('45', 'Workers\nHired'),
+                      _ProfileStat('45', 'workers_hired_label'.tr),
                       Container(width: 1, height: 32, color: AppColors.divider),
-                      _ProfileStat('3', 'Active'),
+                      _ProfileStat('3', 'active_status_label'.tr),
                     ],
                   ),
                 ],
@@ -254,11 +256,11 @@ class VendorProfileView extends StatelessWidget {
             ),
 
             // Info card
-            _InfoCard(title: 'Company Info', items: [
-              (Icons.location_on_outlined,     'City',            'Jaipur, Rajasthan'),
-              (Icons.phone_outlined,            'Phone',           '+91 98765 43210'),
-              (Icons.business_center_outlined,  'GST',             'XXXXX12345'),
-              (Icons.calendar_today_rounded,    'Member Since',    'March 2026'),
+            _InfoCard(title: 'company_info_section'.tr, items: [
+              (Icons.location_on_outlined,     AppStrings.City,        'Jaipur, Rajasthan'),
+              (Icons.phone_outlined,            'phone_label'.tr,       '+91 98765 43210'),
+              (Icons.business_center_outlined,  'gst_label'.tr,         'XXXXX12345'),
+              (Icons.calendar_today_rounded,    'member_since_label'.tr,'March 2026'),
             ]),
 
             // Settings card
@@ -287,7 +289,7 @@ class WorkerProfileView extends StatelessWidget {
         showBack: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.white),
+            icon: const Icon(Icons.edit_outlined),
             onPressed: () {},
           ),
         ],
@@ -340,11 +342,11 @@ class WorkerProfileView extends StatelessWidget {
               ),
             ),
 
-            _InfoCard(title: 'Personal Info', items: [
-              (Icons.location_on_outlined,  'City',        'Jaipur, Rajasthan'),
-              (Icons.phone_outlined,         'Phone',       '+91 98765 43210'),
-              (Icons.work_history_outlined,  'Experience',  '5 Years'),
-              (Icons.calendar_today_rounded, 'Member Since','March 2026'),
+            _InfoCard(title: 'personal_info_section'.tr, items: [
+              (Icons.location_on_outlined,  AppStrings.City,        'Jaipur, Rajasthan'),
+              (Icons.phone_outlined,         'phone_label'.tr,       '+91 98765 43210'),
+              (Icons.work_history_outlined,  'experience_label'.tr,  '5 Years'),
+              (Icons.calendar_today_rounded, 'member_since_label'.tr,'March 2026'),
             ]),
 SizedBox(height: 15,),
             // Skills chip card
@@ -359,10 +361,10 @@ SizedBox(height: 15,),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8, runSpacing: 8,
-                      children: const [
-                        SkillChip(label: 'Mason', selected: true),
-                        SkillChip(label: 'Tile Worker', selected: true),
-                        SkillChip(label: 'Helper', selected: true),
+                      children: [
+                        SkillChip(label: 'skill_mason'.tr, selected: true),
+                        SkillChip(label: 'skill_tile_worker'.tr, selected: true),
+                        SkillChip(label: 'skill_helper'.tr, selected: true),
                       ],
                     ),
                   ],
@@ -435,7 +437,7 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       (Icons.language_rounded,        AppStrings.Language,    false),
-      (Icons.notifications_rounded,   'Notifications',        true),
+      (Icons.notifications_rounded,   AppStrings.Notifications, true),
       (Icons.help_outline_rounded,    AppStrings.HelpSupport, false),
       (Icons.info_outline_rounded,    AppStrings.AboutSiteLink,    false),
     ];
@@ -479,20 +481,15 @@ class _SettingsCard extends StatelessWidget {
             isOutlined: true,
             onTap: () => Get.dialog(
               AlertDialog(
-                title: Text('Logout?', style: KTextStyle.poppins(fs: 16, fw: FontWeight.w600)),
-                content: Text('Are you sure you want to logout?',
+                title: Text('logout_confirm_title'.tr, style: KTextStyle.poppins(fs: 16, fw: FontWeight.w600)),
+                content: Text('logout_confirm_message'.tr,
                     style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
                 actions: [
-                  TextButton(onPressed: Get.back, child: const Text('Cancel')),
+                  TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
                   TextButton(
-                    onPressed: () async {
-                      Get.back(); // dialog band karo
-                      await MiscApiService().logout(); // token blacklist
-                      await AuthService.instance.signOut();
-                      await SessionService.to.clear();
-                      Get.offAllNamed(AppRoutes.language);
-                    },
-                    child: Text('Logout',
+                    // Dialog band karna + guard + loader performLogout me.
+                    onPressed: performLogout,
+                    child: Text(AppStrings.Logout,
                         style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600, c: AppColors.error)),
                   ),
                 ],
@@ -514,10 +511,10 @@ class HelpView extends StatelessWidget {
   final _faqs = const [
     ('How do I post a manpower request? / मैनपावर अनुरोध कैसे करें?',
      'Go to Home > tap the orange + button > fill the form with role, quantity, location and timeline > Submit.'),
-    ('When will I get workers? / मज़दूर कब मिलेंगे?',
+    ('When will I get employees / workers? / कर्मचारी / वर्कर कब मिलेंगे?',
      'We guarantee manpower within 24 hours of your request submission. Admin will contact you to confirm.'),
     ('How does replacement work? / बदलाव कैसे काम करता है?',
-     'If a worker leaves or underperforms, tap Request Replacement on the assignment. We guarantee replacement within 48 hours.'),
+     'If an employee / worker leaves or underperforms, tap Request Replacement on the assignment. We guarantee replacement within 48 hours.'),
     ('How do I verify my profile? / प्रोफाइल सत्यापन कैसे होगा?',
      'Upload your Aadhaar/Voter ID and work photos. Our admin reviews within 24–48 hours and approves your profile.'),
     ('What documents do I need? / कौन से दस्तावेज़ चाहिए?',
@@ -543,7 +540,7 @@ class HelpView extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Text('Need help? Talk to us!',
+                  Text('need_help_talk_to_us'.tr,
                       style: KTextStyle.poppins(fs: 16, fw: FontWeight.w600, c: Colors.white),
                       textAlign: TextAlign.center),
                   Text('मदद चाहिए? हमसे बात करें!',
@@ -602,7 +599,7 @@ class HelpView extends StatelessWidget {
             const SizedBox(height: AppDimens.xl),
             Center(
               child: CustomButton(
-                label: '✉️ Email Support',
+                label: '✉️ ${'email_support_label'.tr}',
                 isOutlined: true,
                 onTap: () {},
                 width: 200,

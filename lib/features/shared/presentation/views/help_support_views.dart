@@ -1,182 +1,253 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/models/app_config_models.dart';
 import '../../../../core/services/api_client.dart';
+import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_snackbar.dart';
 import '../../../../core/theme/shared_widgets.dart';
-
-// Support contact — ek jagah, taaki number badalna ho to yahin se.
-const String _kSupportPhone = '+918000000000';
-const String _kSupportWhatsapp = '918000000001';
-const String _kSupportEmail = 'support@sitelink.in';
+import '../../../vendor/presentation/views/vendor_plans_view.dart';
+import '../../../worker/presentation/views/worker_plans_view.dart';
 
 Future<void> _launch(Uri uri) async {
   try {
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok) AppSnackbar.error(message: 'Nahi khul paaya');
+    if (!ok) AppSnackbar.error(message: 'action_could_not_open'.tr);
   } catch (_) {
-    AppSnackbar.error(message: 'Is action ke liye koi app nahi mili');
+    AppSnackbar.error(message: 'no_app_for_action'.tr);
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════
 //  HELP / SUPPORT / POLICY — worker aur vendor dono use karte hain
 // ═══════════════════════════════════════════════════════════════════
-// UI identical hai dono roles pe — sirf FAQ list aur policy text alag
-// (role-specific content caller se aata hai). Community feed jaisa hi
-// "shared component, role apna content pass kare" pattern.
+// UI identical hai dono roles pe — content backend se (admin-managed)
+// aata hai, "shared component, role apna policyType pass kare" pattern.
 
-// ── FAQ view ─────────────────────────────────────────────────────
-class FaqView extends StatelessWidget {
-  final String title;
-  final List<(String, String)> faqs;
-  const FaqView({super.key, this.title = 'Help & FAQ', required this.faqs});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: title),
-      body: SafeArea(
-        top: false,
-        child: ListView.separated(
-          padding: const EdgeInsets.all(AppDimens.lg),
-          itemCount: faqs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppDimens.md),
-          itemBuilder: (_, i) => _FaqCard(faq: faqs[i]),
-        ),
-      ),
-    );
-  }
-}
-
-class _FaqCard extends StatefulWidget {
-  final (String, String) faq;
-  const _FaqCard({required this.faq});
-
-  @override
-  State<_FaqCard> createState() => _FaqCardState();
-}
-
-class _FaqCardState extends State<_FaqCard> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: () => setState(() => _expanded = !_expanded),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.faq.$1,
-                  style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600),
-                ),
-              ),
-              Icon(
-                _expanded
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                color: AppColors.primary,
-                size: 20,
-              ),
-            ],
-          ),
-          if (_expanded) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: AppColors.divider),
-            const SizedBox(height: 10),
-            Text(
-              widget.faq.$2,
-              style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ── Contact support view ────────────────────────────────────────────
-// Same support team dono roles ke liye — content role-agnostic hai.
-class ContactSupportView extends StatelessWidget {
+// ── Contact support view — 100% admin-managed (PlatformSettings.supportContact)
+class ContactSupportView extends StatefulWidget {
   const ContactSupportView({super.key});
 
   @override
+  State<ContactSupportView> createState() => _ContactSupportViewState();
+}
+
+class _ContactSupportViewState extends State<ContactSupportView> {
+  SupportContactResult _res = const SupportContactResult();
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final res = await LegalApiService().getSupportContact();
+    if (!mounted) return;
+    setState(() {
+      _res = res;
+      _loading = false;
+    });
+  }
+
+  String? _v(String key) {
+    final v = _res.contact[key]?.trim();
+    return (v == null || v.isEmpty) ? null : v;
+  }
+
+  /// Plan lene ke baad wapas aate hi contact khul jaana chahiye,
+  /// isliye return par dobara load karte hain.
+  Future<void> _openPlans() async {
+    final isVendor = SessionService.to.userType == 'vendor';
+    await Get.to(() =>
+        isVendor ? const VendorPlansView() : const WorkerPlansView());
+    if (!mounted) return;
+    setState(() => _loading = true);
+    _load();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final phone = _v('phone');
+    final whatsapp = _v('whatsapp');
+    final email = _v('email');
+    final hoursWeekday = _v('hoursWeekday');
+    final hoursSunday = _v('hoursSunday');
+    final emergencyNote = _v('emergencyNote');
+    final avgResponseTime = _v('avgResponseTime');
+    final hasAnyContact = phone != null || whatsapp != null || email != null;
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Contact Support'),
+      appBar: GradientAppBar(title: 'contact_support'.tr),
       body: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimens.lg),
-          child: Column(
-            children: [
-              AppCard(
-                child: Column(
-                  children: [
-                    _ContactOption(
-                      icon: Icons.phone_rounded,
-                      title: 'Call Support',
-                      subtitle: '+91 80000 00000',
-                      color: AppColors.success,
-                      onTap: () => _launch(Uri.parse('tel:$_kSupportPhone')),
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary))
+            // Paid feature — plan na ho to contact ki jagah locked state.
+            : _res.needsSubscription
+                ? _SupportLocked(
+                    message: _res.message,
+                    onViewPlans: _openPlans,
+                  )
+                : !hasAnyContact
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDimens.lg),
+                      child: Text(
+                        'support_contact_soon'.tr,
+                        textAlign: TextAlign.center,
+                        style: KTextStyle.poppins(
+                            fs: 13, c: AppColors.textSecondary),
+                      ),
                     ),
-                    const Divider(height: 1, color: AppColors.divider),
-                    _ContactOption(
-                      icon: Icons.chat_rounded,
-                      title: 'WhatsApp',
-                      subtitle: '+91 80000 00001',
-                      color: const Color(0xFF25D366),
-                      onTap: () => _launch(
-                          Uri.parse('https://wa.me/$_kSupportWhatsapp')),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppDimens.lg),
+                    child: Column(
+                      children: [
+                        AppCard(
+                          child: Column(
+                            children: [
+                              if (phone != null) ...[
+                                _ContactOption(
+                                  icon: Icons.phone_rounded,
+                                  title: 'call_support_label'.tr,
+                                  subtitle: phone,
+                                  color: AppColors.success,
+                                  onTap: () =>
+                                      _launch(Uri.parse('tel:$phone')),
+                                ),
+                                if (whatsapp != null || email != null)
+                                  const Divider(
+                                      height: 1, color: AppColors.divider),
+                              ],
+                              if (whatsapp != null) ...[
+                                _ContactOption(
+                                  icon: Icons.chat_rounded,
+                                  title: 'whatsapp'.tr,
+                                  subtitle: whatsapp,
+                                  color: const Color(0xFF25D366),
+                                  onTap: () => _launch(Uri.parse(
+                                      'https://wa.me/${whatsapp.replaceAll(RegExp(r'[^0-9]'), '')}')),
+                                ),
+                                if (email != null)
+                                  const Divider(
+                                      height: 1, color: AppColors.divider),
+                              ],
+                              if (email != null)
+                                _ContactOption(
+                                  icon: Icons.email_outlined,
+                                  title: 'email_support_label'.tr,
+                                  subtitle: email,
+                                  color: AppColors.info,
+                                  onTap: () =>
+                                      _launch(Uri.parse('mailto:$email')),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (hoursWeekday != null || hoursSunday != null) ...[
+                          const SizedBox(height: AppDimens.lg),
+                          AppCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('support_hours_label'.tr,
+                                    style: KTextStyle.poppins(
+                                        fs: 14, fw: FontWeight.w600)),
+                                const SizedBox(height: 10),
+                                if (hoursWeekday != null) ...[
+                                  _InfoRow(
+                                      label: 'monday_saturday_label'.tr,
+                                      value: hoursWeekday),
+                                  const SizedBox(height: 6),
+                                ],
+                                if (hoursSunday != null) ...[
+                                  _InfoRow(label: 'sunday_label'.tr, value: hoursSunday),
+                                  const SizedBox(height: 6),
+                                ],
+                                if (emergencyNote != null)
+                                  _InfoRow(
+                                      label: 'emergency_label'.tr,
+                                      value: emergencyNote),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (avgResponseTime != null) ...[
+                          const SizedBox(height: AppDimens.lg),
+                          _InfoBannerCard(
+                            icon: Icons.access_time_rounded,
+                            text: 'average_response_time'
+                                .trParams({'time': avgResponseTime}),
+                          ),
+                        ],
+                      ],
                     ),
-                    const Divider(height: 1, color: AppColors.divider),
-                    _ContactOption(
-                      icon: Icons.email_outlined,
-                      title: 'Email Support',
-                      subtitle: 'support@sitelink.in',
-                      color: AppColors.info,
-                      onTap: () =>
-                          _launch(Uri.parse('mailto:$_kSupportEmail')),
-                    ),
-                  ],
-                ),
+                  ),
+      ),
+    );
+  }
+}
+
+// ── Contact Support locked — plan nahi hai ──────────────────────────
+// Sirf "nahi milega" mat bolo: kya milega aur kaise milega, dono
+// dikhao, aur Plans ek tap door ho.
+class _SupportLocked extends StatelessWidget {
+  final String? message;
+  final Future<void> Function() onViewPlans;
+
+  const _SupportLocked({required this.message, required this.onViewPlans});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimens.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 78,
+              height: 78,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: AppDimens.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Support Hours',
-                        style:
-                            KTextStyle.poppins(fs: 14, fw: FontWeight.w600)),
-                    const SizedBox(height: 10),
-                    _InfoRow(
-                        label: 'Monday – Saturday',
-                        value: '9:00 AM – 7:00 PM'),
-                    const SizedBox(height: 6),
-                    _InfoRow(
-                        label: 'Sunday', value: '10:00 AM – 4:00 PM'),
-                    const SizedBox(height: 6),
-                    _InfoRow(
-                        label: 'Emergency', value: '24/7 on WhatsApp'),
-                  ],
-                ),
+              child: const Icon(Icons.lock_outline_rounded,
+                  size: 36, color: AppColors.primary),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'support_locked_title'.tr,
+              textAlign: TextAlign.center,
+              style: KTextStyle.poppins(fs: 17, fw: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              (message ?? '').trim().isNotEmpty
+                  ? message!.trim()
+                  : 'support_locked_msg'.tr,
+              textAlign: TextAlign.center,
+              style: KTextStyle.poppins(
+                  fs: 13, c: AppColors.textSecondary, height: 1.5),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: CustomButton(
+                label: 'view_plans_btn'.tr,
+                onTap: onViewPlans,
               ),
-              const SizedBox(height: AppDimens.lg),
-              const _InfoBannerCard(
-                icon: Icons.access_time_rounded,
-                text: 'Average response time: under 2 hours',
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -283,14 +354,31 @@ class _InfoBannerCard extends StatelessWidget {
       );
 }
 
-// ── Policy view (Privacy Policy + Terms of Service) ──────────────────
+// ═══════════════════════════════════════════════════════════════════
+//  CONTENT SANITIZER — legacy double-escaped data (kabhi kabhi content
+//  save hote waqt already-escaped string paste ho jaata hai, jisse DB
+//  me literal `\n` / `\"` characters store ho jaate hain, real newline
+//  ke bajaye). Display se pehle normalize karte hain taaki purana bhi
+//  aur naya (clean) dono content sahi render ho.
+// ═══════════════════════════════════════════════════════════════════
+String _sanitizeContent(String raw) {
+  return raw
+      .replaceAll(r'\r\n', '\n')
+      .replaceAll(r'\n', '\n')
+      .replaceAll(r'\"', '"')
+      .replaceAll(r"\'", "'");
+}
+
+// ── Policy view (Privacy Policy / Terms of Service / Help & FAQ) ─────
 // [content] static fallback hai. Agar [policyType] diya ho, backend se
 // (GET /legal/policies) latest content fetch hota hai — mile to wo dikhta
-// hai, warna static fallback. Isse page kabhi blank nahi hota.
+// hai, warna static fallback. Isse page kabhi blank nahi hota. Content
+// Markdown format me hota hai (admin panel se likha jaata hai) — yahan
+// properly render hota hai, raw '#'/'**'/'-' symbols nahi dikhte.
 class PolicyView extends StatefulWidget {
   final String title;
   final String content;
-  final String? policyType; // 'PRIVACY_POLICY' | 'TERMS_AND_CONDITIONS'
+  final String? policyType; // 'PRIVACY_POLICY' | 'TERMS_AND_CONDITIONS' | 'HELP_AND_SUPPORT'
   const PolicyView({
     super.key,
     required this.title,
@@ -339,10 +427,15 @@ class _PolicyViewState extends State<PolicyView> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppDimens.lg),
                 child: AppCard(
-                  child: Text(
-                    _content,
-                    style:
-                        KTextStyle.poppins(fs: 13, c: AppColors.textSecondary),
+                  child: MarkdownBlock(
+                    data: _sanitizeContent(_content),
+                    selectable: false,
+                    config: MarkdownConfig(configs: [
+                      PConfig(
+                        textStyle: KTextStyle.poppins(
+                            fs: 13, c: AppColors.textSecondary, height: 1.5),
+                      ),
+                    ]),
                   ),
                 ),
               ),

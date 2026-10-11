@@ -4,10 +4,12 @@ import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
-import '../../../shared/presentation/views/my_post_card.dart';
+import '../../../shared/presentation/views/my_posts_view.dart';
 import '../controllers/worker_feed_controller.dart';
 import '../controllers/worker_profile_controller.dart';
+import 'worker_plans_view.dart';
 
 
 class WorkerProfileTab extends StatelessWidget {
@@ -19,9 +21,9 @@ class WorkerProfileTab extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      // Pull-to-refresh — poora profile (/profile/me) dobara fetch hota hai
+      // Pull-to-refresh — profile + posts dono dobara fetch hote hai
       body: RefreshIndicator(
-        onRefresh: ctrl.fetchProfile,
+        onRefresh: ctrl.refreshAll,
         color: AppColors.primary,
         // Spinner pinned app bar ke neeche dikhe
         edgeOffset: MediaQuery.of(context).padding.top + kToolbarHeight,
@@ -32,11 +34,11 @@ class WorkerProfileTab extends StatelessWidget {
           slivers: [
             _buildAppBar(),
             _buildHeader(ctrl),
-            _buildStats(ctrl),
+            _buildStats(feedCtrl, ctrl),
+            _buildRatingCard(ctrl),
+            _buildMyPostsTile(feedCtrl, ctrl),
             _buildSkillsSection(ctrl),
             _buildDocumentsSection(ctrl),
-            _buildPostsHeader(),
-            _buildPostsList(feedCtrl, ctrl),
           ],
         ),
       ),
@@ -52,7 +54,7 @@ class WorkerProfileTab extends StatelessWidget {
       flexibleSpace: Container(
         decoration: const BoxDecoration(gradient: AppColors.appBarGradient),
       ),
-      title: Text('My Profile',
+      title: Text('my_profile_title'.tr,
           style: KTextStyle.poppins(
               fs: 18, fw: FontWeight.w600, c: Colors.white)),
       centerTitle: true,
@@ -108,28 +110,52 @@ class WorkerProfileTab extends StatelessWidget {
                 style: KTextStyle.poppins(fs: 12, c: Colors.white70)),
           ],
           const SizedBox(height: 6),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              // White chip — gradient background pe clearly dikhe
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusMax),
-                ),
-                child: Text(
-                  ctrl.primarySkill.value,
-                  style: KTextStyle.poppins(
-                      fs: 12, fw: FontWeight.w600, c: AppColors.primary),
-                ),
+          // Skill chip — apni alag row
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppDimens.radiusMax),
+            ),
+            child: Text(
+              ctrl.primarySkill.value,
+              style: KTextStyle.poppins(
+                  fs: 12, fw: FontWeight.w600, c: AppColors.primary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Verified / Pending chip — apni alag row (vendor profile jaisa)
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppDimens.radiusMax),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(
+                ctrl.isVerified.value
+                    ? Icons.verified_rounded
+                    : Icons.hourglass_top_rounded,
+                size: 14,
+                color: ctrl.isVerified.value
+                    ? AppColors.success
+                    : AppColors.warning,
               ),
-              if (ctrl.isVerified.value)
-                StatusBadge(type: BadgeType.verified),
-            ],
+              const SizedBox(width: 6),
+              Text(
+                ctrl.isVerified.value
+                    ? 'verified_worker_label'.tr
+                    : 'verification_pending_title'.tr,
+                style: KTextStyle.poppins(
+                    fs: 12,
+                    fw: FontWeight.w600,
+                    c: ctrl.isVerified.value
+                        ? AppColors.success
+                        : AppColors.warning),
+              ),
+            ]),
           ),
           const SizedBox(height: 6),
           Text(ctrl.workerId.value,
@@ -152,8 +178,38 @@ class WorkerProfileTab extends StatelessWidget {
     );
   }
 
+  // ── Performance rating ────────────────────────────────────────
+  // Rating job outcomes se khud banti hai — koi manually nahi deta.
+  // Naye worker ko card batata hai ki rating aayegi kaise, warna "New"
+  // dekh ke lagta hai kuch galat hai.
+  Widget _buildRatingCard(WorkerProfileController ctrl) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppDimens.lg, AppDimens.md, AppDimens.lg, 0),
+        child: Obx(() => Column(
+              children: [
+                RatingSummaryCard(
+                  rating: ctrl.rating.value,
+                  comment: ctrl.ratingComment.value,
+                ),
+                // Plan na ho to saaf batao ki rating contractors ko dikhegi
+                // hi nahi — warna worker ko lagta hai rating ka koi
+                // matlab hi nahi.
+                if (!ctrl.hasActivePlan.value) ...[
+                  const SizedBox(height: AppDimens.sm),
+                  RatingPlanNudge(
+                    onViewPlans: () => Get.to(() => const WorkerPlansView()),
+                  ),
+                ],
+              ],
+            )),
+      ),
+    );
+  }
+
   // ── Stats ─────────────────────────────────────────────────────
-  Widget _buildStats(WorkerProfileController ctrl) {
+  Widget _buildStats(WorkerFeedController feedCtrl, WorkerProfileController ctrl) {
     return SliverToBoxAdapter(
       child: Obx(() => Container(
         color: AppColors.surface,
@@ -161,18 +217,57 @@ class WorkerProfileTab extends StatelessWidget {
         const EdgeInsets.symmetric(vertical: AppDimens.lg),
         child: Row(children: [
           _StatCell(
-              label: 'Posts',
-              value: '${ctrl.postsCount.value}'),
+              label: 'posts_label'.tr,
+              value: '${ctrl.postsCount.value}',
+              onTap: () => _openMyPosts(feedCtrl, ctrl)),
           _Divider(),
           _StatCell(
-              label: 'Rating',
-              value: '${ctrl.rating.value} ⭐'),
+              label: 'rating_label'.tr,
+              // Rating admin deta hai. Na mili ho to "0.0 ⭐" nahi
+              // dikhate — 0 ka matlab "kharaab" nahi, "abhi rating nahi
+              // mili" hai.
+              value: (ctrl.rating.value ?? 0) > 0
+                  ? '${ctrl.rating.value!.toStringAsFixed(1)} ⭐'
+                  : 'rating_not_rated'.tr),
           _Divider(),
           _StatCell(
-              label: 'Experience',
+              label: 'experience_label'.tr,
               value: ctrl.experience.value),
         ]),
       )),
+    );
+  }
+
+  // ── My Posts — apna alag page (clearly tappable tile) ──────────
+  Widget _buildMyPostsTile(WorkerFeedController feedCtrl, WorkerProfileController ctrl) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppDimens.lg, AppDimens.md, AppDimens.lg, 0),
+        child: _ProfileCard(
+          title: 'my_posts_label'.tr,
+          icon: Icons.dynamic_feed_rounded,
+          child: InkWell(
+            onTap: () => _openMyPosts(feedCtrl, ctrl),
+            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+            child: Row(children: [
+              const Icon(Icons.post_add_rounded,
+                  size: 18, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('view_my_posts'.tr,
+                    style: KTextStyle.poppins(fs: 13)),
+              ),
+              Obx(() => Text('${ctrl.postsCount.value}',
+                  style: KTextStyle.poppins(
+                      fs: 12.5, fw: FontWeight.w600, c: AppColors.textHint))),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textHint),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 
@@ -183,7 +278,7 @@ class WorkerProfileTab extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(
             AppDimens.lg, AppDimens.lg, AppDimens.lg, 0),
         child: _ProfileCard(
-          title: 'Skills',
+          title: 'skills_section_title'.tr,
           icon: Icons.construction_rounded,
           child: Obx(() => Wrap(
             spacing: 8,
@@ -205,134 +300,30 @@ class WorkerProfileTab extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(
             AppDimens.lg, AppDimens.md, AppDimens.lg, 0),
         child: _ProfileCard(
-          title: 'Documents',
+          title: 'documents_label'.tr,
           icon: Icons.folder_outlined,
-          child: Obx(() => Column(
+          child: Column(
             children: ctrl.documents
                 .map((d) => _DocumentRow(doc: d))
                 .toList(),
-          )),
+          ),
         ),
       ),
     );
   }
 
   // ── Posts Header ──────────────────────────────────────────────
-  Widget _buildPostsHeader() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppDimens.lg, AppDimens.lg, AppDimens.lg, AppDimens.md),
-        child: Row(children: [
-          Container(
-            width: 4, height: 16,
-            decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(width: 8),
-          Text('My Posts',
-              style: KTextStyle.poppins(
-                  fs: 14, fw: FontWeight.w600)),
-        ]),
-      ),
-    );
-  }
-
-  // ── Posts List  ───────────────────────────────────────────────
-  //  ✅ Fixed: CommunityFeedModel use karta hai
-  //  Posts filter: posterName == ctrl.name
-  //  Delete: swipe ya 3-dot menu se
-  Widget _buildPostsList(
-      WorkerFeedController feedCtrl, WorkerProfileController ctrl) {
-    return SliverToBoxAdapter(
-      child: Obx(() {
-        // ✅ Profile API ke apne posts (feed filter nahi)
-        final myPosts = ctrl.posts;
-
-        // ── Empty state ─────────────────────────────────────────
-        if (myPosts.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 36),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.post_add_outlined,
-                      size: 40, color: Colors.grey.shade300),
-                  const SizedBox(height: 12),
-                  Text('No posts yet',
-                      style: KTextStyle.poppins(
-                          fs: 13, c: AppColors.textSecondary)),
-                  const SizedBox(height: 4),
-                  Text('Share something from the Home feed',
-                      style: KTextStyle.poppins(
-                          fs: 12, c: AppColors.textHint)),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // ── Posts list ─────────────────────────────────────────
-        return Column(
-          children: [
-            for (int i = 0; i < myPosts.length; i++)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppDimens.lg,
-                  0,
-                  AppDimens.lg,
-                  i == myPosts.length - 1 ? AppDimens.xl : AppDimens.md,
-                ),
-                child: MyPostCard(
-                  post: myPosts[i],
-                  onDelete: () => _confirmDelete(myPosts[i].id, feedCtrl, ctrl),
-                ),
-              ),
-          ],
-        );
-      }),
-    );
-  }
-
-  // ── Delete confirmation dialog ────────────────────────────────
-  void _confirmDelete(String? postId, WorkerFeedController feedCtrl,
-      WorkerProfileController ctrl) {
-    if (postId == null) return;
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: Text('Post Delete Karo?',
-            style: KTextStyle.poppins(
-                fs: 15, fw: FontWeight.w600)),
-        content: Text(
-            'Yeh post permanently delete ho jaayega. Kya aap sure hain?',
-            style: KTextStyle.poppins(
-                fs: 13, c: AppColors.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel',
-                style: KTextStyle.poppins(
-                    fs: 13, c: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              feedCtrl.deletePost(postId);
-              ctrl.removePostLocally(postId); // profile list turant update
-            },
-            child: Text('Delete',
-                style: KTextStyle.poppins(
-                    fs: 13,
-                    fw: FontWeight.w600,
-                    c: Colors.red.shade600)),
-          ),
-        ],
-      ),
-    );
+  // ── My Posts — apna alag page (profile screen se sirf navigate) ────
+  void _openMyPosts(WorkerFeedController feedCtrl, WorkerProfileController ctrl) {
+    Get.to(() => MyPostsView(
+          posts: ctrl.posts,
+          isLoading: ctrl.isLoadingPosts,
+          onRefresh: ctrl.fetchMyPosts,
+          onDelete: (postId) {
+            feedCtrl.deletePost(postId);
+            ctrl.removePostLocally(postId);
+          },
+        ));
   }
 }
 
@@ -407,20 +398,35 @@ class _DocumentRow extends StatelessWidget {
 class _StatCell extends StatelessWidget {
   final String label;
   final String value;
-  const _StatCell({required this.label, required this.value});
+  final VoidCallback? onTap;
+  const _StatCell({required this.label, required this.value, this.onTap});
 
   @override
   Widget build(BuildContext context) => Expanded(
-    child: Column(children: [
-      Text(value,
-          style: KTextStyle.poppins(
-              fs: 16, fw: FontWeight.w700)),
-      const SizedBox(height: 3),
-      Text(label,
-          style: KTextStyle.poppins(
-              fs: 10, c: AppColors.textHint),
-          textAlign: TextAlign.center),
-    ]),
+    child: GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(children: [
+        Text(value,
+            style: KTextStyle.poppins(
+                fs: 16, fw: FontWeight.w700)),
+        const SizedBox(height: 3),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(label,
+                style: KTextStyle.poppins(
+                    fs: 10, c: AppColors.textHint),
+                textAlign: TextAlign.center),
+            if (onTap != null) ...[
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 12, color: AppColors.textHint),
+            ],
+          ],
+        ),
+      ]),
+    ),
   );
 }
 

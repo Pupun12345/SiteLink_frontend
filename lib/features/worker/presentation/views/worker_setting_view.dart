@@ -5,31 +5,16 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
-import '../../../../app/routes/app_routes.dart';
-import '../../../../core/services/api_client.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/locale_service.dart';
-import '../../../../core/services/session_service.dart';
+import '../../../shared/presentation/views/change_phone_sheet.dart';
 import '../../../shared/presentation/views/help_support_views.dart';
+import '../controllers/worker_profile_controller.dart';
+import '../../../../core/services/logout_service.dart';
+import '../../../../core/services/api_client.dart';
+import '../../../shared/presentation/views/plan_status_banner.dart';
 import 'edit_profile_view.dart';
 import 'worker_documents_view.dart';
 import 'worker_plans_view.dart';
-
-// Worker-specific FAQ content (shared FaqView UI, apna content)
-const _kWorkerFaqs = [
-  ('How does SiteLink work?',
-      'SiteLink connects workers with vendors through an admin-mediated system. Vendors post requirements, workers apply, and our admin assigns verified workers to ensure quality and trust.'),
-  ('How do I get assigned to a job?',
-      'Once you complete your profile and upload required documents, our admin team will verify your profile. After verification, you become eligible for job assignments.'),
-  ('How long does profile verification take?',
-      'Profile verification typically takes 24–48 hours after all documents are submitted.'),
-  ('What if I need to report an issue on site?',
-      'Use the "Report Issue" button on your Active Job screen to notify our team. We respond within 2 hours.'),
-  ('How are payments processed?',
-      'Payments are handled directly between you and the vendor. SiteLink provides the platform and admin support — payment terms are agreed upon at the time of assignment.'),
-  ('Can I work for multiple vendors?',
-      'You can only have one active job assignment at a time through SiteLink. Once a job is completed, you become available for new assignments.'),
-];
 
 // ═══════════════════════════════════════════════════════════════════
 //  SETTINGS CONTROLLER
@@ -47,12 +32,26 @@ class WorkerSettingsController extends GetxController {
     LocaleService.to.setLanguage(code == 'hi' ? 'hindi' : 'english');
   }
 
-  Future<void> logout() async {
-    // Backend token blacklist (fail ho to bhi local logout hota hai)
-    await MiscApiService().logout();
-    await AuthService.instance.signOut();
-    await SessionService.to.clear();
-    Get.offAllNamed(AppRoutes.language);
+  /// Shared helper — double-tap guard + loader wahin hai.
+  Future<void> logout() => performLogout();
+
+  /// Paid features (Contact Support) ka lock isse decide hota hai.
+  /// Backend `hasActivePlan` live compute karke bhejta hai.
+  final hasActivePlan = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadPlanStatus();
+  }
+
+  /// Public hai kyunki plan khareedne ke baad `refreshAfterPlanChange()`
+  /// ise bulata hai — warna Contact Support ka lock khula hi nahi dikhta.
+  Future<void> loadPlanStatus() async {
+    try {
+      final res = await ProfileApiService().getMe();
+      hasActivePlan.value = res.user?.hasActivePlan ?? false;
+    } catch (_) {/* fail par locked hi rehta hai — backend bhi enforce karta hai */}
   }
 }
 
@@ -68,41 +67,47 @@ class WorkerSettingsView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Settings'),
+      appBar: GradientAppBar(title: 'settings_title'.tr),
       body: SafeArea(
         top: false,
         child: ListView(
           padding: const EdgeInsets.all(AppDimens.lg),
           children: [
             // ── Account ──────────────────────────────────────
-            _SectionLabel(label: 'Account'),
+            _SectionLabel(label: 'account_section'.tr),
             AppCard(
               child: Column(
                 children: [
                   _SettingsTile(
                     icon: Icons.person_outline_rounded,
-                    title: 'Edit Profile',
+                    title: 'edit_profile_tile'.tr,
                     onTap: () => Get.to(() => const EditProfileView()),
                   ),
                   _Divider(),
                   _SettingsTile(
                     icon: Icons.phone_outlined,
-                    title: 'Change Phone Number',
-                    onTap: () {
-                      // TODO: phone change flow
-                    },
+                    title: 'change_phone_number'.tr,
+                    onTap: () => showChangePhoneSheet(
+                      context,
+                      // Number badalne par Profile tab ka data refresh
+                      onUpdated: (_) {
+                        if (Get.isRegistered<WorkerProfileController>()) {
+                          Get.find<WorkerProfileController>().fetchProfile();
+                        }
+                      },
+                    ),
                   ),
                   _Divider(),
                   _SettingsTile(
                     icon: Icons.badge_outlined,
-                    title: 'My Documents',
+                    title: 'my_documents'.tr,
                     onTap: () => Get.to(() => const WorkerDocumentsView()),
                   ),
                   _Divider(),
                   _SettingsTile(
                     icon: Icons.workspace_premium_rounded,
-                    title: 'SiteLink Premium',
-                    subtitle: 'Upgrade — ₹299/Year',
+                    title: 'sitelink_premium'.tr,
+                    subtitle: 'premium_upgrade_subtitle'.tr,
                     onTap: () => Get.to(() => const WorkerPlansView()),
                   ),
                 ],
@@ -111,13 +116,13 @@ class WorkerSettingsView extends StatelessWidget {
             const SizedBox(height: AppDimens.md),
 
             // ── Preferences ──────────────────────────────────
-            _SectionLabel(label: 'Preferences'),
+            _SectionLabel(label: 'preferences_section'.tr),
             AppCard(
               child: Column(
                 children: [
                   Obx(() => _SettingsTile(
                     icon: Icons.notifications_outlined,
-                    title: 'Push Notifications',
+                    title: 'push_notifications'.tr,
                     trailing: Switch(
                       value: ctrl.notificationsEnabled.value,
                       onChanged: ctrl.toggleNotifications,
@@ -125,57 +130,64 @@ class WorkerSettingsView extends StatelessWidget {
                     ),
                   )),
                   _Divider(),
-                  _SettingsTile(
+                  Obx(() => _SettingsTile(
                     icon: Icons.language_outlined,
-                    title: 'Language',
-                    subtitle: 'English',
+                    title: AppStrings.Language,
+                    subtitle: ctrl.languageCode.value == 'hi'
+                        ? AppStrings.Hindi
+                        : AppStrings.English,
                     onTap: () => _showLanguageSheet(context, ctrl),
-                  ),
+                  )),
                 ],
               ),
             ),
             const SizedBox(height: AppDimens.md),
 
             // ── Support ──────────────────────────────────────
-            _SectionLabel(label: 'Support'),
+            _SectionLabel(label: 'support_section'.tr),
             AppCard(
               child: Column(
                 children: [
                   _SettingsTile(
                     icon: Icons.help_outline_rounded,
-                    title: 'Help & FAQ',
-                    onTap: () => Get.to(
-                        () => const FaqView(faqs: _kWorkerFaqs)),
+                    title: 'help_faq_title'.tr,
+                    onTap: () => Get.to(() => PolicyView(
+                      title: 'help_faq_title'.tr,
+                      content: _kHelpFaq,
+                      policyType: 'HELP_AND_SUPPORT',
+                    )),
                   ),
                   _Divider(),
-                  _SettingsTile(
-                    icon: Icons.support_agent_outlined,
-                    title: 'Contact Support',
-                    onTap: () => Get.to(() => const ContactSupportView()),
-                  ),
-                  _Divider(),
-                  _SettingsTile(
-                    icon: Icons.star_outline_rounded,
-                    title: 'Rate the App',
-                    onTap: () {
-                      // TODO: launch store URL
-                    },
-                  ),
+                  // Contact Support paid feature hai ("Call & WhatsApp
+                  // Support"). Entry chhupate nahi — lock ke saath dikhate
+                  // hain, tap par Plans khulti hai. Chhupa dene se user ko
+                  // pata hi nahi chalta ki feature hai.
+                  Obx(() {
+                    final locked = !ctrl.hasActivePlan.value;
+                    return _SettingsTile(
+                      icon: Icons.support_agent_outlined,
+                      title: 'contact_support'.tr,
+                      trailing: locked ? const PlanLockChip() : null,
+                      onTap: () => locked
+                          ? Get.to(() => const WorkerPlansView())
+                          : Get.to(() => const ContactSupportView()),
+                    );
+                  }),
                 ],
               ),
             ),
             const SizedBox(height: AppDimens.md),
 
             // ── Legal ─────────────────────────────────────────
-            _SectionLabel(label: 'Legal'),
+            _SectionLabel(label: 'legal_section'.tr),
             AppCard(
               child: Column(
                 children: [
                   _SettingsTile(
                     icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy Policy',
-                    onTap: () => Get.to(() => const PolicyView(
-                      title: 'Privacy Policy',
+                    title: AppStrings.PrivacyPolicy,
+                    onTap: () => Get.to(() => PolicyView(
+                      title: AppStrings.PrivacyPolicy,
                       content: _kPrivacyPolicy,
                       policyType: 'PRIVACY_POLICY',
                     )),
@@ -183,9 +195,9 @@ class WorkerSettingsView extends StatelessWidget {
                   _Divider(),
                   _SettingsTile(
                     icon: Icons.description_outlined,
-                    title: 'Terms of Service',
-                    onTap: () => Get.to(() => const PolicyView(
-                      title: 'Terms of Service',
+                    title: 'terms_of_service'.tr,
+                    onTap: () => Get.to(() => PolicyView(
+                      title: 'terms_of_service'.tr,
                       content: _kTermsOfService,
                       policyType: 'TERMS_AND_CONDITIONS',
                     )),
@@ -206,7 +218,7 @@ class WorkerSettingsView extends StatelessWidget {
 
             // ── Logout ────────────────────────────────────────
             CustomButton(
-              label: 'Logout',
+              label: AppStrings.Logout,
               isOutlined: true,
               onTap: () => _showLogoutDialog(context, ctrl),
             ),
@@ -244,19 +256,19 @@ class WorkerSettingsView extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text('Select Language', style: KTextStyle.poppins(fs: 16, fw: FontWeight.w600)),
+                Text('select_language_title'.tr, style: KTextStyle.poppins(fs: 16, fw: FontWeight.w600)),
                 const SizedBox(height: 14),
                 Obx(() => Column(
                   children: [
                     _LanguageOption(
-                      label: 'English',
+                      label: AppStrings.English,
                       code: 'en',
                       selected: ctrl.languageCode.value == 'en',
                       onTap: () { ctrl.setLanguage('en'); Get.back(); },
                     ),
                     const SizedBox(height: 8),
                     _LanguageOption(
-                      label: 'Hindi',
+                      label: AppStrings.Hindi,
                       code: 'hi',
                       selected: ctrl.languageCode.value == 'hi',
                       onTap: () { ctrl.setLanguage('hi'); Get.back(); },
@@ -273,26 +285,29 @@ class WorkerSettingsView extends StatelessWidget {
   }
 
   // ── Logout confirm dialog ─────────────────────────────────────
+  // `Get.dialog` (Flutter ka `showDialog` nahi): performLogout confirm
+  // dialog ko `Get.isDialogOpen` dekh kar band karta hai, aur wo flag
+  // sirf Get se khule dialogs par set hota hai. Vendor/legacy screens
+  // bhi Get.dialog hi use karti hain.
   void _showLogoutDialog(BuildContext context, WorkerSettingsController ctrl) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
+    Get.dialog(
+      AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         ),
-        title: Text('Logout', style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
+        title: Text(AppStrings.Logout, style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
         content: Text(
-          'Are you sure you want to logout?',
+          'logout_confirm_message'.tr,
           style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: Get.back,
-            child: Text('Cancel', style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
+            child: Text('cancel_label'.tr, style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: ctrl.logout,
-            child: Text('Logout', style: KTextStyle.poppins(fs: 13, c: Colors.red, fw: FontWeight.w600)),
+            child: Text(AppStrings.Logout, style: KTextStyle.poppins(fs: 13, c: Colors.red, fw: FontWeight.w600)),
           ),
         ],
       ),
@@ -413,6 +428,13 @@ class _LanguageOption extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════
 //  POLICY TEXT CONTENT
 // ═══════════════════════════════════════════════════════════════════
+const _kHelpFaq = '''
+## Help & FAQ
+
+Help content update ho raha hai — kripya thodi der baad dobara try karein,
+ya **Contact Support** se humse seedha judein.
+''';
+
 const _kPrivacyPolicy = '''
 Last updated: March 2026
 

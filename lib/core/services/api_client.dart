@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 import '../../app/config/app_config.dart';
+import '../utils/mask_secret.dart';
 import '../models/auth_models.dart';
 import '../models/worker_models.dart';
 import '../models/skill_models.dart';
@@ -17,6 +18,7 @@ import '../models/community_feed_models.dart';
 import '../models/plan_models.dart';
 import '../models/payment_models.dart';
 import '../models/notification_models.dart';
+import '../models/app_config_models.dart';
 import 'api_services.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -55,9 +57,21 @@ class ApiEndpoints {
   static const String plans         = "$baseUrl/plans/plans";
   static const String legalPolicies = "$baseUrl/legal/policies";
 
+  /// Public app-level config (maintenance notice). Token nahi lagta —
+  /// login se pehle bhi padha ja sakta hai.
+  static const String appConfig = "$baseUrl/app-config";
+  static const String supportContact = "$baseUrl/legal/support-contact";
+
   // Payment endpoints (Razorpay — order create + signature verify)
   static const String createOrder   = "$baseUrl/payments/create-order";
   static const String verifyPayment = "$baseUrl/payments/verify-payment";
+
+  // Auto-payment (Razorpay Subscriptions) — one-time payment se ALAG
+  // flow hai. Yahan mandate banta hai aur Razorpay har cycle par khud
+  // paise kaat leta hai, jab tak user cancel na kare.
+  static const String createSubscription = "$baseUrl/payments/create-subscription";
+  static const String verifySubscription = "$baseUrl/payments/verify-subscription";
+  static const String cancelSubscription = "$baseUrl/payments/cancel-subscription";
 
   // Amenities endpoints
   static const String amenities        = "$baseUrl/amenities";
@@ -92,6 +106,23 @@ class ApiEndpoints {
   static String jobApplicants(String jobId) => "$baseUrl/jobs/$jobId/applicants";
   static String jobApplicantStatus(String jobId, String applicationId) =>
       "$baseUrl/jobs/$jobId/applicants/$applicationId/status";
+
+  // Community — own posts ("My Posts" on profile screens)
+  static const String myPosts = "$baseUrl/community/posts/mine";
+
+  // Community feed endpoints
+  static const String communityFeed = "$baseUrl/community/feed";
+  static const String communityPosts = "$baseUrl/community/posts";
+  static String communityPostLike(String postId) =>
+      "$baseUrl/community/posts/$postId/like";
+  static String communityPostDelete(String postId) =>
+      "$baseUrl/community/posts/$postId";
+
+  /// Kisi ek user ke public posts. Backend access check karta hai — vendor
+  /// sirf un workers ke posts dekh sakta hai jinhone uski job par apply
+  /// kiya ho.
+  static String communityPostsByUser(String userId) =>
+      "$baseUrl/community/posts/user/$userId";
 
   // Community comment endpoints
   static String postComments(String postId) =>
@@ -191,18 +222,13 @@ class AuthApiService {
 
         print("URL: ${ApiEndpoints.googleLogin}");
 
-        print("firebaseIdToken:");
-        print(firebaseIdToken);
-
-        print("deviceToken:");
-        print(deviceToken);
-
-        print("deviceType:");
-        print(deviceType);
-
-        print("FULL BODY:");
-        print(jsonEncode(requestBody));
-
+        // Token masked — ye bearer credential hai (~1 ghanta valid).
+        // Debug logs regularly share/paste kiye jaate hain, to poora
+        // token print karna account handover ke barabar hai. Prefix +
+        // length se debug karne ke liye kaafi hai.
+        print("firebaseIdToken: ${maskSecret(firebaseIdToken)}");
+        print("deviceToken: ${maskSecret(deviceToken)}");
+        print("deviceType: $deviceType");
         print("====================================");
       }
 
@@ -245,6 +271,30 @@ class AuthApiService {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  PROXY / GATEWAY ERROR HELPER
+// ═══════════════════════════════════════════════════════════════════
+// nginx jaise reverse proxy apni errors HTML me bhejte hain, JSON me nahi
+// (e.g. 413 "Request Entity Too Large" jab upload nginx ke
+// client_max_body_size se bada ho). Aise body ko jsonDecode karne par
+// FormatException aata tha aur user ko raw Dart exception dikh jaata tha.
+// Yahan pehle hi pakad ke saaf, translated message de dete hain.
+//
+// null return = normal JSON response hai, aage jsonDecode safe hai.
+String? proxyErrorMessage(int statusCode, String body) {
+  if (statusCode == 413) return 'upload_too_large_error'.tr;
+
+  // JSON hamesha { ya [ se shuru hota hai; < matlab HTML error page.
+  final trimmed = body.trimLeft();
+  if (trimmed.isEmpty) return 'server_error_generic'.tr;
+  if (!trimmed.startsWith('<')) return null;
+
+  if (statusCode == 502 || statusCode == 503 || statusCode == 504) {
+    return 'server_unavailable_error'.tr;
+  }
+  return 'server_error_generic'.tr;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  WORKER PROFILE API SERVICE  (unchanged)
 // ═══════════════════════════════════════════════════════════════════
 class WorkerApiService {
@@ -253,8 +303,7 @@ class WorkerApiService {
   Future<CreateWorkerResponse> createWorkerProfile(
       WorkerProfileRequest request, {
         File?       profileImage,
-        List<File>? workSamplesPhotos,
-        File?       experienceCertificate,
+        List<File>? experienceCertificates,
         File?       governmentID,
       }) async {
     try {
@@ -290,11 +339,10 @@ class WorkerApiService {
       }
 
       if (profileImage         != null) addFile(profileImage,         'profileImage');
-      if (experienceCertificate != null) addFile(experienceCertificate,'experienceCertificate');
-      if (governmentID         != null) addFile(governmentID,         'governmentID');
-      if (workSamplesPhotos    != null) {
-        for (final ws in workSamplesPhotos) addFile(ws, 'workSamplesPhoto');
+      if (experienceCertificates != null) {
+        for (final c in experienceCertificates) addFile(c, 'experienceCertificate');
       }
+      if (governmentID         != null) addFile(governmentID,         'governmentID');
 
       final streamed = await httpRequest.send()
           .timeout(const Duration(seconds: 60));
@@ -305,13 +353,21 @@ class WorkerApiService {
         print("BODY:   ${response.body}");
       }
 
+      // nginx/proxy ne reject kiya (e.g. 413 — files bahut badi) to body
+      // HTML hoti hai; jsonDecode se pehle pakad lo.
+      final proxyError =
+          proxyErrorMessage(response.statusCode, response.body);
+      if (proxyError != null) {
+        return CreateWorkerResponse(success: false, message: proxyError);
+      }
+
       final json = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
         return CreateWorkerResponse.fromJson(json);
       }
       return CreateWorkerResponse(
           success: false,
-          message: json['message']?.toString() ?? "Something went wrong");
+          message: json['message']?.toString() ?? 'server_error_generic'.tr);
     } on TimeoutException {
       return CreateWorkerResponse(
           success: false, message: "Request timeout. Please try again.");
@@ -327,8 +383,11 @@ class WorkerApiService {
   Future<CreateWorkerResponse> editWorkerProfile({
     Map<String, dynamic> fields = const {},
     File? profileImage,
-    List<File>? workSamplesPhotos,
-    File? experienceCertificate,
+    List<File>? experienceCertificates,
+    /// Purane certificates jo user ne rakhe (paths). Backend final list
+    /// = ye + naye files banata hai. null bhejne par purane waise hi
+    /// rehte hain.
+    List<String>? keepExperienceCertificates,
     File? governmentID,
   }) async {
     try {
@@ -373,11 +432,17 @@ class WorkerApiService {
       }
 
       if (profileImage          != null) addFile(profileImage,          'profileImage');
-      if (experienceCertificate != null) addFile(experienceCertificate, 'experienceCertificate');
-      if (governmentID          != null) addFile(governmentID,          'governmentID');
-      if (workSamplesPhotos     != null) {
-        for (final ws in workSamplesPhotos) addFile(ws, 'workSamplesPhoto');
+      if (experienceCertificates != null) {
+        for (final c in experienceCertificates) addFile(c, 'experienceCertificate');
       }
+      // Kaunse purane certificates rakhne hain — backend final list
+      // = ye + naye files banata hai. Ye na bhejo to purane waise hi
+      // rehte hain (naye sirf add ho jaate hain).
+      if (keepExperienceCertificates != null) {
+        form.fields.add(MapEntry(
+            'keepExperienceCertificate', jsonEncode(keepExperienceCertificates)));
+      }
+      if (governmentID          != null) addFile(governmentID,          'governmentID');
 
       if (kDebugMode) {
         print("========== EDIT WORKER REQUEST ==========");
@@ -402,6 +467,11 @@ class WorkerApiService {
       if (kDebugMode) print("EDIT WORKER $status: ${resp.data}");
 
       final data = resp.data;
+      final proxyError = proxyErrorMessage(status, data?.toString() ?? '');
+      if (proxyError != null) {
+        return CreateWorkerResponse(success: false, message: proxyError);
+      }
+
       final Map<String, dynamic> json = data is Map
           ? Map<String, dynamic>.from(data)
           : (data is String && data.isNotEmpty
@@ -529,7 +599,10 @@ class DocumentUploadService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return DocumentUploadResponse.fromJson(jsonDecode(response.body));
       }
-      return DocumentUploadResponse(success: false, message: "Upload failed");
+      final proxyError =
+          proxyErrorMessage(response.statusCode, response.body);
+      return DocumentUploadResponse(
+          success: false, message: proxyError ?? "Upload failed");
     } on TimeoutException {
       return DocumentUploadResponse(success: false, message: "Upload timed out");
     } catch (e) {
@@ -621,9 +694,13 @@ class JobsApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return JobActionResponse.fromJson(jsonDecode(response.body));
       }
-      final msg = jsonDecode(response.body)['message']?.toString();
+      // `code` bhi chahiye — backend SUBSCRIPTION_REQUIRED bhejta hai jab
+      // worker ke paas active plan nahi hai, jispe UI Plans screen kholti hai.
+      final json = jsonDecode(response.body);
       return JobActionResponse(
-          success: false, message: msg ?? "Failed to apply");
+          success: false,
+          code: json['code']?.toString(),
+          message: json['message']?.toString() ?? "Failed to apply");
     } catch (e) {
       if (kDebugMode) print("[JobsAPI] applyToJob error: $e");
       return const JobActionResponse(
@@ -654,8 +731,12 @@ class JobsApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return JobActionResponse.fromJson(json);
       }
+      // Error par `code` bhi chahiye — backend SUBSCRIPTION_REQUIRED /
+      // WORKER_QUOTA_EXCEEDED bhejta hai, jisse UI decide karta hai ki
+      // vendor ko Plans screen par bhejna hai ya nahi.
       return JobActionResponse(
           success: false,
+          code: json['code']?.toString(),
           message: json['message']?.toString() ?? "Failed to create job");
     } catch (e) {
       if (kDebugMode) print("[JobsAPI] createJob error: $e");
@@ -905,7 +986,11 @@ class VendorApiService {
     final data = resp.data;
     if (data is Map) return Map<String, dynamic>.from(data);
     if (data is String && data.isNotEmpty) {
-      return Map<String, dynamic>.from(jsonDecode(data));
+      // Proxy error page (HTML) bhi String hi hoti hai — throw mat karo.
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {/* JSON nahi hai — khaali map */}
     }
     return {};
   }
@@ -914,7 +999,7 @@ class VendorApiService {
   /// Sets userType='vendor' backend par.
   Future<CreateWorkerResponse> createVendorProfile({
     required Map<String, dynamic> fields,
-    required File panCardImage,
+    File? panCardImage, // optional — user chhod sakta hai
     required File gstCertificate,
     File? companyLogo,
     File? profileImage,
@@ -924,7 +1009,9 @@ class VendorApiService {
       fields.forEach((k, v) {
         if (v != null) form.fields.add(MapEntry(k, v.toString()));
       });
-      form.files.add(MapEntry('panCardImage', _part(panCardImage)));
+      if (panCardImage != null) {
+        form.files.add(MapEntry('panCardImage', _part(panCardImage)));
+      }
       form.files.add(MapEntry('gstCertificate', _part(gstCertificate)));
       if (companyLogo != null) {
         form.files.add(MapEntry('companyLogo', _part(companyLogo)));
@@ -936,6 +1023,11 @@ class VendorApiService {
       if (kDebugMode) print("[VendorAPI] CREATE fields: ${form.fields}");
       final resp =
           await _sendMultipart('POST', ApiEndpoints.createVendor, form);
+      final proxyError = proxyErrorMessage(
+          resp.statusCode ?? 0, resp.data?.toString() ?? '');
+      if (proxyError != null) {
+        return CreateWorkerResponse(success: false, message: proxyError);
+      }
       final json = _asJson(resp);
       if (kDebugMode) print("[VendorAPI] CREATE ${resp.statusCode}: $json");
       if (resp.statusCode == 200 || resp.statusCode == 201) {
@@ -979,6 +1071,11 @@ class VendorApiService {
       }
 
       final resp = await _sendMultipart('PUT', ApiEndpoints.editVendor, form);
+      final proxyError = proxyErrorMessage(
+          resp.statusCode ?? 0, resp.data?.toString() ?? '');
+      if (proxyError != null) {
+        return CreateWorkerResponse(success: false, message: proxyError);
+      }
       final json = _asJson(resp);
       if (kDebugMode) print("[VendorAPI] EDIT ${resp.statusCode}: $json");
       if (resp.statusCode == 200) return CreateWorkerResponse.fromJson(json);
@@ -1158,6 +1255,144 @@ class LegalApiService {
     }
     return const {};
   }
+
+  /// Contact Support screen ka data (phone/whatsapp/email/hours) — admin ke
+  /// Platform Settings se manage hota hai (PlatformSettings.supportContact).
+  ///
+  /// Ye paid feature hai: plan na ho to backend 403 +
+  /// `code: SUBSCRIPTION_REQUIRED` deta hai. Isliye yahan khaali map nahi,
+  /// ek result lautate hain — screen "abhi configure nahi hua" aur "plan
+  /// chahiye" me farq kar sake.
+  Future<SupportContactResult> getSupportContact() async {
+    try {
+      final r = await _api.getApiWithAuth(ApiEndpoints.supportContact);
+      final json = jsonDecode(r.body);
+      if (r.statusCode == 200) {
+        final data = json['data'];
+        if (data is Map) {
+          return SupportContactResult(
+            contact:
+                data.map((k, v) => MapEntry(k.toString(), (v ?? '').toString())),
+          );
+        }
+        return const SupportContactResult();
+      }
+      return SupportContactResult(
+        code: json['code']?.toString(),
+        message: json['message']?.toString(),
+      );
+    } catch (e) {
+      if (kDebugMode) print("[LegalAPI] getSupportContact error: $e");
+      return const SupportContactResult();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  APP CONFIG API SERVICE — /api/app-config (public, no token)
+// ═══════════════════════════════════════════════════════════════════
+class AppConfigApiService {
+  final RestApi _api = Get.find<RestApi>();
+
+  /// Maintenance notice. Fail/offline par `null` — us case me app bilkul
+  /// normal chalti hai (config na mile to kabhi block/notice nahi karte).
+  Future<MaintenanceInfo?> getMaintenance() async {
+    try {
+      final r = await _api.get(ApiEndpoints.appConfig);
+      if (r.statusCode == 200) {
+        final data = jsonDecode(r.body)['data'];
+        if (data is Map && data['maintenance'] is Map) {
+          return MaintenanceInfo.fromJson(
+              Map<String, dynamic>.from(data['maintenance'] as Map));
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print("[AppConfigAPI] getMaintenance error: $e");
+    }
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  COMMUNITY API SERVICE — /api/community/posts/mine ("My Posts")
+// ═══════════════════════════════════════════════════════════════════
+class CommunityApiService {
+  final RestApi _api = Get.find<RestApi>();
+
+  /// Current user's own posts — any approvalStatus/isActive, paginated.
+  /// Dedicated endpoint (not embedded in /profile/me anymore) so the
+  /// "My Posts" section can page independently of the profile fetch.
+  Future<CommunityFeedData> getMyPosts({int page = 1, int limit = 20}) async {
+    try {
+      final r = await _api.getApiWithAuth(
+          "${ApiEndpoints.myPosts}?page=$page&limit=$limit");
+      if (r.statusCode == 200) {
+        return CommunityFeedData.fromJson(jsonDecode(r.body));
+      }
+      return CommunityFeedData(success: false, data: const []);
+    } catch (e) {
+      if (kDebugMode) print("[CommunityAPI] getMyPosts error: $e");
+      return CommunityFeedData(success: false, data: const []);
+    }
+  }
+
+  /// Kisi worker ke posts — vendor applicant ko parakhte waqt dekhta hai.
+  /// Backend 403 deta hai agar us worker ne is vendor ki koi job par
+  /// apply nahi kiya, isliye empty result normal hai.
+  Future<CommunityFeedData> getPostsByUser(String userId,
+      {int page = 1, int limit = 20}) async {
+    try {
+      final r = await _api.getApiWithAuth(
+          "${ApiEndpoints.communityPostsByUser(userId)}?page=$page&limit=$limit");
+      if (r.statusCode == 200) {
+        return CommunityFeedData.fromJson(jsonDecode(r.body));
+      }
+      return CommunityFeedData(success: false, data: const []);
+    } catch (e) {
+      if (kDebugMode) print("[CommunityAPI] getPostsByUser error: $e");
+      return CommunityFeedData(success: false, data: const []);
+    }
+  }
+
+  /// Ek single post — shared deep link kholne ke liye. Feed se nahi le
+  /// sakte kyunki wo post paged feed me kahin bhi ho sakti hai (ya
+  /// bahut purani ho).
+  ///
+  /// Post hataayi/reject ho gayi ho to backend 404 deta hai —
+  /// `(null, message)` return karke UI wahi message dikha deta hai.
+  Future<(CommunityFeedModel?, String?)> getPostById(String postId) async {
+    try {
+      final r = await _api.getApiWithAuth("${ApiEndpoints.communityPosts}/$postId");
+      final json = jsonDecode(r.body);
+      if (r.statusCode == 200 && json['data'] != null) {
+        return (
+          CommunityFeedModel.fromJson(Map<String, dynamic>.from(json['data'])),
+          null,
+        );
+      }
+      return (null, json['message']?.toString());
+    } catch (e) {
+      if (kDebugMode) print("[CommunityAPI] getPostById error: $e");
+      return (null, null);
+    }
+  }
+
+  /// Like/unlike toggle. `ok` false ho to caller optimistic update revert
+  /// kare; `count` server ka asli likesCount hai (null bhi ho sakta hai).
+  Future<({bool ok, int? count})> toggleLike(String postId) async {
+    try {
+      final r = await _api.putApiWithAuth(
+          ApiEndpoints.communityPostLike(postId), '');
+      if (r.statusCode == 200) {
+        final body = jsonDecode(r.body);
+        return (ok: true, count: body['data']?['likesCount'] as int?);
+      }
+      return (ok: false, count: null);
+    } catch (e) {
+      if (kDebugMode) print("[CommunityAPI] toggleLike error: $e");
+      return (ok: false, count: null);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1271,6 +1506,84 @@ class PaymentApiService {
       if (kDebugMode) print("[PaymentAPI] verifyPayment error: $e");
       return const VerifyPaymentResponse(
           success: false, message: "Network error: Unable to verify payment");
+    }
+  }
+
+  // ── Auto-payment (Razorpay Subscriptions) ───────────────────────
+
+  /// Step 1 — auto-pay ke liye Razorpay subscription banwao.
+  Future<CreateSubscriptionResponse> createSubscription(String planId) async {
+    try {
+      final r = await _api.postApiWithAuth(
+          ApiEndpoints.createSubscription, jsonEncode({"planId": planId}));
+      final json = jsonDecode(r.body);
+      if (r.statusCode == 200 || r.statusCode == 201) {
+        return CreateSubscriptionResponse.fromJson(json);
+      }
+      return CreateSubscriptionResponse(
+        success: false,
+        message: json['message']?.toString() ??
+            "Auto-payment start nahi hua",
+      );
+    } catch (e) {
+      if (kDebugMode) print("[PaymentAPI] createSubscription error: $e");
+      return const CreateSubscriptionResponse(
+          success: false,
+          message: "Network error: Unable to start auto-payment");
+    }
+  }
+
+  /// Step 2 — mandate authorize hone ke baad backend se verify.
+  Future<VerifyPaymentResponse> verifySubscription({
+    required String planId,
+    required String razorpaySubscriptionId,
+    required String razorpayPaymentId,
+    required String razorpaySignature,
+  }) async {
+    try {
+      final r = await _api.postApiWithAuth(
+        ApiEndpoints.verifySubscription,
+        jsonEncode({
+          "planId": planId,
+          "razorpay_subscription_id": razorpaySubscriptionId,
+          "razorpay_payment_id": razorpayPaymentId,
+          "razorpay_signature": razorpaySignature,
+        }),
+      );
+      final json = jsonDecode(r.body);
+      if (r.statusCode == 200 || r.statusCode == 201) {
+        return VerifyPaymentResponse.fromJson(json);
+      }
+      return VerifyPaymentResponse(
+        success: false,
+        message: json['message']?.toString() ?? "Auto-payment verify nahi hua",
+      );
+    } catch (e) {
+      if (kDebugMode) print("[PaymentAPI] verifySubscription error: $e");
+      return const VerifyPaymentResponse(
+          success: false,
+          message: "Network error: Unable to verify auto-payment");
+    }
+  }
+
+  /// Auto-payment band karo. Plan current cycle ke end tak chalta rahega.
+  Future<CancelAutoPayResponse> cancelSubscription() async {
+    try {
+      final r = await _api.postApiWithAuth(
+          ApiEndpoints.cancelSubscription, jsonEncode({}));
+      final json = jsonDecode(r.body);
+      if (r.statusCode == 200) {
+        return CancelAutoPayResponse.fromJson(json);
+      }
+      return CancelAutoPayResponse(
+        success: false,
+        message: json['message']?.toString() ?? "Auto-payment cancel nahi hua",
+      );
+    } catch (e) {
+      if (kDebugMode) print("[PaymentAPI] cancelSubscription error: $e");
+      return const CancelAutoPayResponse(
+          success: false,
+          message: "Network error: Unable to cancel auto-payment");
     }
   }
 }

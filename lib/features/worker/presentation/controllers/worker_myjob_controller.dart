@@ -68,12 +68,25 @@ class MyJobsController extends GetxController {
       'lng': j.longitude,
       'rate': _rate(j, isDaily),
       'workers': j.workersCount,
+      // Per-role breakdown — card chips aur detail list dono isi se.
+      'roles': j.roles,
       'duration': j.duration ?? '',
-      'startDate': j.postedAt != null
+      // Kaam kab shuru hoga — vendor ki chuni hui date. Pehle yahan
+      // galti se `postedAt` (job kab post hui) bhara jaata tha, isliye
+      // worker ko "Start" ke naam par posting date dikhti thi.
+      'startDate': j.startDate != null
+          ? DateFormat('d MMM yyyy').format(j.startDate!)
+          : '',
+      // Posting date alag key me — "Posted 2 days ago" jaisi jagah ke liye.
+      'postedAt': j.postedAt != null
           ? DateFormat('d MMM yyyy').format(j.postedAt!)
           : '',
       'urgent': j.isUrgent,
       'notes': j.description, // list me null; detail fetch par bharta hai
+      // Backend ab GET /api/jobs me bhi worker ki apni application ka status
+      // bhejta hai (agar apply kar chuka ho) — isse Available list/detail
+      // dono me "Applied" sahi se dikhta hai, na sirf "Applied" tab me.
+      if (j.hasApplied) 'appStatus': j.applicationStatus!.toLowerCase(),
     };
   }
 
@@ -92,6 +105,11 @@ class MyJobsController extends GetxController {
       'lng': j?.longitude,
       'rate': j != null ? _rate(j, isDaily) : '',
       'workers': j?.workersCount ?? 0,
+      'roles': j?.roles ?? const <JobRole>[],
+      // Kaam ki start date — `dates` (apply kab kiya) se alag cheez hai.
+      'startDate': j?.startDate != null
+          ? DateFormat('d MMM yyyy').format(j!.startDate!)
+          : '',
       'dates': a.createdAt != null
           ? 'Applied ${DateFormat('d MMM yyyy').format(a.createdAt!)}'
           : '',

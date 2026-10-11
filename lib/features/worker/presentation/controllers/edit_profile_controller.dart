@@ -2,11 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../../core/models/location_models.dart';
 import '../../../../core/models/profile_models.dart';
 import '../../../../core/models/skill_models.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/theme/app_snackbar.dart';
+import '../../../../core/theme/searchable_picker.dart';
+import '../../../../core/utils/image_pick.dart';
 import 'worker_profile_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -31,6 +34,7 @@ class EditProfileController extends GetxController {
 
   // ── Basic fields ──────────────────────────────────────────────
   final nameCtrl    = TextEditingController();
+  final nomineeCtrl = TextEditingController();
   final dobCtrl     = TextEditingController(); // YYYY-MM-DD
   final gender      = RxnString();             // 'male' | 'female' | 'other'
   final expDescCtrl = TextEditingController();
@@ -57,6 +61,54 @@ class EditProfileController extends GetxController {
   // ── Images / files ────────────────────────────────────────────
   final currentProfileImageUrl = ''.obs; // server wali (preview)
   final newProfileImage = Rxn<File>();   // nayi pick ki hui
+
+  // ── Experience certificates ───────────────────────────────────
+  // Do list: server par pehle se pade (paths) aur ab naye chune gaye.
+  // Save par backend ko dono bhejte hain — `keepExperienceCertificates`
+  // me wo purane jo user ne rakhe, aur naye files upload karke. Sirf
+  // naye bhejne se purane chup-chaap gayab ho jaate.
+  static const maxExperienceCerts = 5;
+
+  final existingCerts = <String>[].obs; // server paths
+  final newCerts      = <File>[].obs;   // ab chune gaye
+
+  bool isPdf(File f) => f.path.toLowerCase().endsWith('.pdf');
+
+  int get _totalCerts => existingCerts.length + newCerts.length;
+  bool get canAddCert => _totalCerts < maxExperienceCerts;
+
+  void removeExistingCert(int i) {
+    if (i >= 0 && i < existingCerts.length) existingCerts.removeAt(i);
+  }
+
+  void removeNewCert(int i) {
+    if (i >= 0 && i < newCerts.length) newCerts.removeAt(i);
+  }
+
+  Future<void> pickCert(ImageSource? source) async {
+    if (!canAddCert) {
+      AppSnackbar.warning(
+          message: 'max_certificates_error'
+              .trParams({'count': '$maxExperienceCerts'}));
+      return;
+    }
+    try {
+      if (source == null) {
+        final result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+        );
+        if (result != null && result.files.single.path != null) {
+          newCerts.add(File(result.files.single.path!));
+        }
+      } else {
+        final picked = await pickDocumentImage(_picker, source);
+        if (picked != null) newCerts.add(File(picked.path));
+      }
+    } catch (_) {
+      AppSnackbar.error(message: 'image_pick_failed'.tr);
+    }
+  }
 
   MyProfile? _me;
   String get initials {
@@ -96,13 +148,23 @@ class EditProfileController extends GetxController {
       if (meRes.success && u != null) {
         _me = u;
         nameCtrl.text = u.name ?? '';
+        nomineeCtrl.text = u.nomineeName ?? '';
         if (u.dateOfBirth != null) {
           dobCtrl.text = _fmtDate(u.dateOfBirth!);
         }
         currentProfileImageUrl.value = u.profileImage ?? '';
+        existingCerts.assignAll(u.experienceCertificate);
         if (u.totalExperience != null) {
           experienceYears.value = u.totalExperience!.round();
         }
+        // Baaki work-preference fields bhi prefill — pehle ye save to hote
+        // the par wapas load nahi hote the (backend inhe getProfile me
+        // bhejta hi nahi tha), isliye har baar khaali dikhte the.
+        gender.value = _normalizeGender(u.gender);
+        expDescCtrl.text = u.experienceDescription ?? '';
+        willRelocate.value = u.willingtoRelocate;
+        salaryType.value = u.salaryType;
+        if (u.salary != null) salaryCtrl.text = '${u.salary}';
 
         // Primary skill — naam se id match
         final primary = allSkills.firstWhereOrNull(
@@ -127,13 +189,20 @@ class EditProfileController extends GetxController {
           await _loadCities(st.id!, matchCityName: u.workCity);
         }
       } else {
-        AppSnackbar.error(message: meRes.message ?? 'Profile load nahi hua');
+        AppSnackbar.error(message: meRes.message ?? 'profile_load_failed'.tr);
       }
     } catch (_) {
-      AppSnackbar.error(message: 'Profile load nahi hua — dobara try karein');
+      AppSnackbar.error(message: 'profile_load_retry'.tr);
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Backend 'Male'/'Female'/'Other' bhejta hai, UI chips lowercase use
+  /// karte hain — match na ho to koi chip selected nahi dikhti.
+  String? _normalizeGender(String? g) {
+    final v = g?.trim().toLowerCase();
+    return (v == 'male' || v == 'female' || v == 'other') ? v : null;
   }
 
   String _fmtDate(DateTime d) =>
@@ -169,10 +238,39 @@ class EditProfileController extends GetxController {
     if (picked != null) dobCtrl.text = _fmtDate(picked);
   }
 
+  // ── Skill picker helpers (searchable dropdown ke liye) ────────
+  /// Saari skills picker-options ke roop me. Sorting picker khud
+  /// alphabetically karta hai.
+  List<PickerOption<int>> get skillOptions => allSkills
+      .where((s) => s.skillId != null)
+      .map((s) => PickerOption<int>(value: s.skillId!, label: s.name ?? ''))
+      .toList();
+
+  String skillNameById(int id) =>
+      allSkills.firstWhereOrNull((s) => s.skillId == id)?.name ?? '';
+
+  /// Selected primary skill ka naam — kuch select na ho to null.
+  String? get primarySkillName {
+    final id = selectedPrimarySkillId.value;
+    if (id == null) return null;
+    final name = skillNameById(id);
+    return name.isEmpty ? null : name;
+  }
+
+  List<String> get secondarySkillNames =>
+      selectedSecondarySkillIds.map(skillNameById).toList();
+
   void setPrimarySkill(int? id) {
     if (id == null || id == selectedPrimarySkillId.value) return;
     selectedPrimarySkillId.value = id;
     selectedSecondarySkillIds.remove(id); // primary secondary me na rahe
+    _skillsDirty = true;
+  }
+
+  /// Multi-select picker se poori list ek saath set karo.
+  void setSecondarySkills(List<int> ids) {
+    final next = ids.where((id) => id != selectedPrimarySkillId.value).toList();
+    selectedSecondarySkillIds.assignAll(next);
     _skillsDirty = true;
   }
 
@@ -204,11 +302,11 @@ class EditProfileController extends GetxController {
 
   Future<void> pickProfileImage(ImageSource source) async {
     try {
-      final picked = await _picker.pickImage(
-          source: source, imageQuality: 85, maxWidth: 1200);
+      // Profile photo — photo preset (avatar 80px me dikhta hai).
+      final picked = await pickPhotoImage(_picker, source);
       if (picked != null) newProfileImage.value = File(picked.path);
     } catch (_) {
-      AppSnackbar.error(message: 'Image pick nahi ho paayi');
+      AppSnackbar.error(message: 'image_pick_failed'.tr);
     }
   }
 
@@ -218,23 +316,26 @@ class EditProfileController extends GetxController {
 
     final name = nameCtrl.text.trim();
     if (name.isEmpty) {
-      AppSnackbar.error(message: 'Naam khaali nahi ho sakta');
+      AppSnackbar.error(message: 'name_required_error'.tr);
       return;
     }
     // Location: dono chahiye ya koi nahi (backend rule)
     if (_locationDirty &&
         (selectedState.value == null || selectedCity.value == null)) {
-      AppSnackbar.error(message: 'State aur city dono select karein');
+      AppSnackbar.error(message: 'select_state_and_city_error'.tr);
       return;
     }
     if (_skillsDirty && selectedPrimarySkillId.value == null) {
-      AppSnackbar.error(message: 'Primary skill select karein');
+      AppSnackbar.error(message: 'select_primary_skill_error'.tr);
       return;
     }
 
     // Sirf filled/changed fields — partial update
     final fields = <String, dynamic>{
       if (name != (_me?.name ?? '')) 'name': name,
+      if (nomineeCtrl.text.trim().isNotEmpty &&
+          nomineeCtrl.text.trim() != (_me?.nomineeName ?? ''))
+        'nomineeName': nomineeCtrl.text.trim(),
       if (dobCtrl.text.trim().isNotEmpty &&
           dobCtrl.text.trim() !=
               (_me?.dateOfBirth != null ? _fmtDate(_me!.dateOfBirth!) : ''))
@@ -259,8 +360,13 @@ class EditProfileController extends GetxController {
       },
     };
 
-    if (fields.isEmpty && newProfileImage.value == null) {
-      AppSnackbar.warning(message: 'Koi change nahi hai');
+    // Certificates bhi badle ho sakte hain — naya add hua ya purana
+    // hataya gaya. Dono case me save allow karna hai.
+    final certsChanged = newCerts.isNotEmpty ||
+        existingCerts.length != (_me?.experienceCertificate.length ?? 0);
+
+    if (fields.isEmpty && newProfileImage.value == null && !certsChanged) {
+      AppSnackbar.warning(message: 'no_changes_warning'.tr);
       return;
     }
 
@@ -269,17 +375,25 @@ class EditProfileController extends GetxController {
       final res = await _workerApi.editWorkerProfile(
         fields: fields,
         profileImage: newProfileImage.value,
+        experienceCertificates: newCerts.isEmpty ? null : newCerts.toList(),
+        // Poori final list ka purana hissa — jo user ne rakha. Tabhi
+        // bhejte hain jab kuch badla ho, warna backend field ko chhuta
+        // hi nahi.
+        keepExperienceCertificates: certsChanged ? existingCerts.toList() : null,
       );
       if (res.success) {
         // Profile tab turant refresh ho jaaye
         if (Get.isRegistered<WorkerProfileController>()) {
           Get.find<WorkerProfileController>().fetchProfile();
         }
-        AppSnackbar.success(
-            message: res.message ?? 'Profile updated successfully');
+        // Pehle back, PHIR snackbar — ulta karne par `Get.back()` snackbar
+        // ko hi band karta hai (GetX me snackbar ek route hai), screen
+        // wahin reh jaati aur message bhi dikhta nahi.
         Get.back(result: true);
+        AppSnackbar.success(
+            message: res.message ?? 'profile_updated_success'.tr);
       } else {
-        AppSnackbar.error(message: res.message ?? 'Update nahi hua');
+        AppSnackbar.error(message: res.message ?? 'profile_update_failed'.tr);
       }
     } finally {
       isSaving.value = false;
@@ -289,6 +403,7 @@ class EditProfileController extends GetxController {
   @override
   void onClose() {
     nameCtrl.dispose();
+    nomineeCtrl.dispose();
     dobCtrl.dispose();
     expDescCtrl.dispose();
     salaryCtrl.dispose();

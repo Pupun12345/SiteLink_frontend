@@ -12,7 +12,36 @@
           "package_name": "com.sitelink.sitelink"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "162479249381-36cmvt8r1bmoe5pfm2vguugcsb28l3j5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sitelink.sitelink",
+            "certificate_hash": "4a58e076c176ca822d9860b7563307d7b9e72f5d"
+          }
+        },
+        {
+          "client_id": "162479249381-fcicet6q1k295b1mtndt2b0m2atm5o7e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sitelink.sitelink",
+            "certificate_hash": "ee23868ddf5ece39095efe91a635d67ac4e8a31c"
+          }
+        },
+        {
+          "client_id": "162479249381-r0mi06ij437lvt22ngc4s3ad0hvne9r8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sitelink.sitelink",
+            "certificate_hash": "9e0875237d2722a7d903232f7bba28716a0268bd"
+          }
+        },
+        {
+          "client_id": "162479249381-hfo46jvgq4c65dju78s8q2obgjitscgr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBMxzyVSIzRzxKbi5mmevejccsptfjtc7A"
@@ -20,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "162479249381-hfo46jvgq4c65dju78s8q2obgjitscgr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

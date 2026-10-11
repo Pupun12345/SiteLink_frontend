@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../shared/presentation/views/plan_status_banner.dart';
 import '../../../shared/presentation/views/plans_theme.dart';
 import '../controllers/vendor_plans_controller.dart';
 
@@ -31,17 +32,10 @@ class VendorPlansView extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_rounded, color: PlansTheme.ink),
           onPressed: Get.back,
         ),
-        title: Text('SiteLink Plans',
+        title: Text('worker_plans_title'.tr,
             style:
                 KTextStyle.poppins(fs: 17, fw: FontWeight.w700, c: PlansTheme.ink)),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined,
-                color: PlansTheme.ink),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
@@ -49,16 +43,27 @@ class VendorPlansView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Obx(() {
             ctrl.isLoading.value; // plans load hone par rebuild trigger
+            final sub = ctrl.subscription.value;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Vendor Plans',
+                // ── Active/expired plan status (kuch na ho to hidden) ─
+                PlanStatusBanner(
+                  sub: sub,
+                  onCancelAutoPay: ctrl.cancelAutoPay,
+                  cancelling: ctrl.cancellingAutoPay.value,
+                ),
+                if (sub.active || sub.isExpired) const SizedBox(height: 20),
+
+                Text('vendor_plans_heading'.tr,
                     textAlign: TextAlign.center,
                     style: KTextStyle.poppins(
                         fs: 22, fw: FontWeight.w800, c: PlansTheme.ink)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                const PlansBrandPill(),
+                const SizedBox(height: 10),
                 Text(
-                  'Select a plan to start hiring verified workers\nfor your projects.',
+                  'vendor_plans_subtitle'.tr,
                   textAlign: TextAlign.center,
                   style: KTextStyle.poppins(
                       fs: 12.5, c: PlansTheme.grey, height: 1.5),
@@ -82,13 +87,18 @@ class VendorPlansView extends StatelessWidget {
   // ── Standard Plan card ────────────────────────────────────────────
   Widget _standardCard(VendorPlansController ctrl) {
     final plan = ctrl.standardPlan;
+    final isActive = plan.isCurrentPlan;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: PlansTheme.cardBorder),
+        // Chal raha plan visually alag — border green aur thoda motta.
+        border: Border.all(
+          color: isActive ? PlansTheme.activeGreen : PlansTheme.cardBorder,
+          width: isActive ? 1.6 : 1,
+        ),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -99,9 +109,14 @@ class VendorPlansView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Standard Plan',
-              style: KTextStyle.poppins(
-                  fs: 18, fw: FontWeight.w800, c: PlansTheme.ink)),
+          Row(children: [
+            Expanded(
+              child: Text('standard_plan_title'.tr,
+                  style: KTextStyle.poppins(
+                      fs: 18, fw: FontWeight.w800, c: PlansTheme.ink)),
+            ),
+            if (isActive) const ActivePlanBadge(),
+          ]),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -117,26 +132,50 @@ class VendorPlansView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ideal for companies with regular manpower requirements.',
+            'standard_plan_desc'.tr,
             style: KTextStyle.poppins(fs: 12.5, c: _indigo, height: 1.4),
           ),
           const SizedBox(height: 18),
-          const _FeatureLine(
-              text: 'Hire up to 50 Workers/Month', textColor: PlansTheme.ink),
-          const _FeatureLine(
-              text: 'Access to Verified Workers', textColor: PlansTheme.ink),
-          const _FeatureLine(
-              text: 'Job Posting Facility', textColor: PlansTheme.ink),
-          const _FeatureLine(
-              text: 'Call & WhatsApp Support', textColor: PlansTheme.ink),
+          // Number backend ke `maxWorkers` se — job posting bhi isi se
+          // rukti hai, to screen wahi vaada karti hai jo backend nibhata
+          // hai. 0 = limit set nahi, tab line nahi dikhate.
+          if (plan.maxWorkers > 0)
+            _FeatureLine(
+                text: 'feature_hire_up_to_workers'
+                    .trParams({'count': '${plan.maxWorkers}'}),
+                textColor: PlansTheme.ink),
+          _FeatureLine(
+              text: 'feature_access_verified_workers'.tr, textColor: PlansTheme.ink),
+          _FeatureLine(
+              text: 'feature_job_posting_facility'.tr, textColor: PlansTheme.ink),
+          _FeatureLine(
+              text: 'feature_call_whatsapp_support'.tr, textColor: PlansTheme.ink),
           const SizedBox(height: 8),
           Obx(() => _PlanButton(
-                label: 'Subscribe Now',
+                label: isActive
+                    ? 'plan_extend_btn'.tr
+                    : 'subscribe_now_btn'.tr,
                 bg: PlansTheme.lavender,
                 fg: PlansTheme.lavenderDark,
                 loading: ctrl.subscribingStandard.value,
                 onTap: ctrl.subscribeStandard,
               )),
+          // Alag auto-pay button hata diya gaya: ab upar wala hi button
+          // auto-payment chalu kar deta hai. Band karne ka rasta active
+          // plan ke banner me hai.
+          //
+          // Ye line tap se PEHLE batati hai ki recurring mandate ban raha
+          // hai — "Subscribe Now" par chup-chaap auto-debit lagana theek
+          // nahi. Mandate pehle se chalu ho to line hat jaati hai, kyunki
+          // tab button sirf ek baar ka extend karta hai.
+          if (!ctrl.subscription.value.autoRenew) ...[
+            const SizedBox(height: 8),
+            Text(
+              'autopay_cancel_anytime'.tr,
+              textAlign: TextAlign.center,
+              style: KTextStyle.poppins(fs: 11, c: PlansTheme.grey),
+            ),
+          ],
         ],
       ),
     );
@@ -145,12 +184,17 @@ class VendorPlansView extends StatelessWidget {
   // ── Premium Plan card (dark, RECOMMENDED) ──────────────────────────
   Widget _premiumCard(VendorPlansController ctrl) {
     final plan = ctrl.premiumPlan;
+    final isActive = plan.isCurrentPlan;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: BoxDecoration(
         color: PlansTheme.navy,
         borderRadius: BorderRadius.circular(16),
+        // Navy card par border tabhi jab yahi plan chal raha ho.
+        border: isActive
+            ? Border.all(color: PlansTheme.activeGreen, width: 1.6)
+            : null,
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.18),
@@ -163,24 +207,29 @@ class VendorPlansView extends StatelessWidget {
         children: [
           Row(children: [
             Expanded(
-              child: Text('Premium Plan',
+              child: Text('premium_plan_title'.tr,
                   style: KTextStyle.poppins(
                       fs: 18, fw: FontWeight.w800, c: Colors.white)),
             ),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: PlansTheme.amber,
-                borderRadius: BorderRadius.circular(6),
+            // Plan chal raha ho to "RECOMMENDED" ki jagah "ACTIVE" —
+            // dono ek saath dikhana confusing hota hai.
+            if (isActive)
+              const ActivePlanBadge(onDark: true)
+            else
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: PlansTheme.amber,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('recommended_badge'.tr,
+                    style: KTextStyle.poppins(
+                        fs: 9.5,
+                        fw: FontWeight.w700,
+                        c: PlansTheme.amberDark,
+                        letterSpacing: 0.5)),
               ),
-              child: Text('RECOMMENDED',
-                  style: KTextStyle.poppins(
-                      fs: 9.5,
-                      fw: FontWeight.w700,
-                      c: PlansTheme.amberDark,
-                      letterSpacing: 0.5)),
-            ),
           ]),
           const SizedBox(height: 10),
           Row(
@@ -197,38 +246,55 @@ class VendorPlansView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Best for companies with large-scale hiring requirements.',
+            'premium_plan_desc'.tr,
             style:
                 KTextStyle.poppins(fs: 12.5, c: PlansTheme.amber, height: 1.4),
           ),
           const SizedBox(height: 18),
-          const _FeatureLine(
-              text: 'Hire up to 100 Workers/Month', textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Priority Job Listing', textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Social Media Promotion', textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Community Marketing', textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Emergency Worker Replacement (48h)',
+          if (plan.maxWorkers > 0)
+            _FeatureLine(
+                text: 'feature_hire_up_to_workers'
+                    .trParams({'count': '${plan.maxWorkers}'}),
+                textColor: Colors.white),
+          _FeatureLine(
+              text: 'feature_priority_job_listing'.tr, textColor: Colors.white),
+          _FeatureLine(
+              text: 'feature_social_media_promotion'.tr, textColor: Colors.white),
+          _FeatureLine(
+              text: 'feature_community_marketing'.tr, textColor: Colors.white),
+          _FeatureLine(
+              text: 'feature_emergency_replacement'.tr,
               textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Access to Verified & Skilled Workers',
+          _FeatureLine(
+              text: 'feature_access_verified_skilled_workers'.tr,
               textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Dedicated Call & WhatsApp Support',
+          _FeatureLine(
+              text: 'feature_dedicated_call_whatsapp_support'.tr,
               textColor: Colors.white),
-          const _FeatureLine(
-              text: 'Priority Customer Support', textColor: Colors.white),
+          _FeatureLine(
+              text: 'feature_priority_customer_support'.tr, textColor: Colors.white),
           const SizedBox(height: 8),
           Obx(() => _PlanButton(
-                label: 'Upgrade to Premium',
+                label: isActive
+                    ? 'plan_extend_btn'.tr
+                    : 'upgrade_to_premium_btn'.tr,
                 bg: PlansTheme.amber,
                 fg: PlansTheme.navy,
                 loading: ctrl.subscribingPremium.value,
                 onTap: ctrl.subscribePremium,
               )),
+          // Yahan bhi alag auto-pay button ki zaroorat nahi — upar wala
+          // button hi mandate bana deta hai. Navy card hai isliye text
+          // halka white, standard card wale grey ke bajaye.
+          if (!ctrl.subscription.value.autoRenew) ...[
+            const SizedBox(height: 8),
+            Text(
+              'autopay_cancel_anytime'.tr,
+              textAlign: TextAlign.center,
+              style: KTextStyle.poppins(
+                  fs: 11, c: Colors.white.withValues(alpha: 0.65)),
+            ),
+          ],
         ],
       ),
     );
@@ -247,29 +313,26 @@ class VendorPlansView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Why Choose SiteLink?',
+          Text('worker_plans_why_title'.tr,
               style: KTextStyle.poppins(
                   fs: 17, fw: FontWeight.w800, c: PlansTheme.ink)),
           const SizedBox(height: 18),
-          const _WhyRow(
+          _WhyRow(
             icon: Icons.verified_user_rounded,
-            title: 'Verified Workers',
-            description:
-                'Every worker is identity-verified and skill-assessed.',
+            title: 'why_verified_workers_title'.tr,
+            description: 'why_verified_workers_desc'.tr,
           ),
           const SizedBox(height: 16),
-          const _WhyRow(
+          _WhyRow(
             icon: Icons.bolt_rounded,
-            title: 'Fast Hiring',
-            description:
-                'Fill roles quickly with our extensive worker database.',
+            title: 'why_fast_hiring_title'.tr,
+            description: 'why_fast_hiring_desc'.tr,
           ),
           const SizedBox(height: 16),
-          const _WhyRow(
+          _WhyRow(
             icon: Icons.support_agent_rounded,
-            title: 'Reliable Support',
-            description:
-                'Dedicated assistance throughout your hiring process.',
+            title: 'why_reliable_support_title'.tr,
+            description: 'why_reliable_support_desc'.tr,
           ),
         ],
       ),
@@ -281,11 +344,15 @@ class VendorPlansView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('* Prices are exclusive of applicable taxes.',
+        Text('footer_prices_note'.tr,
             style: KTextStyle.poppins(fs: 10.5, c: PlansTheme.grey)),
         const SizedBox(height: 3),
-        Text('* Subscription auto-renews unless cancelled.',
+        Text('footer_autorenew_note'.tr,
             style: KTextStyle.poppins(fs: 10.5, c: PlansTheme.grey)),
+        const SizedBox(height: 14),
+        const Divider(color: PlansTheme.cardBorder, height: 1),
+        const SizedBox(height: 14),
+        const PlansCopyright(align: TextAlign.left),
       ],
     );
   }

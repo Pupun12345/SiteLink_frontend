@@ -7,6 +7,7 @@ import '../../../../core/services/session_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  NOTIFICATIONS CONTROLLER — shared by vendor + worker Alerts screens
+//  AND the Home-tab bell badge (single source of truth for unreadCount).
 // ═══════════════════════════════════════════════════════════════════
 class NotificationsController extends GetxController {
   final _api = NotificationApiService();
@@ -15,10 +16,24 @@ class NotificationsController extends GetxController {
   final isLoading = true.obs;
   final unreadCount = 0.obs;
 
+  /// Find-or-create — ek hi permanent instance poori app session me,
+  /// taaki Home badge aur Alerts list dono hamesha same live data dekhein.
+  static NotificationsController get to =>
+      Get.isRegistered<NotificationsController>()
+          ? Get.find<NotificationsController>()
+          : Get.put(NotificationsController(), permanent: true);
+
   @override
   void onInit() {
     super.onInit();
+    NotificationsRefreshHub.register(fetchNotifications);
     fetchNotifications();
+  }
+
+  @override
+  void onClose() {
+    NotificationsRefreshHub.unregister(fetchNotifications);
+    super.onClose();
   }
 
   Future<void> fetchNotifications() async {

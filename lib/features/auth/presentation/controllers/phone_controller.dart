@@ -14,21 +14,29 @@ class PhoneController extends GetxController {
 
   Future<void> sendOtp() async {
     if (phoneCtrl.text.length != 10) {
-      AppSnackbar.error(message: 'Enter a valid 10-digit number');
+      AppSnackbar.error(message: 'enter_valid_mobile_error'.tr);
       return;
     }
     isLoading.value = true;
     try {
       final response = await _authApi.sendRegisterOtp(phoneCtrl.text);
       if (response.success) {
-        AppSnackbar.success(message: response.message ?? 'OTP sent successfully');
+        // `message` non-nullable hai (backend na bheje to "") — `??` dead
+        // tha, isliye khaali message par blank snackbar dikhta tha.
+        AppSnackbar.success(
+            message: response.message.isNotEmpty
+                ? response.message
+                : 'otp_sent_successfully'.tr);
         // phone ko Get.arguments ke through OTP screen ko pass karte hain
         Get.toNamed(AppRoutes.otp, arguments: phoneCtrl.text);
       } else {
-        AppSnackbar.error(message: response.message ?? 'Failed to send OTP');
+        AppSnackbar.error(
+            message: response.message.isNotEmpty
+                ? response.message
+                : 'otp_send_failed'.tr);
       }
     } catch (_) {
-      AppSnackbar.error(message: 'Error: Unable to send OTP');
+      AppSnackbar.error(message: 'send_otp_error_generic'.tr);
     } finally {
       isLoading.value = false;
     }

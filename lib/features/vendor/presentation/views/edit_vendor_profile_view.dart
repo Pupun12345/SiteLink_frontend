@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -6,9 +7,10 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/location_models.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/utils/tax_id_formats.dart';
 import '../../../worker/presentation/controllers/worker_feed_controller.dart';
 import '../controllers/edit_vendor_profile_controller.dart';
-import 'change_phone_sheet.dart';
+import '../../../shared/presentation/views/change_phone_sheet.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  EDIT VENDOR PROFILE VIEW
@@ -22,7 +24,7 @@ class EditVendorProfileView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Edit Company Profile'),
+      appBar: GradientAppBar(title: 'edit_company_profile_title'.tr),
       body: SafeArea(
         top: false,
         child: Obx(() {
@@ -37,25 +39,25 @@ class EditVendorProfileView extends StatelessWidget {
               children: [
                 _logoSection(context, ctrl),
                 const SizedBox(height: AppDimens.lg),
-                _card('Company Details', Icons.business_rounded, [
+                _card('company_details_section'.tr, Icons.business_rounded, [
                   SitelinkTextField(
-                      label: 'Company Name',
+                      label: 'company_name'.tr,
                       controller: ctrl.companyNameCtrl,
-                      hint: 'Company name'),
+                      hint: 'company_name_hint'.tr),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'Contact Person',
+                      label: 'contact_person'.tr,
                       controller: ctrl.nameCtrl,
-                      hint: 'Your name'),
+                      hint: 'your_name_hint'.tr),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'Designation',
+                      label: 'designation'.tr,
                       controller: ctrl.designationCtrl,
-                      hint: 'e.g. Owner, Manager'),
+                      hint: 'designation_hint_short'.tr),
                 ]),
                 const SizedBox(height: AppDimens.md),
-                _card('Contact', Icons.contact_phone_outlined, [
-                  Text('Phone Number',
+                _card('contact_section'.tr, Icons.contact_phone_outlined, [
+                  Text('phone_number_label'.tr,
                       style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Obx(() => Container(
@@ -75,13 +77,17 @@ class EditVendorProfileView extends StatelessWidget {
                             child: Text(
                               ctrl.currentPhone.value.isNotEmpty
                                   ? '+91 ${ctrl.currentPhone.value}'
-                                  : 'Not set',
+                                  : 'not_set_label'.tr,
                               style: KTextStyle.poppins(fs: 13.5),
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => showChangePhoneSheet(context, ctrl),
-                            child: Text('Change',
+                            onTap: () => showChangePhoneSheet(
+                              context,
+                              onUpdated: (newPhone) =>
+                                  ctrl.currentPhone.value = newPhone,
+                            ),
+                            child: Text('change_label'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 12.5,
                                     fw: FontWeight.w700,
@@ -91,34 +97,38 @@ class EditVendorProfileView extends StatelessWidget {
                       )),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'Email',
+                      label: 'email_label'.tr,
                       controller: ctrl.emailCtrl,
-                      hint: 'company@email.com',
+                      hint: 'company_email_hint'.tr,
                       keyboardType: TextInputType.emailAddress,
-                      isOptional: true),
+                      ),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'WhatsApp Number',
+                      label: 'whatsapp_number_label'.tr,
                       controller: ctrl.whatsappCtrl,
-                      hint: '10-digit',
+                      hint: 'ten_digit_hint'.tr,
                       keyboardType: TextInputType.phone,
-                      isOptional: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      maxLength: 10),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'Website',
+                      label: 'website_label'.tr,
                       controller: ctrl.websiteCtrl,
-                      hint: 'https://...',
-                      isOptional: true),
+                      hint: 'website_hint'.tr,
+                      ),
                 ]),
                 const SizedBox(height: AppDimens.md),
-                _card('Location & Tax', Icons.location_on_outlined, [
-                  Text('State',
+                _card('location_tax_section'.tr, Icons.location_on_outlined, [
+                  Text('state_label'.tr,
                       style: KTextStyle.poppins(
                           fs: 12, fw: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Obx(() => _dropdown<StateModel>(
                         value: ctrl.selectedState.value,
-                        hint: 'Select state',
+                        hint: 'select_state_hint'.tr,
                         items: ctrl.allStates
                             .map((s) => DropdownMenuItem(
                                 value: s,
@@ -128,7 +138,7 @@ class EditVendorProfileView extends StatelessWidget {
                         onChanged: ctrl.onStateChanged,
                       )),
                   const SizedBox(height: 12),
-                  Text('City',
+                  Text('city_label'.tr,
                       style: KTextStyle.poppins(
                           fs: 12, fw: FontWeight.w600)),
                   const SizedBox(height: 8),
@@ -148,7 +158,7 @@ class EditVendorProfileView extends StatelessWidget {
                     }
                     return _dropdown<CityModel>(
                       value: ctrl.selectedCity.value,
-                      hint: 'Select city',
+                      hint: 'select_city_hint'.tr,
                       items: ctrl.allCities
                           .map((c) => DropdownMenuItem(
                               value: c,
@@ -160,16 +170,19 @@ class EditVendorProfileView extends StatelessWidget {
                   }),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'Work Area',
+                      label: 'work_area'.tr,
                       controller: ctrl.workAreaCtrl,
-                      hint: 'Areas where you hire',
-                      isOptional: true),
+                      hint: 'areas_you_hire_hint'.tr,
+                      ),
                   const SizedBox(height: 12),
                   SitelinkTextField(
-                      label: 'GST Number',
+                      label: 'gst_number'.tr,
                       controller: ctrl.gstCtrl,
-                      hint: 'GSTIN',
-                      isOptional: true),
+                      hint: 'gstin_hint'.tr,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: TaxIdFormats.gstInput,
+                      maxLength: TaxIdFormats.gstLength,
+                      ),
                 ]),
                 const SizedBox(height: AppDimens.xl),
               ],
@@ -192,7 +205,7 @@ class EditVendorProfileView extends StatelessWidget {
           minimum:
               const EdgeInsets.fromLTRB(AppDimens.lg, 10, AppDimens.lg, 10),
           child: Obx(() => CustomButton(
-                label: 'Save Changes',
+                label: 'save_changes_btn'.tr,
                 isLoading: ctrl.isSaving.value,
                 onTap: ctrl.save,
               )),
@@ -260,7 +273,7 @@ class EditVendorProfileView extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text('Camera'),
+            title: Text('camera_label'.tr),
             onTap: () {
               Get.back();
               ctrl.pickLogo(ImageSource.camera);
@@ -268,7 +281,7 @@ class EditVendorProfileView extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Gallery'),
+            title: Text('gallery_label'.tr),
             onTap: () {
               Get.back();
               ctrl.pickLogo(ImageSource.gallery);

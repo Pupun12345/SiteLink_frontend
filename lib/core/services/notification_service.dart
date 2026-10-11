@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
@@ -63,10 +64,54 @@ class NotificationService {
     }
 
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      _logToken('refreshed', newToken);
       if (SessionService.to.isLoggedIn) {
         MiscApiService().saveFcmToken(newToken);
       }
     });
+
+    // Debug me token hamesha print karo (login se pehle bhi) — isse verify
+    // kar sakte hain ki device ko FCM token mil raha hai ya nahi.
+    if (kDebugMode) {
+      try {
+        _logToken('startup', await FirebaseMessaging.instance.getToken());
+      } catch (e) {
+        _out('[FCM_TOKEN] getToken() failed: $e');
+      }
+    }
+  }
+
+  /// Debug-only console output. `debugPrint` throttle karta hai (lambi line
+  /// tut sakti hai) isliye seedha `print` — kDebugMode guard ke saath, taaki
+  /// release build me token kabhi log na ho.
+  void _out(String msg) {
+    if (!kDebugMode) return;
+    // ignore: avoid_print
+    print(msg);
+  }
+
+  /// Poora FCM token ek hi line me — copy karne layak (token ~163 chars ka
+  /// hota hai, logcat ki per-line limit se kaafi kam).
+  void _logToken(String label, String? token) {
+    if (token == null || token.isEmpty) {
+      _out('[FCM_TOKEN] ($label) NULL — device ko token nahi mila');
+      return;
+    }
+    _out('╔═════════════ FCM TOKEN ($label) ═════════════');
+    _out('[FCM_TOKEN] $token');
+    _out('╚═════════════ length=${token.length} ═════════════');
+  }
+
+  /// Kahin se bhi token maangna ho to — e.g. debug button/console se.
+  Future<String?> printCurrentToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      _logToken('manual', token);
+      return token;
+    } catch (e) {
+      _out('[FCM_TOKEN] getToken() failed: $e');
+      return null;
+    }
   }
 
   Future<void> _initLocalNotifications() async {
@@ -112,19 +157,32 @@ class NotificationService {
       ),
       payload: jsonEncode(message.data),
     );
+
+    // App foreground me hai — Alerts list + Home bell badge turant refresh
+    // taaki naya push aate hi unread count/list live update ho, list-tab
+    // khole bina.
+    NotificationsRefreshHub.refresh();
   }
 
   /// Fetch karke naya FCM token backend ko bhej do — login ke baad, ya
   /// app cold-start pe agar user pehle se logged in hai.
-  Future<void> syncTokenIfLoggedIn() async {
-    if (!SessionService.to.isLoggedIn) return;
+  /// [label] sirf debug log me dikhta hai — call kahan se aayi wo pata chale
+  /// (e.g. 'otp-login', 'google-login', 'splash').
+  Future<void> syncTokenIfLoggedIn({String label = 'sync'}) async {
+    if (!SessionService.to.isLoggedIn) {
+      _out('[FCM_TOKEN] ($label) skipped — user logged in nahi hai');
+      return;
+    }
     try {
       final token = await FirebaseMessaging.instance.getToken();
+      _logToken(label, token);
       if (token != null && token.isNotEmpty) {
-        await MiscApiService().saveFcmToken(token);
+        final ok = await MiscApiService().saveFcmToken(token);
+        _out('[FCM_TOKEN] ($label) backend save-token → '
+            '${ok ? 'SUCCESS ✅' : 'FAILED ❌'}');
       }
     } catch (e) {
-      debugPrint('[NotificationService] token sync failed: $e');
+      _out('[FCM_TOKEN] ($label) token sync failed: $e');
     }
   }
 
@@ -151,6 +209,7 @@ class NotificationService {
         _switchTabAfterFrame(1);
         break;
       case 'application_status':
+      case 'job_closed':
         // Worker — My Jobs tab (index 1)
         Get.offAllNamed(AppRoutes.workerHome);
         _switchTabAfterFrame(1);
@@ -160,9 +219,26 @@ class NotificationService {
         Get.offAllNamed(AppRoutes.vendorHome);
         _switchTabAfterFrame(3);
         break;
+      case 'worker_verified':
+      case 'worker_rejected':
+        Get.offAllNamed(AppRoutes.workerHome);
+        _switchTabAfterFrame(3);
+        break;
       case 'new_comment':
+      case 'new_like':
         // Community feed — role ke home tab ka Home hi hai (index 0)
         Get.offAllNamed(isVendor ? AppRoutes.vendorHome : AppRoutes.workerHome);
+        break;
+      case 'subscription_activated':
+      // Auto-payment ki khabrein — renewal, cancel, ya charge fail. Teeno
+      // par user ko plan/expiry dekhni hoti hai, jo Profile tab me hai.
+      case 'subscription_renewed':
+      case 'autopay_cancelled':
+      case 'autopay_failed':
+      case 'phone_changed':
+        // Profile tab — role ke apne Profile/Plan ka context yahin hai
+        Get.offAllNamed(isVendor ? AppRoutes.vendorHome : AppRoutes.workerHome);
+        _switchTabAfterFrame(3);
         break;
       default:
         // General — seedha role ke Alerts tab (index 2) par.
@@ -176,6 +252,23 @@ class NotificationService {
       HomeTabSwitcher.switchTo(tabIndex);
     });
   }
+}
+
+typedef NotificationsRefreshFn = void Function();
+
+/// [NotificationsController] (features/shared) khud ko yahan register
+/// karta hai (onInit/onClose) — [NotificationService] (core) ko upar
+/// feature layer import nahi karna padta, [HomeTabSwitcher] jaisa hi
+/// decoupling pattern.
+class NotificationsRefreshHub {
+  static NotificationsRefreshFn? _current;
+
+  static void register(NotificationsRefreshFn fn) => _current = fn;
+  static void unregister(NotificationsRefreshFn fn) {
+    if (_current == fn) _current = null;
+  }
+
+  static void refresh() => _current?.call();
 }
 
 typedef HomeTabSwitchFn = void Function(int index);

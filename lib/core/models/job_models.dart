@@ -10,9 +10,11 @@ class JobPostedBy {
   final String? name;
   final String? companyName;
   final String? designation;
-  // Backend sirf tabhi bhejta hai jab worker ki application confirm/hire ho
-  // chuki ho — warna dono null aate hai (contact abhi unlock nahi hua).
-  final String? phone;
+  /// Vendor ka WhatsApp number — worker ko dikhne wala ek hi contact.
+  /// Vendor ka asli/login number (`phone`) backend worker ko bhejta hi
+  /// nahi, isliye yahan uske liye koi field nahi hai — jaan-boojh kar.
+  /// Ye bhi tabhi aata hai jab worker ki application confirm/hire ho
+  /// chuki ho, warna null (contact abhi unlock nahi hua).
   final String? whatsappNumber;
 
   const JobPostedBy({
@@ -20,7 +22,6 @@ class JobPostedBy {
     this.name,
     this.companyName,
     this.designation,
-    this.phone,
     this.whatsappNumber,
   });
 
@@ -29,7 +30,6 @@ class JobPostedBy {
         name: json['name']?.toString(),
         companyName: json['companyName']?.toString(),
         designation: json['designation']?.toString(),
-        phone: json['phone']?.toString(),
         whatsappNumber: json['whatsappNumber']?.toString(),
       );
 }
@@ -56,6 +56,29 @@ class JobAmenity {
       );
 }
 
+/// Ek job me maanga gaya ek role aur uski count — "2 × Welder".
+///
+/// Ek job me kai roles ho sakte hain. Pehle ye info sirf title
+/// ("Welder +3 more Required") aur description ke free text me hoti thi,
+/// isliye app ise theek se dikha nahi paati thi. Ab backend structured
+/// bhejta hai.
+class JobRole {
+  final String skill;
+  final int quantity;
+
+  const JobRole({required this.skill, this.quantity = 1});
+
+  /// "2 × Welder" (quantity 1 par sirf naam — "1 × Welder" bekaar lagta hai).
+  String get label => quantity > 1 ? '$quantity × $skill' : skill;
+
+  factory JobRole.fromJson(Map<String, dynamic> json) => JobRole(
+        skill: (json['skill'] ?? '').toString().trim(),
+        quantity: json['quantity'] is num
+            ? (json['quantity'] as num).toInt()
+            : int.tryParse(json['quantity']?.toString() ?? '') ?? 1,
+      );
+}
+
 class JobModel {
   final String? id;
   final String? title;
@@ -65,10 +88,19 @@ class JobModel {
   final String? longitude;
   final String? workersNeeded; // list response
   final String? quantity;      // detail response
+  /// Per-role breakdown. Purani jobs (is field se pehle banayi gayi) me
+  /// khaali — UI tab title par fallback karta hai.
+  final List<JobRole> roles;
   final num? salary;
   final String? salaryType;
   final bool isUrgent;
   final String? duration;
+
+  /// Kaam kab shuru hoga — vendor ne Timeline me chuni thi. Purani jobs
+  /// (is field se pehle) me null. NOTE: ye [postedAt] se alag hai —
+  /// postedAt job kab post hui, startDate kaam kab shuru hoga.
+  final DateTime? startDate;
+
   final String? description;   // detail response
   final String? experience;    // detail response
   final DateTime? postedAt;
@@ -80,6 +112,9 @@ class JobModel {
   final bool isActive;          // false = vendor ne deactivate (delete) kiya
   final String? rejectionReason; // admin ne reject karte waqt diya reason
   final String? jobId;          // human-readable e.g. "REQ-20E7"
+  final String? applicationStatus; // logged-in worker ki apni application ka status (agar apply kar chuka ho)
+
+  bool get hasApplied => (applicationStatus ?? '').isNotEmpty;
 
   const JobModel({
     this.id,
@@ -90,10 +125,12 @@ class JobModel {
     this.longitude,
     this.workersNeeded,
     this.quantity,
+    this.roles = const [],
     this.salary,
     this.salaryType,
     this.isUrgent = false,
     this.duration,
+    this.startDate,
     this.description,
     this.experience,
     this.postedAt,
@@ -105,6 +142,7 @@ class JobModel {
     this.isActive = true,
     this.rejectionReason,
     this.jobId,
+    this.applicationStatus,
   });
 
   /// Map/directions ke liye coords available hain?
@@ -115,9 +153,20 @@ class JobModel {
   int get workersCount =>
       int.tryParse((workersNeeded ?? quantity ?? '').trim()) ?? 0;
 
-  /// Display company name — top-level `company` ya postedBy.companyName.
-  String get companyName =>
-      company ?? postedBy?.companyName ?? '';
+  /// Display company name.
+  ///
+  /// `postedBy.companyName` (live profile se) ko stored `company` se pehle
+  /// rakhte hain: purani jobs me `company` me galti se vendor ka personal
+  /// naam save ho gaya tha, aur live value se wo apne aap theek ho jaati
+  /// hain. Vendor company name badle to bhi turant dikhta hai.
+  ///
+  /// Admin-posted jobs me `postedBy.companyName` nahi hota — wahan stored
+  /// `company` hi use hota hai.
+  String get companyName {
+    final live = postedBy?.companyName?.trim() ?? '';
+    if (live.isNotEmpty) return live;
+    return company?.trim() ?? '';
+  }
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
     final postedByRaw = json['postedBy'];
@@ -130,12 +179,19 @@ class JobModel {
       longitude: json['longitude']?.toString(),
       workersNeeded: json['workersNeeded']?.toString(),
       quantity: json['quantity']?.toString(),
+      roles: (json['roles'] as List?)
+              ?.whereType<Map>()
+              .map((e) => JobRole.fromJson(Map<String, dynamic>.from(e)))
+              .where((r) => r.skill.isNotEmpty)
+              .toList() ??
+          const [],
       salary: json['salary'] is num
           ? json['salary'] as num
           : num.tryParse(json['salary']?.toString() ?? ''),
       salaryType: json['salaryType']?.toString(),
       isUrgent: json['isUrgent'] == true || json['isUrgent']?.toString() == 'true',
       duration: json['duration']?.toString(),
+      startDate: DateTime.tryParse(json['startDate']?.toString() ?? '')?.toLocal(),
       description: json['description']?.toString(),
       experience: json['experience']?.toString(),
       postedAt: DateTime.tryParse(json['postedAt']?.toString() ?? ''),
@@ -155,6 +211,7 @@ class JobModel {
       isActive: json['isActive'] != false,
       rejectionReason: json['rejectionReason']?.toString(),
       jobId: json['jobId']?.toString(),
+      applicationStatus: json['applicationStatus']?.toString(),
     );
   }
 }
@@ -177,11 +234,27 @@ class JobApplicant {
   final String? workCity;
   final String? workState;
   final bool isVerified;
+  /// Admin ki di hui rating (1–5). null = admin ne abhi rating nahi di,
+  /// ya worker ke paas plan nahi hai (backend tab chhupa deta hai).
+  /// Automatic rating ka system hata diya gaya hai.
   final num? rating;
+  /// Admin ka comment, rating ke saath.
+  final String? ratingComment;
+
+  /// Registration me diye documents — vendor applicant ko parakh sake.
+  /// Paths hain; UI inhe media base URL ke saath jodta hai.
+  final String? governmentID;
+  /// Ek se zyada ho sakte hain. Backend array bhejta hai; purane
+  /// records me single string bhi ho sakti hai.
+  final List<String> experienceCertificate;
   final String? coverLetter;   // application ke waqt likha
   final String? experienceNote; // application-specific experience text
   final String status;         // pending | shortlisted | confirmed | rejected
   final DateTime? appliedAt;
+
+  /// Rating dikhane layak hai? null/0 par kuch nahi dikhate — admin ne
+  /// abhi rating nahi di, ya plan na hone se chhupi hai.
+  bool get hasRating => (rating ?? 0) > 0;
 
   const JobApplicant({
     this.applicationId,
@@ -196,6 +269,9 @@ class JobApplicant {
     this.workState,
     this.isVerified = false,
     this.rating,
+    this.ratingComment,
+    this.governmentID,
+    this.experienceCertificate = const [],
     this.coverLetter,
     this.experienceNote,
     this.status = 'pending',
@@ -242,6 +318,15 @@ class JobApplicant {
       workState: pick('workState'),
       isVerified: worker['isVerified'] == true || json['isVerified'] == true,
       rating: pickNum('rating'),
+      ratingComment: pick('ratingComment'),
+      governmentID: pick('governmentID'),
+      experienceCertificate: switch (worker['experienceCertificate'] ??
+          json['experienceCertificate']) {
+        final List l =>
+          l.map((e) => e.toString()).where((s) => s.isNotEmpty).toList(),
+        final String s when s.isNotEmpty => [s],
+        _ => const <String>[],
+      },
       coverLetter: json['coverLetter']?.toString(),
       experienceNote: json['experience']?.toString(),
       status: (json['status']?.toString() ?? 'pending').toLowerCase(),
@@ -345,11 +430,22 @@ class JobActionResponse {
   final bool success;
   final String? message;
   final String? approvalStatus; // create-job: 'pending' | 'approved'
+  /// Backend ka machine-readable error code — message ke text par depend
+  /// kiye bina UI decide kar sake. create-job par:
+  /// 'SUBSCRIPTION_REQUIRED' | 'WORKER_QUOTA_EXCEEDED'
+  final String? code;
+
+  /// Plan lena/upgrade karna zaroori hai? Dono hi cases me vendor ko
+  /// Plans screen par bhejna hai.
+  bool get needsSubscription => code == 'SUBSCRIPTION_REQUIRED';
+  bool get quotaExceeded => code == 'WORKER_QUOTA_EXCEEDED';
+  bool get needsPlanScreen => needsSubscription || quotaExceeded;
 
   const JobActionResponse({
     required this.success,
     this.message,
     this.approvalStatus,
+    this.code,
   });
 
   factory JobActionResponse.fromJson(Map<String, dynamic> json) {
@@ -358,6 +454,7 @@ class JobActionResponse {
       success: json['success'] as bool? ?? false,
       message: json['message']?.toString(),
       approvalStatus: data is Map ? data['approvalStatus']?.toString() : null,
+      code: json['code']?.toString(),
     );
   }
 }
@@ -368,21 +465,40 @@ class WorkerQuota {
   final int maxWorkers;   // 0 = admin ne limit configure nahi ki
   final int used;
   final int? remaining;   // null = no limit configured
+  final String? planName;
+  /// Quota mahine ka hai — agle mahine ki 1 taarikh ko reset hota hai.
+  final DateTime? resetsAt;
 
   const WorkerQuota({
     this.hasActiveSubscription = false,
     this.maxWorkers = 0,
     this.used = 0,
     this.remaining,
+    this.planName,
+    this.resetsAt,
   });
 
   bool get hasLimit => maxWorkers > 0;
+
+  /// "1 Sep" jaisa chhota label — banner me reset date dikhane ke liye.
+  String get resetLabel {
+    final d = resetsAt;
+    if (d == null) return '';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final local = d.toLocal();
+    return '${local.day} ${months[local.month - 1]}';
+  }
 
   factory WorkerQuota.fromJson(Map<String, dynamic> json) => WorkerQuota(
         hasActiveSubscription: json['hasActiveSubscription'] as bool? ?? false,
         maxWorkers: (json['maxWorkers'] as num?)?.toInt() ?? 0,
         used: (json['used'] as num?)?.toInt() ?? 0,
         remaining: (json['remaining'] as num?)?.toInt(),
+        planName: json['planName']?.toString(),
+        resetsAt: DateTime.tryParse(json['resetsAt']?.toString() ?? ''),
       );
 }
 

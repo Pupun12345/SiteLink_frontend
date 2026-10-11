@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/job_models.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/services/post_share_service.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../../core/theme/app_snackbar.dart';
+import '../../../../core/theme/job_roles_view.dart';
+import '../../../../core/utils/amenity_category_label.dart';
 import '../controllers/worker_myjob_controller.dart';
-import 'comments_sheet.dart';
+import '../../../../core/services/review_service.dart';
 import 'job_applied_success_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34,7 +39,6 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
   final _applying = false.obs;
   List<JobAmenity> _amenities = const [];
   bool? _isVerified; // null = abhi tak pata nahi
-  final _isLiked = false.obs; // job like toggle (optimistic)
   final _locating = false.obs; // "Get Directions" — current location fetch ho rahi hai
 
   @override
@@ -63,6 +67,19 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
     if (!mounted) return;
     setState(() {
       if (detail != null) {
+        // Shared deep link se aane par map me sirf `apiId` hota hai —
+        // baaki sab yahin bharta hai, warna screen khaali dikhti.
+        if ((job['role'] ?? '').toString().isEmpty) {
+          job['role'] = detail.title ?? '';
+        }
+        if ((job['location'] ?? '').toString().isEmpty) {
+          job['location'] = detail.location ?? '';
+        }
+        if ((job['type'] ?? '').toString().isEmpty) {
+          job['type'] = (detail.salaryType ?? '').toLowerCase() == 'daily'
+              ? 'daily'
+              : 'permanent';
+        }
         job['notes'] = detail.description ?? job['notes'];
         job['experience'] = detail.experience;
         if ((detail.duration ?? '').isNotEmpty) job['duration'] = detail.duration;
@@ -82,36 +99,27 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
           job['rate'] = '₹${detail.salary}$st';
         }
         job['isUrgent'] = detail.isUrgent;
+        // Detail response me roles list list-response se zyada bharosemand
+        // hai (shared deep link se aaye ho to map khaali hota hai).
+        if (detail.roles.isNotEmpty) job['roles'] = detail.roles;
+        // Shared deep link se aaye ho to map khaali hota hai — detail se bharo.
+        if (detail.startDate != null) {
+          job['startDate'] = DateFormat('d MMM yyyy').format(detail.startDate!);
+        }
         // Backend sirf tabhi bhejta hai jab application confirm/hire ho
-        // chuki ho — warna dono null aate hai (contact card hi nahi dikhta).
-        job['vendorPhone'] = detail.postedBy?.phone;
+        // chuki ho — warna null aata hai (contact locked dikhta hai).
+        // Vendor ka `phone` worker tak aata hi nahi, isliye yahan sirf
+        // WhatsApp number rakha jaata hai.
         job['vendorWhatsapp'] = detail.postedBy?.whatsappNumber;
+        // Detail fetch se latest applied-status bhi le lo — Available list
+        // se khula ho to bhi ab sahi "Applied" state dikhegi.
+        if (detail.hasApplied) {
+          job['appStatus'] = detail.applicationStatus!.toLowerCase();
+        }
         _amenities = detail.amenities;
       }
       _loadingDetail = false;
     });
-  }
-
-  /// Job like/unlike — PUT /jobs/:id/like (optimistic toggle).
-  Future<void> _toggleLike() async {
-    final apiId = job['apiId'] as String?;
-    if (apiId == null || apiId.isEmpty) return;
-    _isLiked.toggle(); // optimistic
-    final res = await _jobsApi.likeJob(apiId);
-    if (!res.success) {
-      _isLiked.toggle(); // revert
-      AppSnackbar.error(message: res.message ?? 'Like nahi hua');
-    }
-  }
-
-  /// Job comments sheet (add + read; edit/delete job pe nahi hota).
-  void _openComments() {
-    final apiId = job['apiId'] as String?;
-    if (apiId == null || apiId.isEmpty) {
-      AppSnackbar.error(message: 'Job id missing');
-      return;
-    }
-    CommentsSheet.open(context, apiId, isJob: true);
   }
 
   /// Google Maps me directions kholo (lat/long se). Values UI me show nahi hoti.
@@ -136,9 +144,9 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
         'https://www.google.com/maps/dir/?api=1$origin&destination=$lat,$lng');
     try {
       final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
-      if (!ok) AppSnackbar.error(message: 'Map nahi khul paaya');
+      if (!ok) AppSnackbar.error(message: 'map_open_failed'.tr);
     } catch (_) {
-      AppSnackbar.error(message: 'Map nahi khul paaya');
+      AppSnackbar.error(message: 'map_open_failed'.tr);
     }
   }
 
@@ -154,12 +162,13 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
     return _isVerified!;
   }
 
-  /// "Apply for this job" — verified user hi apply kar sakta hai.
+  /// "Apply for this job" — apply FREE hai, koi plan zaroori nahi.
+  /// Sirf account verified hona chahiye.
   Future<void> _applyDirect() async {
     if (_applying.value) return; // double-tap guard
     final apiId = job['apiId'] as String?;
     if (apiId == null || apiId.isEmpty) {
-      AppSnackbar.error(message: 'Job id missing — apply nahi kar sakte.');
+      AppSnackbar.error(message: 'job_id_missing_error'.tr);
       return;
     }
 
@@ -180,8 +189,13 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
       }
       // Celebration screen — confetti + congrats, auto home after ~4s
       Get.to(() => JobAppliedSuccessView(jobTitle: job['role']?.toString()));
+      // Apply ho gaya — rating maangne ka achha moment. Celebration
+      // screen khulne ke baad maangte hain taaki dono ek doosre ke
+      // upar na aayein. Service khud dekh leti hai ki pehle maang
+      // chuke hain ya nahi.
+      ReviewService.maybeAsk();
     } else {
-      AppSnackbar.error(message: res.message ?? 'Failed to apply');
+      AppSnackbar.error(message: res.message ?? 'apply_failed_generic'.tr);
     }
   }
 
@@ -209,12 +223,11 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                     color: AppColors.primary, size: 40),
               ),
               const SizedBox(height: 18),
-              Text('Verification Pending',
+              Text('verification_pending_title'.tr,
                   style: KTextStyle.poppins(fs: 18, fw: FontWeight.w700)),
               const SizedBox(height: 10),
               Text(
-                'Aapka account abhi verify nahi hua hai.\n'
-                'Hamari team aapki profile 24–48 hours me verify kar degi.',
+                'verification_pending_body'.tr,
                 textAlign: TextAlign.center,
                 style: KTextStyle.poppins(
                     fs: 13, c: AppColors.textSecondary, height: 1.5),
@@ -235,7 +248,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        'Verify hone ke baad aap jobs pe apply kar payenge.',
+                        'verification_pending_note'.tr,
                         style: KTextStyle.poppins(
                             fs: 11.5, c: AppColors.textSecondary),
                       ),
@@ -246,7 +259,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: CustomButton(label: 'Got it', onTap: () => Get.back()),
+                child: CustomButton(label: 'got_it_label'.tr, onTap: () => Get.back()),
               ),
             ],
           ),
@@ -260,54 +273,58 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
   Widget _appStatusBadge(String? appStatus) {
     switch (appStatus) {
       case 'pending':
-        return const StatusBadge(type: BadgeType.pending, customLabel: 'Under Review');
+        return StatusBadge(type: BadgeType.pending, customLabel: 'status_under_review'.tr);
       case 'shortlisted':
-        return const StatusBadge(type: BadgeType.active, customLabel: 'Shortlisted');
+        return StatusBadge(type: BadgeType.active, customLabel: 'status_shortlisted'.tr);
       case 'confirmed':
-        return const StatusBadge(type: BadgeType.verified, customLabel: 'Confirmed');
+        return StatusBadge(type: BadgeType.verified, customLabel: 'status_confirmed'.tr);
       case 'hired':
-        return const StatusBadge(type: BadgeType.verified, customLabel: 'Hired');
+        return StatusBadge(type: BadgeType.verified, customLabel: 'status_hired'.tr);
       case 'rejected':
-        return const StatusBadge(type: BadgeType.rejected, customLabel: 'Rejected');
+        return StatusBadge(type: BadgeType.rejected, customLabel: 'status_rejected'.tr);
       case null:
-        return const StatusBadge(type: BadgeType.fulfilled, customLabel: 'Available');
+        return StatusBadge(type: BadgeType.fulfilled, customLabel: 'status_available'.tr);
       default:
-        return const StatusBadge(type: BadgeType.pending, customLabel: 'Applied');
+        return StatusBadge(type: BadgeType.pending, customLabel: 'status_applied'.tr);
     }
   }
 
   String _appliedButtonLabel(String? appStatus) {
     switch (appStatus) {
       case 'shortlisted':
-        return 'Shortlisted — waiting for confirmation';
+        return 'applied_btn_shortlisted'.tr;
       case 'confirmed':
-        return 'Confirmed by vendor';
+        return 'applied_btn_confirmed'.tr;
       case 'hired':
-        return 'Hired';
+        return 'applied_btn_hired'.tr;
       case 'rejected':
-        return 'Application rejected';
+        return 'applied_btn_rejected'.tr;
       default:
-        return 'Applied — under review';
+        return 'applied_btn_default'.tr;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 'appStatus' sirf Applied tab se aaye jobs par set hota hai (real
-    // backend Application.status: pending/shortlisted/confirmed/rejected/hired).
+    // 'appStatus' — Applied tab se ho ya Available tab se (backend GET
+    // /api/jobs / /api/jobs/:id ab worker ki apni application ka status bhi
+    // bhejta hai agar already apply kar chuka ho) — dono jagah se sahi set
+    // hota hai (real backend Application.status: pending/shortlisted/confirmed/rejected/hired).
     final appStatus = (job['appStatus'] as String?)?.toLowerCase();
     final isApplied = appStatus != null;
     final contactUnlocked = appStatus == 'confirmed' || appStatus == 'hired';
     final jobType = (job['type'] as String?) ?? 'daily';
-    final title = job['role'] ?? 'Job';
+    final title = job['role'] ?? 'job_fallback_title'.tr;
     final company = job['company'] ?? '';
     final location = job['location'] ?? '';
     final rate = job['rate'] ?? '';
     final duration = jobType == 'permanent'
-        ? 'Permanent employment'
+        ? 'permanent_employment_label'.tr
         : job['duration'] ?? '';
     final startDate = job['startDate'] ?? job['dates'] ?? '';
-    final workers = job['workers'] != null ? '${job['workers']} workers' : '';
+    final workers = job['workers'] != null
+        ? 'workers_count_suffix'.trParams({'count': '${job['workers']}'})
+        : '';
     final experience = (job['experience'] ?? '').toString();
     final lat = (job['lat'] ?? '').toString();
     final lng = (job['lng'] ?? '').toString();
@@ -315,10 +332,33 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
     final isUrgent = job['isUrgent'] == true;
     final salaryType = (job['salaryType'] ?? '').toString();
     final statusBadge = _appStatusBadge(appStatus);
+    // Purani jobs (structured roles se pehle) me khaali — card hide ho jaata hai.
+    final roles = (job['roles'] as List?)?.whereType<JobRole>().toList() ??
+        const <JobRole>[];
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Job Details'),
+      appBar: GradientAppBar(
+        title: 'job_details_title'.tr,
+        actions: [
+          Builder(
+            // Builder isliye ki share sheet ko is icon ka rect chahiye
+            // (iPad anchor), Scaffold ke context ka nahi.
+            builder: (ctx) => IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'share_label'.tr,
+              onPressed: () => shareJob(
+                ctx,
+                jobId: job['apiId'] as String?,
+                title: job['role']?.toString(),
+                company: job['company']?.toString(),
+                location: job['location']?.toString(),
+                pay: job['rate']?.toString(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -362,7 +402,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                             const Icon(Icons.bolt_rounded,
                                 size: 14, color: AppColors.error),
                             const SizedBox(width: 4),
-                            Text('Urgent hiring',
+                            Text('urgent_hiring_label'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 11,
                                     fw: FontWeight.w600,
@@ -377,36 +417,13 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                     _InfoRow(icon: Icons.people_outline_rounded, text: workers),
                     const SizedBox(height: 8),
                     _InfoRow(icon: Icons.calendar_today_rounded, text: startDate),
-                    const SizedBox(height: 12),
-                    const Divider(height: 1, color: AppColors.divider),
-                    const SizedBox(height: 6),
-                    // ── Like + Comment actions ────────────────────
-                    Row(children: [
-                      Obx(() => _JobAction(
-                            icon: _isLiked.value
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            label: _isLiked.value ? 'Liked' : 'Like',
-                            color: _isLiked.value
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
-                            onTap: _toggleLike,
-                          )),
-                      const SizedBox(width: 8),
-                      _JobAction(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        label: 'Questions',
-                        color: AppColors.textSecondary,
-                        onTap: _openComments,
-                      ),
-                    ]),
                   ],
                 ),
               ),
               const SizedBox(height: AppDimens.lg),
               if (hasCoords) ...[
                 Obx(() => CustomButton(
-                      label: 'Get Directions',
+                      label: 'get_directions_label'.tr,
                       isOutlined: true,
                       isLoading: _locating.value,
                       leading: const Icon(Icons.directions_rounded,
@@ -421,7 +438,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                   children: [
                     Row(
                       children: [
-                        Text('Contract details',
+                        Text('contract_details_label'.tr,
                             style: KTextStyle.poppins(fs: 14, fw: FontWeight.w700)),
                         if (_loadingDetail) ...[
                           const SizedBox(width: 10),
@@ -435,37 +452,58 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _DetailPill(label: 'Type', value: jobType == 'permanent' ? 'Permanent' : 'Daily wage'),
+                    _DetailPill(label: 'type_label'.tr, value: jobType == 'permanent' ? 'permanent_label'.tr : 'daily_wage_label'.tr),
                     const SizedBox(height: 8),
-                    _DetailPill(label: 'Duration', value: duration),
+                    _DetailPill(label: AppStrings.Duration, value: duration),
                     const SizedBox(height: 8),
-                    _DetailPill(label: 'Pay', value: rate),
+                    _DetailPill(label: 'pay_label'.tr, value: rate),
                     if (salaryType.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _DetailPill(label: 'Salary type', value: _cap(salaryType)),
+                      _DetailPill(label: AppStrings.SalaryType, value: _cap(salaryType)),
                     ],
                     if (experience.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _DetailPill(label: 'Experience', value: '$experience yrs'),
+                      _DetailPill(label: 'experience_label'.tr, value: '$experience ${'yr_plural'.tr}'),
                     ],
-                    const SizedBox(height: 8),
-                    _DetailPill(label: 'Start', value: startDate),
+                    // Purani jobs me start date nahi hoti — pill hi na dikhao,
+                    // khaali value dikhane se lagta hai data gayab hai.
+                    if (startDate.toString().trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _DetailPill(label: 'start_label'.tr, value: startDate),
+                    ],
                     if (job['notes'] != null) ...[
                       const SizedBox(height: 12),
-                      Text('Description', style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600)),
+                      Text(AppStrings.Description, style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600)),
                       const SizedBox(height: 6),
                       Text('${job['notes']}', style: KTextStyle.poppins(fs: 12, c: AppColors.textSecondary)),
                     ],
                   ],
                 ),
               ),
+              // Kaun-kaun se role aur kitne — pehle ye title me "+3 more"
+              // ban jaata tha aur breakdown description me dab jaata tha.
+              if (roles.isNotEmpty) ...[
+                const SizedBox(height: AppDimens.lg),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('roles_required_label'.tr,
+                          style:
+                              KTextStyle.poppins(fs: 14, fw: FontWeight.w700)),
+                      const SizedBox(height: 12),
+                      JobRolesBreakdown(roles: roles),
+                    ],
+                  ),
+                ),
+              ],
               if (_amenities.isNotEmpty) ...[
                 const SizedBox(height: AppDimens.lg),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Amenities & Benefits',
+                      Text('amenities_benefits_label'.tr,
                           style:
                               KTextStyle.poppins(fs: 14, fw: FontWeight.w700)),
                       const SizedBox(height: 12),
@@ -480,17 +518,25 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Vendor contact',
+                      Text('vendor_contact_label'.tr,
                           style: KTextStyle.poppins(fs: 14, fw: FontWeight.w700)),
                       const SizedBox(height: 12),
                       _InfoRow(icon: Icons.business_outlined, text: job['company'] ?? ''),
                       const SizedBox(height: 8),
                       if (contactUnlocked) ...[
-                        _InfoRow(
-                            icon: Icons.phone_android_outlined,
-                            text: (job['vendorPhone'] ?? '').toString().isNotEmpty
-                                ? job['vendorPhone']
-                                : 'Not shared'),
+                        // Sirf WhatsApp — vendor ka personal/login number
+                        // worker ko kabhi nahi dikhta. Backend bhi wahi
+                        // bhejta hai, yahan uska koi fallback nahi hai.
+                        Builder(builder: (_) {
+                          final wa =
+                              (job['vendorWhatsapp'] ?? '').toString().trim();
+                          if (wa.isEmpty) {
+                            return _InfoRow(
+                                icon: Icons.chat_outlined,
+                                text: 'not_shared_label'.tr);
+                          }
+                          return _WhatsAppRow(number: wa);
+                        }),
                         const SizedBox(height: 8),
                         _InfoRow(
                             icon: Icons.location_on_outlined,
@@ -504,7 +550,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Contact number vendor ke confirm karne ke baad hi dikhega.',
+                                'contact_locked_note'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 12, c: AppColors.textHint),
                               ),
@@ -534,50 +580,19 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
         ),
         child: SafeArea(
           top: false,
-          minimum:
-              const EdgeInsets.fromLTRB(AppDimens.lg, 10, AppDimens.lg, 10),
-          child: isApplied
-              ? CustomButton(
-                  label: _appliedButtonLabel(appStatus), onTap: null)
-              : Obx(() => CustomButton(
-                    label: 'Apply for this job',
-                    isLoading: _applying.value,
-                    onTap: _applyDirect,
-                  )),
+          child: Padding(
+            padding:
+                const EdgeInsets.fromLTRB(AppDimens.lg, 10, AppDimens.lg, 10),
+            child: isApplied
+                ? CustomButton(
+                    label: _appliedButtonLabel(appStatus), onTap: null)
+                : Obx(() => CustomButton(
+                      label: 'apply_for_job_btn'.tr,
+                      isLoading: _applying.value,
+                      onTap: _applyDirect,
+                    )),
+          ),
         ),
-      ),
-    );
-  }
-}
-
-// ── Job action chip (Like / Questions) ─────────────────────────────
-class _JobAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _JobAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 17, color: color),
-          const SizedBox(width: 5),
-          Text(label,
-              style: KTextStyle.poppins(
-                  fs: 12, fw: FontWeight.w500, c: color)),
-        ]),
       ),
     );
   }
@@ -604,6 +619,52 @@ class _InfoRow extends StatelessWidget {
   );
 }
 
+// ── Vendor ka WhatsApp — tap karne pe seedha chat khulti hai ─────────
+// Worker ko vendor ka asli number kabhi nahi dikhta; yahi ek contact
+// channel hai jo vendor apni profile me khud deta hai.
+class _WhatsAppRow extends StatelessWidget {
+  final String number;
+  const _WhatsAppRow({required this.number});
+
+  Future<void> _open() async {
+    // wa.me ko country code chahiye — vendor 10 digit hi bharta hai.
+    final digits = number.replaceAll(RegExp(r'[^0-9]'), '');
+    final msisdn = digits.length == 10 ? '91$digits' : digits;
+    try {
+      final ok = await launchUrl(Uri.parse('https://wa.me/$msisdn'),
+          mode: LaunchMode.externalApplication);
+      if (!ok) AppSnackbar.error(message: 'whatsapp_open_failed'.tr);
+    } catch (_) {
+      AppSnackbar.error(message: 'whatsapp_open_failed'.tr);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: _open,
+        child: Row(
+          children: [
+            const Icon(Icons.chat_outlined,
+                size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                number,
+                style: KTextStyle.poppins(
+                    fs: 12,
+                    fw: FontWeight.w600,
+                    c: AppColors.primary),
+              ),
+            ),
+            Text(
+              AppStrings.WhatsApp,
+              style: KTextStyle.poppins(fs: 11, c: AppColors.textHint),
+            ),
+          ],
+        ),
+      );
+}
+
 // ── Amenities grouped by category (Financial / Travel / ...) ─────────
 class _AmenitiesGrouped extends StatelessWidget {
   final List<JobAmenity> amenities;
@@ -613,7 +674,7 @@ class _AmenitiesGrouped extends StatelessWidget {
   Widget build(BuildContext context) {
     final Map<String, List<JobAmenity>> grouped = {};
     for (final a in amenities) {
-      final cat = (a.category ?? '').trim().isEmpty ? 'Other' : a.category!.trim();
+      final cat = (a.category ?? '').trim().isEmpty ? AppStrings.Other : a.category!.trim();
       grouped.putIfAbsent(cat, () => []).add(a);
     }
     final cats = grouped.keys.toList();
@@ -622,7 +683,7 @@ class _AmenitiesGrouped extends StatelessWidget {
       children: [
         for (int i = 0; i < cats.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
-          Text(cats[i],
+          Text(amenityCategoryLabel(cats[i]),
               style: KTextStyle.poppins(
                   fs: 12, fw: FontWeight.w600, c: AppColors.textSecondary)),
           const SizedBox(height: 8),

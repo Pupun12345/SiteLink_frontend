@@ -1,37 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/profile_models.dart';
-import '../../../../core/services/api_client.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/locale_service.dart';
-import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../shared/presentation/views/help_support_views.dart';
-import '../../../shared/presentation/views/my_post_card.dart';
+import '../../../shared/presentation/views/my_posts_view.dart';
 import '../../../worker/presentation/controllers/worker_feed_controller.dart';
 import '../controllers/vendor_profile_controller.dart';
+import '../../../../core/services/logout_service.dart';
+import '../../../shared/presentation/views/plan_status_banner.dart';
 import 'edit_vendor_profile_view.dart';
 import 'vendor_plans_view.dart';
 
-// ── Vendor-specific FAQ content (shared FaqView UI, apna content) ──
-const _kVendorFaqs = [
-  ('How does SiteLink work for vendors?',
-      'Vendors post job requirements on SiteLink. Verified workers apply, and you can review each applicant\'s profile and confirm the ones you want to hire — directly from the app.'),
-  ('How do I post a job?',
-      'Go to My Posted Jobs → tap the + button → fill role, pay, experience, and amenities → submit. Your account must be verified before jobs go live.'),
-  ('How long does vendor verification take?',
-      'Account verification (PAN, GST, company details) typically takes 24–48 hours after submission.'),
-  ('How do I confirm a worker who applied?',
-      'Open the job → tap "Applicants" → review the worker\'s profile, experience and cover letter → tap Confirm to hire, or Reject to decline.'),
-  ('Can I edit or delete a posted job?',
-      'You can delete a job anytime from My Posted Jobs (3-dot menu). Editing an existing job is not supported yet — post a new one instead.'),
-  ('How are payments handled?',
-      'Payments are settled directly between you and the worker. SiteLink provides the platform and admin support — payment terms are agreed upon at the time of hiring.'),
-];
+const _kVendorHelpFaq = '''
+## Help & FAQ
+
+Help content update ho raha hai — kripya thodi der baad dobara try karein,
+ya **Contact Support** se humse seedha judein.
+''';
 
 const _kVendorPrivacyPolicy = '''
 Last updated: March 2026
@@ -117,7 +106,7 @@ class VendorProfileScreen extends StatelessWidget {
         }
         final p = ctrl.profile.value;
         return RefreshIndicator(
-          onRefresh: ctrl.fetchProfile,
+          onRefresh: ctrl.refreshAll,
           color: AppColors.primary,
           edgeOffset: MediaQuery.of(context).padding.top + kToolbarHeight,
           child: CustomScrollView(
@@ -134,9 +123,11 @@ class VendorProfileScreen extends StatelessWidget {
                   delegate: SliverChildListDelegate([
                     _companyInfo(p),
                     const SizedBox(height: AppDimens.md),
+                    _myPosts(ctrl),
+                    const SizedBox(height: AppDimens.md),
                     _documents(context, p),
                     const SizedBox(height: AppDimens.md),
-                    _support(context),
+                    _support(context, p?.hasActivePlan ?? false),
                     const SizedBox(height: AppDimens.md),
                     _legal(context),
                     const SizedBox(height: AppDimens.md),
@@ -144,8 +135,6 @@ class VendorProfileScreen extends StatelessWidget {
                   ]),
                 ),
               ),
-              _buildPostsHeader(),
-              _buildPostsList(ctrl),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -174,7 +163,7 @@ class VendorProfileScreen extends StatelessWidget {
       flexibleSpace: Container(
         decoration: const BoxDecoration(gradient: AppColors.appBarGradient),
       ),
-      title: Text('Company Profile',
+      title: Text('company_profile'.tr,
           style: KTextStyle.poppins(
               fs: 18, fw: FontWeight.w600, c: Colors.white)),
       centerTitle: true,
@@ -209,28 +198,14 @@ class VendorProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(
             AppDimens.lg, 0, AppDimens.lg, AppDimens.xl),
         child: Column(children: [
-          Stack(children: [
-            AvatarCircle(
-              initials: _initials(company),
-              size: 80,
-              imageUrl: logoUrl,
-            ),
-            if (verified)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2)),
-                  child: const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 14),
-                ),
-              ),
-          ]),
+          // Logo par koi tick badge nahi — verified status neeche wale
+          // chip se hi dikhta hai ("Verified vendor" / "Verification
+          // pending"), do jagah dikhana repeat tha.
+          AvatarCircle(
+            initials: _initials(company),
+            size: 80,
+            imageUrl: logoUrl,
+          ),
           const SizedBox(height: 12),
           Text(company,
               style: KTextStyle.poppins(
@@ -262,7 +237,7 @@ class VendorProfileScreen extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                verified ? 'Verified Vendor' : 'Verification Pending',
+                verified ? 'verified_vendor_label'.tr : 'verification_pending_title'.tr,
                 style: KTextStyle.poppins(
                     fs: 12,
                     fw: FontWeight.w600,
@@ -293,121 +268,34 @@ class VendorProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: AppDimens.lg),
             child: Row(children: [
               _StatCell(
-                  label: 'Jobs Posted', value: '${ctrl.myJobsCount.value}'),
+                  label: 'jobs_posted_label'.tr, value: '${ctrl.myJobsCount.value}'),
               _StatDivider(),
               _StatCell(
-                  label: 'Active', value: '${ctrl.activeJobsCount.value}'),
+                  label: 'active_status_label'.tr, value: '${ctrl.activeJobsCount.value}'),
               _StatDivider(),
-              _StatCell(label: 'Posts', value: '${ctrl.postsCount.value}'),
+              _StatCell(
+                label: 'posts_label'.tr,
+                value: '${ctrl.postsCount.value}',
+                onTap: () => _openMyPosts(ctrl),
+              ),
             ]),
           )),
     );
   }
 
-  // ── Posts header ──────────────────────────────────────────────────
-  Widget _buildPostsHeader() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppDimens.lg, AppDimens.lg, AppDimens.lg, AppDimens.md),
-        child: Row(children: [
-          Container(
-            width: 4,
-            height: 16,
-            decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(width: 8),
-          Text('My Posts',
-              style: KTextStyle.poppins(fs: 14, fw: FontWeight.w600)),
-        ]),
-      ),
-    );
-  }
-
-  // ── Posts list — vendor apne bhi community posts (shared feed) ──
-  Widget _buildPostsList(VendorProfileController ctrl) {
-    return SliverToBoxAdapter(
-      child: Obx(() {
-        final myPosts = ctrl.posts;
-
-        if (myPosts.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 36),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.post_add_outlined,
-                      size: 40, color: Colors.grey.shade300),
-                  const SizedBox(height: 12),
-                  Text('No posts yet',
-                      style: KTextStyle.poppins(
-                          fs: 13, c: AppColors.textSecondary)),
-                  const SizedBox(height: 4),
-                  Text('Share something from the Home feed',
-                      style: KTextStyle.poppins(
-                          fs: 12, c: AppColors.textHint)),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            for (int i = 0; i < myPosts.length; i++)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppDimens.lg,
-                  0,
-                  AppDimens.lg,
-                  i == myPosts.length - 1 ? AppDimens.xl : AppDimens.md,
-                ),
-                child: MyPostCard(
-                  post: myPosts[i],
-                  onDelete: () => _confirmDeletePost(myPosts[i].id, ctrl),
-                ),
-              ),
-          ],
-        );
-      }),
-    );
-  }
-
-  // ── Delete-post confirm dialog ───────────────────────────────────
-  void _confirmDeletePost(String? postId, VendorProfileController ctrl) {
-    if (postId == null) return;
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Post Delete Karo?',
-            style: KTextStyle.poppins(fs: 15, fw: FontWeight.w600)),
-        content: Text(
-            'Yeh post permanently delete ho jaayega. Kya aap sure hain?',
-            style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel',
-                style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              if (Get.isRegistered<WorkerFeedController>()) {
-                Get.find<WorkerFeedController>().deletePost(postId);
-              }
-              ctrl.removePostLocally(postId); // profile list turant update
-            },
-            child: Text('Delete',
-                style: KTextStyle.poppins(
-                    fs: 13, fw: FontWeight.w600, c: Colors.red.shade600)),
-          ),
-        ],
-      ),
-    );
+  // ── My Posts — apna alag page (profile screen se sirf navigate) ────
+  void _openMyPosts(VendorProfileController ctrl) {
+    Get.to(() => MyPostsView(
+          posts: ctrl.posts,
+          isLoading: ctrl.isLoadingPosts,
+          onRefresh: ctrl.fetchMyPosts,
+          onDelete: (postId) {
+            if (Get.isRegistered<WorkerFeedController>()) {
+              Get.find<WorkerFeedController>().deletePost(postId);
+            }
+            ctrl.removePostLocally(postId);
+          },
+        ));
   }
 
   // ── Company info card ───────────────────────────────────────────
@@ -419,19 +307,19 @@ class VendorProfileScreen extends StatelessWidget {
         ? '${_month(p!.createdAt!.month)} ${p.createdAt!.year}'
         : '';
     final rows = <(IconData, String, String)>[
-      (Icons.phone_android_outlined, 'Phone', p?.phone ?? ''),
-      (Icons.email_outlined, 'Email', p?.email ?? ''),
-      (Icons.chat_outlined, 'WhatsApp', p?.whatsappNumber ?? ''),
-      (Icons.location_on_outlined, 'Location', location),
-      (Icons.map_outlined, 'Work Area', p?.workArea ?? ''),
-      (Icons.receipt_long_outlined, 'GST', p?.gstNumber ?? ''),
-      (Icons.badge_outlined, 'PAN', p?.panNumber ?? ''),
-      (Icons.language_outlined, 'Website', p?.website ?? ''),
-      (Icons.calendar_today_rounded, 'Member Since', memberSince),
+      (Icons.phone_android_outlined, 'phone_label'.tr, p?.phone ?? ''),
+      (Icons.email_outlined, 'email_label'.tr, p?.email ?? ''),
+      (Icons.chat_outlined, 'whatsapp'.tr, p?.whatsappNumber ?? ''),
+      (Icons.location_on_outlined, 'location_label'.tr, location),
+      (Icons.map_outlined, 'work_area'.tr, p?.workArea ?? ''),
+      (Icons.receipt_long_outlined, 'gst_label'.tr, p?.gstNumber ?? ''),
+      (Icons.badge_outlined, 'pan_label'.tr, p?.panNumber ?? ''),
+      (Icons.language_outlined, 'website_label'.tr, p?.website ?? ''),
+      (Icons.calendar_today_rounded, 'member_since_label'.tr, memberSince),
     ].where((r) => r.$3.isNotEmpty).toList();
 
     return _Card(
-      title: 'Company Info',
+      title: 'company_info_section'.tr,
       icon: Icons.business_rounded,
       child: Column(
         children: [
@@ -447,12 +335,12 @@ class VendorProfileScreen extends StatelessWidget {
   // ── Documents ───────────────────────────────────────────────────
   Widget _documents(BuildContext context, MyProfile? p) {
     final docs = <(String, String?)>[
-      ('PAN Card', p?.panCardImage),
-      ('GST Certificate', p?.gstCertificate),
-      ('Company Logo', p?.companyLogo),
+      ('pan_card_label'.tr, p?.panCardImage),
+      ('gst_certificate_label'.tr, p?.gstCertificate),
+      ('company_logo_label'.tr, p?.companyLogo),
     ];
     return _Card(
-      title: 'Documents',
+      title: 'documents_label'.tr,
       icon: Icons.folder_outlined,
       child: Column(
         children: [
@@ -504,35 +392,53 @@ class VendorProfileScreen extends StatelessWidget {
     );
   }
 
-  // ── Support (Help & FAQ / Contact Support / Rate App) ────────────
-  Widget _support(BuildContext context) {
+  // ── Support (Help & FAQ / Contact Support) ───────────────────────
+  // ── My Posts — apna alag page (clearly tappable tile) ─────────────
+  Widget _myPosts(VendorProfileController ctrl) {
     return _Card(
-      title: 'Support',
+      title: 'my_posts_label'.tr,
+      icon: Icons.dynamic_feed_rounded,
+      child: _actionTile(
+        icon: Icons.post_add_rounded,
+        label: 'view_my_posts'.tr,
+        trailing: Obx(() => Text('${ctrl.postsCount.value}',
+            style: KTextStyle.poppins(
+                fs: 12.5, fw: FontWeight.w600, c: AppColors.textHint))),
+        onTap: () => _openMyPosts(ctrl),
+      ),
+    );
+  }
+
+  Widget _support(BuildContext context, bool hasActivePlan) {
+    return _Card(
+      title: 'support_section'.tr,
       icon: Icons.support_agent_outlined,
       child: Column(children: [
         _actionTile(
           icon: Icons.workspace_premium_rounded,
-          label: 'SiteLink Premium — Plans',
+          label: 'sitelink_premium_plans_label'.tr,
           onTap: () => Get.to(() => const VendorPlansView()),
         ),
         _actionDivider(),
         _actionTile(
           icon: Icons.help_outline_rounded,
-          label: 'Help & FAQ',
-          onTap: () =>
-              Get.to(() => const FaqView(faqs: _kVendorFaqs)),
+          label: 'help_faq_title'.tr,
+          onTap: () => Get.to(() => PolicyView(
+                title: 'help_faq_title'.tr,
+                content: _kVendorHelpFaq,
+                policyType: 'HELP_AND_SUPPORT',
+              )),
         ),
         _actionDivider(),
+        // Contact Support paid feature hai. Entry chhupate nahi — lock ke
+        // saath dikhate hain, tap par Plans khulti hai.
         _actionTile(
           icon: Icons.support_agent_outlined,
-          label: 'Contact Support',
-          onTap: () => Get.to(() => const ContactSupportView()),
-        ),
-        _actionDivider(),
-        _actionTile(
-          icon: Icons.star_outline_rounded,
-          label: 'Rate the App',
-          onTap: () {/* TODO: launch store URL */},
+          label: 'contact_support'.tr,
+          trailing: hasActivePlan ? null : const PlanLockChip(),
+          onTap: () => hasActivePlan
+              ? Get.to(() => const ContactSupportView())
+              : Get.to(() => const VendorPlansView()),
         ),
       ]),
     );
@@ -541,14 +447,14 @@ class VendorProfileScreen extends StatelessWidget {
   // ── Legal (Privacy Policy / Terms of Service) ────────────────────
   Widget _legal(BuildContext context) {
     return _Card(
-      title: 'Legal',
+      title: 'legal_section'.tr,
       icon: Icons.gavel_rounded,
       child: Column(children: [
         _actionTile(
           icon: Icons.privacy_tip_outlined,
-          label: 'Privacy Policy',
-          onTap: () => Get.to(() => const PolicyView(
-                title: 'Privacy Policy',
+          label: 'privacy_policy'.tr,
+          onTap: () => Get.to(() => PolicyView(
+                title: 'privacy_policy'.tr,
                 content: _kVendorPrivacyPolicy,
                 policyType: 'PRIVACY_POLICY',
               )),
@@ -556,9 +462,9 @@ class VendorProfileScreen extends StatelessWidget {
         _actionDivider(),
         _actionTile(
           icon: Icons.description_outlined,
-          label: 'Terms of Service',
-          onTap: () => Get.to(() => const PolicyView(
-                title: 'Terms of Service',
+          label: 'terms_of_service'.tr,
+          onTap: () => Get.to(() => PolicyView(
+                title: 'terms_of_service'.tr,
                 content: _kVendorTermsOfService,
                 policyType: 'TERMS_AND_CONDITIONS',
               )),
@@ -571,6 +477,7 @@ class VendorProfileScreen extends StatelessWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
@@ -583,6 +490,7 @@ class VendorProfileScreen extends StatelessWidget {
           Expanded(
             child: Text(label, style: KTextStyle.poppins(fs: 13)),
           ),
+          if (trailing != null) ...[trailing, const SizedBox(width: 6)],
           const Icon(Icons.chevron_right_rounded,
               color: AppColors.textHint),
         ]),
@@ -599,7 +507,7 @@ class VendorProfileScreen extends StatelessWidget {
   // ── Settings (language + logout) ─────────────────────────────────
   Widget _settings(BuildContext context) {
     return _Card(
-      title: 'Account',
+      title: 'account_section'.tr,
       icon: Icons.settings_outlined,
       child: Column(children: [
         InkWell(
@@ -612,7 +520,7 @@ class VendorProfileScreen extends StatelessWidget {
                   color: AppColors.primary, size: 20),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Language / भाषा',
+                child: Text('language'.tr,
                     style: KTextStyle.poppins(fs: 13)),
               ),
               Text(LocaleService.to.isHindi ? 'हिंदी' : 'English',
@@ -648,12 +556,12 @@ class VendorProfileScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Select Language / भाषा चुनें',
+              Text('select_language_title'.tr,
                   style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
               const SizedBox(height: 14),
-              _langOption('English', 'english', !LocaleService.to.isHindi),
+              _langOption('english'.tr, 'english', !LocaleService.to.isHindi),
               const SizedBox(height: 10),
-              _langOption('हिंदी', 'hindi', LocaleService.to.isHindi),
+              _langOption('hindi'.tr, 'hindi', LocaleService.to.isHindi),
             ],
           ),
         ),
@@ -796,7 +704,7 @@ class _DocRow extends StatelessWidget {
         GestureDetector(
           onTap: () => onView(url),
           child: Row(children: [
-            Text('View',
+            Text('view_label'.tr,
                 style: KTextStyle.poppins(
                     fs: 12, fw: FontWeight.w600, c: AppColors.primary)),
             const SizedBox(width: 2),
@@ -805,7 +713,7 @@ class _DocRow extends StatelessWidget {
           ]),
         )
       else
-        Text('Not uploaded',
+        Text('not_uploaded_label'.tr,
             style: KTextStyle.poppins(fs: 11.5, c: AppColors.textHint)),
     ]);
   }
@@ -818,25 +726,21 @@ class _LogoutButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: CustomButton(
-        label: 'Logout',
+        label: 'logout'.tr,
         isOutlined: true,
         onTap: () => Get.dialog(
           AlertDialog(
-            title: Text('Logout?',
+            title: Text('logout_confirm_title'.tr,
                 style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
-            content: Text('Are you sure you want to logout?',
+            content: Text('logout_confirm_message'.tr,
                 style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
             actions: [
-              TextButton(onPressed: Get.back, child: const Text('Cancel')),
+              TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
               TextButton(
-                onPressed: () async {
-                  Get.back();
-                  await MiscApiService().logout();
-                  await AuthService.instance.signOut();
-                  await SessionService.to.clear();
-                  Get.offAllNamed(AppRoutes.language);
-                },
-                child: Text('Logout',
+                // Dialog band karna + guard + loader sab performLogout
+                // ke andar — yahan sirf trigger.
+                onPressed: performLogout,
+                child: Text('logout'.tr,
                     style: KTextStyle.poppins(
                         fs: 13, fw: FontWeight.w600, c: AppColors.error)),
               ),
@@ -852,18 +756,33 @@ class _LogoutButton extends StatelessWidget {
 class _StatCell extends StatelessWidget {
   final String label;
   final String value;
-  const _StatCell({required this.label, required this.value});
+  final VoidCallback? onTap;
+  const _StatCell({required this.label, required this.value, this.onTap});
 
   @override
   Widget build(BuildContext context) => Expanded(
-        child: Column(children: [
-          Text(value,
-              style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
-          const SizedBox(height: 3),
-          Text(label,
-              style: KTextStyle.poppins(fs: 10, c: AppColors.textHint),
-              textAlign: TextAlign.center),
-        ]),
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Column(children: [
+            Text(value,
+                style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label,
+                    style: KTextStyle.poppins(fs: 10, c: AppColors.textHint),
+                    textAlign: TextAlign.center),
+                if (onTap != null) ...[
+                  const SizedBox(width: 2),
+                  const Icon(Icons.chevron_right_rounded,
+                      size: 12, color: AppColors.textHint),
+                ],
+              ],
+            ),
+          ]),
+        ),
       );
 }
 

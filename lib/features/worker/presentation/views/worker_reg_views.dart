@@ -7,14 +7,97 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/theme/dictation_mic_button.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/worker_reg_controller.dart';
 import '../../../../core/models/skill_models.dart';
+import '../../../../core/theme/experience_cert_list.dart';
 import 'dart:io';
+import 'dart:async';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STEPPER WIDGET
 // ═══════════════════════════════════════════════════════════════════
+// ── Profile photo picker (registration Step 1) ──────────────────────
+// Circular avatar + camera badge. Photo na ho to dashed-feel placeholder
+// aur neeche hint, taaki worker samjhe ki chehre ki photo chahiye — na ki
+// kaam ki photo (wo alag "Work Samples" me maangi jaati hai).
+class _ProfilePhotoPicker extends StatelessWidget {
+  final File? file;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  const _ProfilePhotoPicker({
+    required this.file,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final has = file != null;
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onPick,
+          child: Stack(
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  color: AppColors.selectionBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: has ? AppColors.primary : AppColors.border,
+                    width: has ? 2 : 1,
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: has
+                    ? Image.file(file!, fit: BoxFit.cover)
+                    : const Icon(Icons.person_outline_rounded,
+                        size: 40, color: AppColors.textHint),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.surface, width: 2),
+                  ),
+                  child: Icon(
+                    has ? Icons.edit_rounded : Icons.camera_alt_rounded,
+                    color: Colors.white,
+                    size: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (has)
+          TextButton(
+            onPressed: onRemove,
+            child: Text('remove_label'.tr,
+                style: KTextStyle.poppins(fs: 12, c: AppColors.error)),
+          )
+        else
+          Text(
+            'add_profile_photo_hint'.tr,
+            textAlign: TextAlign.center,
+            style: KTextStyle.poppins(fs: 11.5, c: AppColors.textHint),
+          ),
+      ],
+    );
+  }
+}
+
 class _RegStepper extends StatelessWidget {
   final int currentStep;
   const _RegStepper({required this.currentStep});
@@ -22,9 +105,9 @@ class _RegStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labels = [
-      'Personal\nव्यक्तिगत',
-      'Skills\nकौशल',
-      'Location\nस्थान'
+      'reg_step_personal'.tr,
+      'reg_step_skills'.tr,
+      'reg_step_location'.tr,
     ];
 
     return Container(
@@ -130,16 +213,49 @@ class WorkerReg1View extends StatelessWidget {
                     children: [
                       _StepSectionHeader(
                         title: AppStrings.PersonalDetails,
-                        subtitle: 'Fill in your basic information below',
+                        subtitle: 'reg1_subtitle'.tr,
+                      ),
+                      const SizedBox(height: AppDimens.lg),
+
+                      // ── Profile photo ─────────────────────────────
+                      // Registration me hi maangte hain: baad me Edit
+                      // Profile se daalna zyadatar kabhi hota nahi, aur
+                      // vendor ko applicant list me chehra dikhna chahiye.
+                      Center(
+                        child: Obx(() => _ProfilePhotoPicker(
+                              file: ctrl.profilePhoto.value,
+                              onPick: () => ctrl.showImageSourceSheet(
+                                context: context,
+                                onSelect: ctrl.pickProfilePhoto,
+                              ),
+                              onRemove: ctrl.removeProfilePhoto,
+                            )),
                       ),
                       const SizedBox(height: AppDimens.xl),
 
                       // ── Name ──────────────────────────────────────
                       SitelinkTextField(
                         label: AppStrings.FullName,
-                        hint: 'Enter your full name',
+                        hint: 'full_name_hint'.tr,
                         controller: ctrl.nameCtrl,
                         prefixIcon: Icons.person_outline_rounded,
+                      ),
+                      const SizedBox(height: AppDimens.lg),
+
+                      // ── Nominee ───────────────────────────────────
+                      SitelinkTextField(
+                        label: 'nominee_name_label'.tr,
+                        hint: 'nominee_name_hint'.tr,
+                        controller: ctrl.nomineeCtrl,
+                        prefixIcon: Icons.family_restroom_rounded,
+                        textCapitalization: TextCapitalization.words,
+                        maxLength: 100,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'nominee_name_helper'.tr,
+                        style: KTextStyle.poppins(
+                            fs: 11, c: AppColors.textSecondary, height: 1.4),
                       ),
                       const SizedBox(height: AppDimens.lg),
 
@@ -186,6 +302,11 @@ class WorkerReg1View extends StatelessWidget {
                         children:
                         ['Male', 'Female', 'Other'].map((g) {
                           final sel = ctrl.gender.value == g;
+                          final genderLabel = g == 'Male'
+                              ? AppStrings.Male
+                              : (g == 'Female'
+                                  ? AppStrings.Female
+                                  : AppStrings.Other);
                           return Expanded(
                             child: GestureDetector(
                               onTap: () => ctrl.gender.value = g,
@@ -206,7 +327,7 @@ class WorkerReg1View extends StatelessWidget {
                                           : AppColors.border),
                                 ),
                                 child: Text(
-                                  g,
+                                  genderLabel,
                                   textAlign: TextAlign.center,
                                   style: KTextStyle.poppins(
                                     fs: 13,
@@ -226,7 +347,7 @@ class WorkerReg1View extends StatelessWidget {
 
                       CustomButton(
                         label: AppStrings.Next,
-                        onTap: () => Get.toNamed(AppRoutes.workerReg2),
+                        onTap: ctrl.submitStep1,
                       ),
                     ],
                   ),
@@ -267,7 +388,7 @@ class WorkerReg2View extends StatelessWidget {
                     children: [
                       _StepSectionHeader(
                         title: AppStrings.SkillsExperience,
-                        subtitle: 'Tell us what you can do',
+                        subtitle: 'reg2_subtitle'.tr,
                       ),
                       const SizedBox(height: AppDimens.xl),
 
@@ -279,66 +400,8 @@ class WorkerReg2View extends StatelessWidget {
                             fw: FontWeight.w500,
                             c: AppColors.textSecondary),
                       ),
-                      const SizedBox(height: 6),
-                      Obx(() {
-                        if (ctrl.isLoadingSkills.value) {
-                          return Container(
-                            padding: const EdgeInsets.all(AppDimens.md),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(
-                                  AppDimens.radiusMd),
-                              border:
-                              Border.all(color: AppColors.border),
-                            ),
-                            child: const SizedBox(
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2),
-                            ),
-                          );
-                        }
-                        return DropdownButtonFormField<int>(
-                          value: ctrl.selectedPrimarySkillId.value,
-                          hint: Text('Select skill',
-                              style: KTextStyle.poppins(
-                                  fs: 13, c: AppColors.textHint)),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  AppDimens.radiusMd),
-                              borderSide: const BorderSide(
-                                  color: AppColors.border),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  AppDimens.radiusMd),
-                              borderSide: const BorderSide(
-                                  color: AppColors.border),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                  AppDimens.radiusMd),
-                              borderSide: const BorderSide(
-                                  color: AppColors.primary, width: 1.5),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 14),
-                          ),
-                          items: ctrl.allSkills
-                              .map((s) => DropdownMenuItem<int>(
-                              value: s.skillId,
-                              child: Text(s.name ?? '',
-                                  style:
-                                  KTextStyle.poppins(fs: 13))))
-                              .toList(),
-                          onChanged: (v) {
-                            ctrl.selectedPrimarySkillId.value = v;
-                          },
-                        );
-                      }),
+                      const SizedBox(height: 8),
+                      const MultiSelectSkillField(singleSelect: true),
                       const SizedBox(height: AppDimens.lg),
 
                       // ── Additional Skills (Multi-Select Dropdown) ──
@@ -375,7 +438,7 @@ class WorkerReg2View extends StatelessWidget {
                             CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: AppDimens.lg),
-                              Text('Other skill',
+                              Text('other_skill_label'.tr,
                                   style: KTextStyle.poppins(
                                       fs: 12,
                                       fw: FontWeight.w500,
@@ -383,8 +446,8 @@ class WorkerReg2View extends StatelessWidget {
                               const SizedBox(height: 8),
                               SitelinkTextField(
                                 label:
-                                'Describe your other skill',
-                                hint: 'Enter custom skill',
+                                'describe_other_skill'.tr,
+                                hint: 'enter_custom_skill_hint'.tr,
                                 controller: ctrl.otherSkillCtrl,
                                 prefixIcon: Icons.edit_outlined,
                               ),
@@ -435,7 +498,7 @@ class WorkerReg2View extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(
                                       bottom: 3),
-                                  child: Text('years',
+                                  child: Text('years_label'.tr,
                                       style: KTextStyle.poppins(
                                           fs: 14,
                                           c: AppColors
@@ -458,11 +521,11 @@ class WorkerReg2View extends StatelessWidget {
                               mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('0 yrs',
+                                Text('zero_yrs'.tr,
                                     style: KTextStyle.poppins(
                                         fs: 11,
                                         c: AppColors.textHint)),
-                                Text('20+ yrs',
+                                Text('twenty_plus_yrs'.tr,
                                     style: KTextStyle.poppins(
                                         fs: 11,
                                         c: AppColors.textHint)),
@@ -520,16 +583,8 @@ class WorkerReg2View extends StatelessWidget {
                           Positioned(
                             bottom: 8,
                             right: 8,
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.mic_rounded,
-                                  color: AppColors.primary, size: 18),
-                            ),
+                            child: DictationMicButton(
+                                controller: ctrl.expDescCtrl),
                           ),
                         ],
                       ),
@@ -555,7 +610,13 @@ class WorkerReg2View extends StatelessWidget {
 //  MULTI SELECT SKILL FIELD
 // ═══════════════════════════════════════════════════════════════════
 class MultiSelectSkillField extends StatefulWidget {
-  const MultiSelectSkillField({super.key});
+  /// `true` = Primary Skill (ek hi chun sakte hain), `false` = Additional
+  /// Skills (multi). Design dono ka bilkul same hai — isiliye do alag
+  /// widgets banane ke bajaye yahi widget dono modes handle karta hai,
+  /// warna ek jagah style badalne par doosri jagah chhoot jaati.
+  final bool singleSelect;
+
+  const MultiSelectSkillField({super.key, this.singleSelect = false});
 
   @override
   State<MultiSelectSkillField> createState() => _MultiSelectSkillFieldState();
@@ -569,6 +630,25 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
   final _searchQuery = ''.obs;
+
+  /// Abhi kaunse ids selected hain — dono modes ke liye ek hi shape.
+  List<int> get _selectedIds => widget.singleSelect
+      ? (ctrl.selectedPrimarySkillId.value == null
+          ? const []
+          : [ctrl.selectedPrimarySkillId.value!])
+      : ctrl.selectedSecondarySkillIds;
+
+  void _onPick(int id) {
+    if (!widget.singleSelect) {
+      ctrl.toggleSecondarySkillId(id);
+      return;
+    }
+    // Single-select: dobara wahi tap = deselect, warna replace. Chunne ke
+    // baad panel band — multi ki tarah khula rakhne ka matlab nahi.
+    ctrl.selectedPrimarySkillId.value =
+        ctrl.selectedPrimarySkillId.value == id ? null : id;
+    _closeDropdown();
+  }
 
   @override
   void dispose() {
@@ -594,8 +674,8 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
 
     _overlayEntry = OverlayEntry(
       builder: (_) => Obx(() {
-        // Rebuild when selectedSecondarySkillIds changes to update checkmarks
-        ctrl.selectedSecondarySkillIds.length;
+        // Rebuild when selection changes to update checkmarks
+        _selectedIds.length;
 
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
@@ -616,6 +696,8 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
                     searchCtrl: _searchCtrl,
                     searchQuery: _searchQuery,
                     ctrl: ctrl,
+                    selectedIds: () => _selectedIds,
+                    onPick: _onPick,
                   ),
                 ),
               ),
@@ -668,12 +750,15 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Obx(() {
-                    final count = ctrl.selectedSecondarySkillIds.length;
+                    final count = _selectedIds.length;
                     String label;
                     if (count == 0) {
-                      label = 'Select skills...';
+                      // Design same, sirf wording mode ke hisaab se
+                      label = widget.singleSelect
+                          ? 'select_skill_hint'.tr
+                          : 'select_skills_placeholder'.tr;
                     } else if (count == 1) {
-                      final id = ctrl.selectedSecondarySkillIds.first;
+                      final id = _selectedIds.first;
                       String name = '';
                       try {
                         name = ctrl.allSkills
@@ -684,12 +769,15 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
                         name = '';
                       }
                       label =
-                      name.isEmpty ? '1 skill selected' : name;
+                      name.isEmpty ? 'one_skill_selected'.tr : name;
                     } else {
-                      label = '$count skills selected';
+                      label = 'skills_selected_count'
+                          .trParams({'count': '$count'});
                     }
                     return Text(
                       label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: KTextStyle.poppins(
                         fs: 13,
                         c: count == 0
@@ -700,8 +788,12 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
                   }),
                 ),
                 Obx(() {
-                  final count = ctrl.selectedSecondarySkillIds.length;
-                  if (count == 0) return const SizedBox.shrink();
+                  final count = _selectedIds.length;
+                  // Single-select me "1" ka badge bekaar hai — naam
+                  // trigger me already dikh raha hai.
+                  if (count == 0 || widget.singleSelect) {
+                    return const SizedBox.shrink();
+                  }
                   return Container(
                     margin: const EdgeInsets.only(right: 6),
                     padding: const EdgeInsets.symmetric(
@@ -730,10 +822,10 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
 
         // ── Selected chips ──────────────────────────────
         Obx(() {
-          if (ctrl.selectedSecondarySkillIds.isEmpty) {
+          if (_selectedIds.isEmpty) {
             return const SizedBox.shrink();
           }
-          final chips = ctrl.selectedSecondarySkillIds.map((id) {
+          final chips = _selectedIds.map((id) {
             String name = '';
             try {
               name = ctrl.allSkills
@@ -763,8 +855,7 @@ class _MultiSelectSkillFieldState extends State<MultiSelectSkillField>
                       color: AppColors.primary.withOpacity(0.3)),
                   materialTapTargetSize:
                   MaterialTapTargetSize.shrinkWrap,
-                  onDeleted: () => ctrl
-                      .toggleSecondarySkillId(entry['id'] as int),
+                  onDeleted: () => _onPick(entry['id'] as int),
                 );
               }).toList(),
             ),
@@ -780,10 +871,17 @@ class _DropdownPanel extends StatelessWidget {
   final RxString searchQuery;
   final WorkerRegController ctrl;
 
+  /// Primary aur Additional dono modes ke liye ek hi panel — selection
+  /// kahan rakhi hai ye caller batata hai.
+  final List<int> Function() selectedIds;
+  final void Function(int id) onPick;
+
   const _DropdownPanel({
     required this.searchCtrl,
     required this.searchQuery,
     required this.ctrl,
+    required this.selectedIds,
+    required this.onPick,
   });
 
   @override
@@ -808,7 +906,7 @@ class _DropdownPanel extends StatelessWidget {
               autofocus: true,
               style: KTextStyle.poppins(fs: 13),
               decoration: InputDecoration(
-                hintText: 'Search skills...',
+                hintText: 'search_skills_hint'.tr,
                 hintStyle:
                 KTextStyle.poppins(fs: 12, c: AppColors.textHint),
                 prefixIcon: const Icon(Icons.search_outlined,
@@ -857,8 +955,8 @@ class _DropdownPanel extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                     ctrl.isLoadingSkills.value
-                        ? 'Loading...'
-                        : 'No skills found',
+                        ? 'loading_ellipsis'.tr
+                        : 'no_skills_found'.tr,
                     style: KTextStyle.poppins(
                         fs: 12, c: AppColors.textHint)),
               );
@@ -875,10 +973,9 @@ class _DropdownPanel extends StatelessWidget {
                 itemBuilder: (_, i) {
                   final skill = filtered[i];
                   final sid = skill.skillId ?? -1;
-                  final isSelected =
-                  ctrl.selectedSecondarySkillIds.contains(sid);
+                  final isSelected = selectedIds().contains(sid);
                   return InkWell(
-                    onTap: () => ctrl.toggleSecondarySkillId(sid),
+                    onTap: () => onPick(sid),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 11),
@@ -962,14 +1059,13 @@ class WorkerReg3View extends StatelessWidget {
                     children: [
                       _StepSectionHeader(
                         title: AppStrings.WorkPreferences,
-                        subtitle:
-                        'Where do you want to work and how much do you expect?',
+                        subtitle: 'reg3_subtitle'.tr,
                       ),
                       const SizedBox(height: AppDimens.xl),
 
                       // ── Work State ────────────────────────────────
                       Text(
-                        'Work State',
+                        'work_state_label'.tr,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w500,
@@ -997,7 +1093,8 @@ class WorkerReg3View extends StatelessWidget {
                         }
                         return DropdownButtonFormField<int>(
                           value: ctrl.selectedState.value?.id,
-                          hint: Text('Select state',
+                          isExpanded: true,
+                          hint: Text('select_state_hint'.tr,
                               style: KTextStyle.poppins(
                                   fs: 13, c: AppColors.textHint)),
                           decoration: InputDecoration(
@@ -1030,6 +1127,8 @@ class WorkerReg3View extends StatelessWidget {
                               .map((s) => DropdownMenuItem<int>(
                               value: s.id,
                               child: Text(s.name ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style:
                                   KTextStyle.poppins(fs: 13))))
                               .toList(),
@@ -1080,7 +1179,8 @@ class WorkerReg3View extends StatelessWidget {
                         return DropdownButtonFormField<String>(
                           value:
                           ctrl.selectedCity.value?.id.toString(),
-                          hint: Text('Select city',
+                          isExpanded: true,
+                          hint: Text('select_city_hint'.tr,
                               style: KTextStyle.poppins(
                                   fs: 13, c: AppColors.textHint)),
                           decoration: InputDecoration(
@@ -1113,6 +1213,8 @@ class WorkerReg3View extends StatelessWidget {
                               .map((c) => DropdownMenuItem<String>(
                               value: c.id.toString(),
                               child: Text(c.name ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style:
                                   KTextStyle.poppins(fs: 13))))
                               .toList(),
@@ -1134,10 +1236,9 @@ class WorkerReg3View extends StatelessWidget {
 
                       SitelinkTextField(
                         label: AppStrings.PreferredArea,
-                        hint: 'Enter locality (optional)',
+                        hint: 'preferred_area_hint'.tr,
                         controller: ctrl.preferredAreaCtrl,
                         prefixIcon: Icons.map_outlined,
-                        isOptional: true,
                       ),
                       const SizedBox(height: AppDimens.lg),
 
@@ -1195,8 +1296,8 @@ class WorkerReg3View extends StatelessWidget {
                       // ── Expected salary ───────────────────────────
                       Obx(() => SitelinkTextField(
                         label:
-                        '${AppStrings.ExpectedSalary} (₹ per ${ctrl.salaryType.value})',
-                        hint: 'Enter amount',
+                        '${AppStrings.ExpectedSalary} (₹ ${'per_word'.tr} ${ctrl.salaryType.value})',
+                        hint: 'expected_salary_hint'.tr,
                         controller: ctrl.salaryCtrl,
                         prefixIcon:
                         Icons.currency_rupee_rounded,
@@ -1224,7 +1325,7 @@ class WorkerReg3View extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Your profile will be reviewed within 24 hours for the best matches.',
+                                'profile_review_24h_note'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 12, c: AppColors.primary),
                               ),
@@ -1351,8 +1452,7 @@ class DocumentUploadView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     InfoBanner(
-                      text:
-                      'Upload your ID and work photos for verification / सत्यापन के लिए दस्तावेज़ अपलोड करें',
+                      text: 'upload_docs_banner'.tr,
                       icon: Icons.info_outline_rounded,
                     ),
                     const SizedBox(height: AppDimens.lg),
@@ -1378,12 +1478,12 @@ class DocumentUploadView extends StatelessWidget {
                                     color: AppColors.success,
                                     size: 13),
                                 const SizedBox(width: 4),
-                                Text('Added',
+                                Text('doc_added_label'.tr,
                                     style: KTextStyle.poppins(
                                         fs: 11,
                                         c: AppColors.success)),
                               ])
-                                  : Text('*Required',
+                                  : Text('doc_required_label'.tr,
                                   style: KTextStyle.poppins(
                                       fs: 11,
                                       c: Colors.red.shade400))),
@@ -1394,6 +1494,7 @@ class DocumentUploadView extends StatelessWidget {
                           // ID Type dropdown
                           Obx(() => DropdownButtonFormField<String>(
                             value: ctrl.selectedIdType.value,
+                            isExpanded: true,
                             isDense: true,
                             decoration: InputDecoration(
                               filled: true,
@@ -1462,7 +1563,7 @@ class DocumentUploadView extends StatelessWidget {
                                       children: [
                                         _ActionPill(
                                           icon: Icons.edit_outlined,
-                                          label: 'Change',
+                                          label: 'change_label'.tr,
                                           onTap: () => ctrl
                                               .showImageSourceSheet(
                                             context: context,
@@ -1474,7 +1575,7 @@ class DocumentUploadView extends StatelessWidget {
                                         _ActionPill(
                                           icon: Icons
                                               .delete_outline_rounded,
-                                          label: 'Remove',
+                                          label: 'remove_label'.tr,
                                           isDestructive: true,
                                           onTap: ctrl.removeIdProof,
                                         ),
@@ -1491,69 +1592,8 @@ class DocumentUploadView extends StatelessWidget {
                                     context: context,
                                     onSelect: ctrl.pickIdProof,
                                   ),
-                              label: 'Tap to upload ID',
-                              sublabel: 'Camera ya Gallery se',
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppDimens.md),
-
-                    // ── Work Sample Photos ─────────────────
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                  Icons.photo_library_outlined,
-                                  color: AppColors.primary,
-                                  size: 16),
-                              const SizedBox(width: 6),
-                              Text(AppStrings.WorkSamplePhotos,
-                                  style: KTextStyle.poppins(
-                                      fs: 13, fw: FontWeight.w600)),
-                              const Spacer(),
-                              Text('optional',
-                                  style: KTextStyle.poppins(
-                                      fs: 10,
-                                      c: AppColors.textHint)),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Add photos of your past work (max 6)',
-                            style: KTextStyle.poppins(
-                                fs: 11, c: AppColors.textHint),
-                          ),
-                          const SizedBox(height: 12),
-
-                          Obx(() {
-                            final photos = ctrl.workPhotos;
-                            final showAdd = photos.length < 6;
-                            final items = [
-                              ...photos.asMap().entries.map((e) =>
-                                  _PhotoThumb(
-                                    file: e.value,
-                                    onRemove: () =>
-                                        ctrl.removeWorkPhoto(e.key),
-                                  )),
-                              if (showAdd)
-                                _AddPhotoBox(
-                                  onTap: () =>
-                                      ctrl.showImageSourceSheet(
-                                        context: context,
-                                        onSelect: ctrl.pickWorkPhoto,
-                                      ),
-                                ),
-                            ];
-
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: items,
+                              label: 'tap_to_upload_id'.tr,
+                              sublabel: 'camera_or_gallery_sublabel'.tr,
                             );
                           }),
                         ],
@@ -1574,168 +1614,76 @@ class DocumentUploadView extends StatelessWidget {
                                   size: 16),
                               const SizedBox(width: 6),
                               Text(
-                                'Experience Certificate',
+                                'experience_certificate_label'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 13, fw: FontWeight.w600),
                               ),
-                              const Spacer(),
-                              Text('optional',
-                                  style: KTextStyle.poppins(
-                                      fs: 10,
-                                      c: AppColors.textHint)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'PDF, photo, ya camera se upload karein',
+                            'cert_upload_hint'.tr,
                             style: KTextStyle.poppins(
                                 fs: 11, c: AppColors.textHint),
                           ),
                           const SizedBox(height: 12),
 
-                          Obx(() {
-                            final file =
-                                ctrl.experienceCertFile.value;
-                            final type =
-                                ctrl.experienceCertType.value;
+                          // Multiple certificates — worker alag-alag company/
+                          // skill ke certificate laga sakta hai.
+                          Obx(() => ExperienceCertList(
+                                files: ctrl.experienceCerts,
+                                isPdf: ctrl.isPdf,
+                                onRemove: ctrl.removeExperienceCert,
+                                onAdd: () => _showCertPickerSheet(context, ctrl),
+                                canAdd: ctrl.experienceCerts.length <
+                                    WorkerRegController.maxExperienceCerts,
+                              )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.lg),
 
-                            if (file != null) {
-                              return Stack(
-                                children: [
-                                  Container(
-                                    height: 110,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary
-                                          .withOpacity(0.04),
-                                      borderRadius:
-                                      BorderRadius.circular(
-                                          AppDimens.radiusSm),
-                                      border: Border.all(
-                                          color: AppColors.primary
-                                              .withOpacity(0.3)),
-                                    ),
-                                    child: type == 'pdf'
-                                        ? Column(
-                                      mainAxisAlignment:
-                                      MainAxisAlignment
-                                          .center,
-                                      children: [
-                                        const Icon(
-                                            Icons
-                                                .picture_as_pdf_rounded,
-                                            color: Colors.red,
-                                            size: 40),
-                                        const SizedBox(
-                                            height: 6),
-                                        Text(
-                                          file.path
-                                              .split('/')
-                                              .last,
-                                          style: KTextStyle
-                                              .poppins(
-                                              fs: 11,
-                                              c: AppColors
-                                                  .textSecondary),
-                                          overflow: TextOverflow
-                                              .ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                        const SizedBox(
-                                            height: 2),
-                                        Row(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment
-                                              .center,
-                                          children: [
-                                            const Icon(
-                                                Icons
-                                                    .check_circle_rounded,
-                                                color: AppColors
-                                                    .success,
-                                                size: 13),
-                                            const SizedBox(
-                                                width: 4),
-                                            Text(
-                                                'PDF uploaded',
-                                                style: KTextStyle
-                                                    .poppins(
-                                                    fs: 11,
-                                                    c: AppColors
-                                                        .success)),
-                                          ],
-                                        ),
-                                      ],
-                                    )
-                                        : ClipRRect(
-                                      borderRadius:
-                                      BorderRadius.circular(
-                                          AppDimens
-                                              .radiusSm),
-                                      child: Image.file(file,
-                                          height: 110,
-                                          width:
-                                          double.infinity,
-                                          fit: BoxFit.cover),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 8,
-                                    right: 8,
-                                    child: Row(
-                                      children: [
-                                        _ActionPill(
-                                          icon: Icons.edit_outlined,
-                                          label: 'Change',
-                                          onTap: () =>
-                                              _showCertPickerSheet(
-                                                  context, ctrl),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        _ActionPill(
-                                          icon: Icons
-                                              .delete_outline_rounded,
-                                          label: 'Remove',
-                                          isDestructive: true,
-                                          onTap: ctrl
-                                              .removeExperienceCert,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }
-
-                            return Row(
+                    // ── Police verification note ──────────────────
+                    // Submit se theek pehle rakha hai — yahan worker ki
+                    // nazar zaroor padti hai. Baad me bataane se job
+                    // apply karte waqt surprise hota hai.
+                    Container(
+                      padding: const EdgeInsets.all(AppDimens.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.08),
+                        borderRadius:
+                            BorderRadius.circular(AppDimens.radiusMd),
+                        border: Border.all(
+                            color: AppColors.warning.withValues(alpha: 0.30)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.local_police_outlined,
+                              size: 18, color: AppColors.warning),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _CertUploadOption(
-                                  icon: Icons.camera_alt_outlined,
-                                  label: 'Camera',
-                                  onTap: () =>
-                                      ctrl.pickExperienceCert(
-                                          ImageSource.camera),
+                                Text(
+                                  'police_verification_note_title'.tr,
+                                  style: KTextStyle.poppins(
+                                      fs: 12.5,
+                                      fw: FontWeight.w700,
+                                      c: AppColors.warning),
                                 ),
-                                const SizedBox(width: 8),
-                                _CertUploadOption(
-                                  icon:
-                                  Icons.photo_library_outlined,
-                                  label: 'Gallery',
-                                  onTap: () =>
-                                      ctrl.pickExperienceCert(
-                                          ImageSource.gallery),
-                                ),
-                                const SizedBox(width: 8),
-                                _CertUploadOption(
-                                  icon:
-                                  Icons.picture_as_pdf_outlined,
-                                  label: 'PDF',
-                                  onTap: () =>
-                                      ctrl.pickExperienceCert(null),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'police_verification_note_body'.tr,
+                                  style: KTextStyle.poppins(
+                                      fs: 11.5,
+                                      c: AppColors.textSecondary,
+                                      height: 1.45),
                                 ),
                               ],
-                            );
-                          }),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1758,119 +1706,22 @@ class DocumentUploadView extends StatelessWidget {
                 border: Border(
                     top: BorderSide(color: AppColors.divider)),
               ),
-              child: CustomButton(
-                label: AppStrings.SubmitForVerification,
-                onTap: () => ctrl.submitWorkerProfile(),
-              ),
+              // Ye final submit hai — saari files (ID, certificate, work
+              // photos) ek saath upload hoti hain, isme kaafi time lagta
+              // hai. Obx + isLoading zaroori hai: spinner dikhta hai aur
+              // CustomButton khud tap block kar deta hai (double submit se
+              // bachne ke liye).
+              child: Obx(() => CustomButton(
+                    label: AppStrings.SubmitForVerification,
+                    isLoading: ctrl.isSubmitting.value,
+                    onTap: () => ctrl.submitWorkerProfile(),
+                  )),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-// ── 3 option tiles (Camera / Gallery / PDF) ──────────────────────
-class _CertUploadOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _CertUploadOption({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.04),
-            borderRadius:
-            BorderRadius.circular(AppDimens.radiusSm),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.25),
-              width: 1.2,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: AppColors.primary, size: 22),
-              const SizedBox(height: 5),
-              Text(label,
-                  style: KTextStyle.poppins(
-                      fs: 11,
-                      fw: FontWeight.w500,
-                      c: AppColors.textSecondary)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Bottom sheet for cert picker ─────────────────────────────────
-void _showCertPickerSheet(
-    BuildContext context, WorkerRegController ctrl) {
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius:
-      BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (_) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimens.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Upload Certificate',
-                style: KTextStyle.poppins(
-                    fs: 14, fw: FontWeight.w600)),
-            const SizedBox(height: AppDimens.md),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined,
-                  color: AppColors.primary),
-              title: Text('Camera se photo lo',
-                  style: KTextStyle.poppins(fs: 13)),
-              onTap: () {
-                Navigator.pop(context);
-                ctrl.pickExperienceCert(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined,
-                  color: AppColors.primary),
-              title: Text('Gallery se image chuno',
-                  style: KTextStyle.poppins(fs: 13)),
-              onTap: () {
-                Navigator.pop(context);
-                ctrl.pickExperienceCert(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined,
-                  color: Colors.red),
-              title: Text('PDF file upload karo',
-                  style: KTextStyle.poppins(fs: 13)),
-              onTap: () {
-                Navigator.pop(context);
-                ctrl.pickExperienceCert(null);
-              },
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 // ── Upload tap box (empty state) ─────────────────────────────────
@@ -1932,90 +1783,6 @@ class _UploadTapBox extends StatelessWidget {
   }
 }
 
-// ── Work photo thumbnail ─────────────────────────────────────────
-class _PhotoThumb extends StatelessWidget {
-  final File file;
-  final VoidCallback onRemove;
-
-  const _PhotoThumb({required this.file, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    const size = 80.0;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius:
-            BorderRadius.circular(AppDimens.radiusSm),
-            child: Image.file(file,
-                width: size, height: size, fit: BoxFit.cover),
-          ),
-          Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: onRemove,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.close_rounded,
-                    color: Colors.white, size: 13),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Add photo button ─────────────────────────────────────────────
-class _AddPhotoBox extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _AddPhotoBox({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.04),
-          borderRadius:
-          BorderRadius.circular(AppDimens.radiusSm),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.3),
-            width: 1.2,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_photo_alternate_outlined,
-                color: AppColors.primary.withOpacity(0.7),
-                size: 24),
-            const SizedBox(height: 4),
-            Text('Add',
-                style: KTextStyle.poppins(
-                    fs: 10, c: AppColors.textHint)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── Small pill button (change / remove overlay) ──────────────────
 class _ActionPill extends StatelessWidget {
   final IconData icon;
@@ -2060,8 +1827,33 @@ class _ActionPill extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════
 //  PROFILE PENDING VIEW
 // ═══════════════════════════════════════════════════════════════════
-class ProfilePendingView extends StatelessWidget {
+class ProfilePendingView extends StatefulWidget {
   const ProfilePendingView({super.key});
+
+  @override
+  State<ProfilePendingView> createState() => _ProfilePendingViewState();
+}
+
+class _ProfilePendingViewState extends State<ProfilePendingView> {
+  Timer? _autoRedirectTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto move to dashboard after 3 seconds
+    _autoRedirectTimer = Timer(const Duration(seconds: 3), _goToHome);
+  }
+
+  @override
+  void dispose() {
+    _autoRedirectTimer?.cancel();
+    super.dispose();
+  }
+
+  void _goToHome() {
+    _autoRedirectTimer?.cancel();
+    Get.offAllNamed(AppRoutes.workerHome);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2128,22 +1920,19 @@ class ProfilePendingView extends StatelessWidget {
                     _PendingStep(
                       icon: Icons.check_circle_rounded,
                       iconColor: AppColors.success,
-                      label:
-                      'Profile submitted / प्रोफाइल जमा हो गई',
+                      label: 'pending_step_profile_submitted'.tr,
                       isDone: true,
                     ),
                     _PendingStep(
                       icon: Icons.sync_rounded,
                       iconColor: AppColors.primary,
-                      label:
-                      'Admin reviewing documents / दस्तावेज़ जाँचे जा रहे हैं',
+                      label: 'pending_step_admin_reviewing'.tr,
                       isCurrent: true,
                     ),
                     _PendingStep(
                       icon: Icons.notifications_outlined,
                       iconColor: AppColors.textHint,
-                      label:
-                      "You'll get a notification when approved / मंज़ूरी पर सूचना मिलेगी",
+                      label: 'pending_step_notification_approved'.tr,
                     ),
                   ],
                 ),
@@ -2154,7 +1943,7 @@ class ProfilePendingView extends StatelessWidget {
               CustomButton(
                 label: AppStrings.GoToHome,
                 isOutlined: true,
-                onTap: () => Get.offAllNamed(AppRoutes.workerHome),
+                onTap: _goToHome,
               ),
               const SizedBox(height: AppDimens.lg),
             ],
@@ -2207,4 +1996,51 @@ class _PendingStep extends StatelessWidget {
       ),
     );
   }
+}
+// ── Certificate source picker ───────────────────────────────────────
+// Certificate PDF bhi ho sakta hai aur photo bhi, isliye teeno option
+// ek sheet me — camera, gallery, PDF.
+void _showCertPickerSheet(BuildContext context, WorkerRegController ctrl) {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.camera_alt_outlined,
+                color: AppColors.primary),
+            title: Text('camera_label'.tr, style: KTextStyle.poppins(fs: 14)),
+            onTap: () {
+              Get.back();
+              ctrl.pickExperienceCert(ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined,
+                color: AppColors.primary),
+            title: Text('gallery_label'.tr, style: KTextStyle.poppins(fs: 14)),
+            onTap: () {
+              Get.back();
+              ctrl.pickExperienceCert(ImageSource.gallery);
+            },
+          ),
+          ListTile(
+            leading:
+                const Icon(Icons.picture_as_pdf_outlined, color: Colors.red),
+            title: Text('pdf_label'.tr, style: KTextStyle.poppins(fs: 14)),
+            onTap: () {
+              Get.back();
+              ctrl.pickExperienceCert(null);
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
 }

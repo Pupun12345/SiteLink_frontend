@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/community_feed_models.dart';
+import '../../../../core/theme/post_image_gallery.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../worker/presentation/controllers/worker_feed_controller.dart';
+import '../../../worker/presentation/views/comments_sheet.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  MY POST CARD — "My Posts" (profile screens) ke liye shared widget
@@ -45,13 +48,13 @@ class MyPostCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    post.posterName ?? 'You',
+                    post.posterName ?? 'you_label'.tr,
                     style: KTextStyle.poppins(fs: 12.5, fw: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (post.feeling != null && post.feeling!.isNotEmpty)
-                    Text('😊 Feeling ${post.feeling}',
+                    Text('${'feeling_prefix_emoji'.tr} ${post.feeling}',
                         style: KTextStyle.poppins(
                             fs: 10, c: AppColors.textHint)),
                 ],
@@ -83,46 +86,16 @@ class MyPostCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
 
-          // ── First image preview ───────────────────────────────
+          // ── Images — adaptive grid, tap kisi bhi image pe = swipeable
+          // fullscreen gallery (sab photos dekhi ja sakti hain) ──────
           if (hasImage) ...[
             const SizedBox(height: 8),
-            Stack(children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                child: Image.network(
-                  WorkerFeedController.fullUrl(post.images!.first),
-                  width: double.infinity,
-                  height: 150,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius:
-                            BorderRadius.circular(AppDimens.radiusMd)),
-                    child: Icon(Icons.image_outlined,
-                        color: Colors.grey.shade400, size: 32),
-                  ),
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+              child: PostImagesDisplay(
+                urls: post.images!.map(WorkerFeedController.fullUrl).toList(),
               ),
-              // "+N more" badge for multiple images
-              if (post.images!.length > 1)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Text(
-                      '+${post.images!.length - 1} more',
-                      style: KTextStyle.poppins(fs: 10, c: Colors.white),
-                    ),
-                  ),
-                ),
-            ]),
+            ),
           ],
 
           // ── Video badge ───────────────────────────────────────
@@ -140,7 +113,7 @@ class MyPostCard extends StatelessWidget {
                   const Icon(Icons.play_circle_fill_rounded,
                       color: Colors.white, size: 28),
                   const SizedBox(width: 8),
-                  Text('Video',
+                  Text('video_label'.tr,
                       style: KTextStyle.poppins(fs: 12, c: Colors.white)),
                 ],
               ),
@@ -165,11 +138,37 @@ class MyPostCard extends StatelessWidget {
             Text('${post.likesCount ?? 0}',
                 style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
             const SizedBox(width: 12),
-            const Icon(Icons.chat_bubble_outline_rounded,
-                size: 14, color: AppColors.textHint),
-            const SizedBox(width: 4),
-            Text('${post.commentsCount ?? 0}',
-                style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
+            // Comments tappable — apni post par kisne kya likha, ye
+            // dekhne ka koi rasta hi nahi tha; sirf ginti dikhti thi.
+            // Wahi sheet jo feed use karti hai, isliye reply/edit/delete
+            // sab pehle se kaam karta hai.
+            InkWell(
+              onTap: () => CommentsSheet.open(context, post.id ?? ''),
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: Row(children: [
+                  Icon(
+                      (post.commentsCount ?? 0) > 0
+                          ? Icons.chat_bubble_rounded
+                          : Icons.chat_bubble_outline_rounded,
+                      size: 14,
+                      color: (post.commentsCount ?? 0) > 0
+                          ? AppColors.primary
+                          : AppColors.textHint),
+                  const SizedBox(width: 4),
+                  Text('${post.commentsCount ?? 0}',
+                      style: KTextStyle.poppins(
+                          fs: 11,
+                          fw: (post.commentsCount ?? 0) > 0
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          c: (post.commentsCount ?? 0) > 0
+                              ? AppColors.primary
+                              : AppColors.textHint)),
+                ]),
+              ),
+            ),
             const Spacer(),
             Text(_timeAgo(post.createdAt ?? DateTime.now()),
                 style: KTextStyle.poppins(fs: 10, c: AppColors.textHint)),
@@ -218,8 +217,9 @@ class PostApprovalChip extends StatelessWidget {
     final color = isApproved
         ? AppColors.success
         : (isRejected ? AppColors.error : Colors.amber.shade700);
-    final label =
-        isApproved ? 'Approved' : (isRejected ? 'Rejected' : 'Pending');
+    final label = isApproved
+        ? 'approved_label'.tr
+        : (isRejected ? 'status_rejected'.tr : 'pending'.tr);
     final icon = isApproved
         ? Icons.check_circle_rounded
         : (isRejected ? Icons.cancel_rounded : Icons.hourglass_top_rounded);

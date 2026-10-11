@@ -11,13 +11,13 @@ import '../../../../core/services/session_service.dart';
 import '../../../../core/models/worker_models.dart';
 import '../../../../core/theme/app_snackbar.dart';
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/utils/image_pick.dart';
 
 class WorkerRegController extends GetxController {
   final _picker = ImagePicker();
   final _skillsApi = SkillsApiService();
   final _locationApi = LocationApiService();
   final _workerApi = WorkerApiService();
-  final _documentApi = DocumentUploadService();
 
   // ── API Data ──────────────────────────────────────────
   final allSkills = <SkillModel>[].obs;
@@ -53,10 +53,10 @@ class WorkerRegController extends GetxController {
       if (response.success && response.data.isNotEmpty) {
         allSkills.value = response.data;
       } else {
-        AppSnackbar.error(message: 'Failed to load skills');
+        AppSnackbar.error(message: 'load_skills_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar.error(message: 'Error loading skills: $e');
+      AppSnackbar.error(message: 'load_skills_error'.trParams({'error': '$e'}));
     } finally {
       isLoadingSkills.value = false;
     }
@@ -70,10 +70,10 @@ class WorkerRegController extends GetxController {
       if (response.success && response.data.isNotEmpty) {
         allStates.value = response.data;
       } else {
-        AppSnackbar.error(message: 'Failed to load states');
+        AppSnackbar.error(message: 'load_states_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar.error(message: 'Error loading states: $e');
+      AppSnackbar.error(message: 'load_states_error'.trParams({'error': '$e'}));
     } finally {
       isLoadingStates.value = false;
     }
@@ -92,14 +92,32 @@ class WorkerRegController extends GetxController {
         allCities.clear();
       }
     } catch (e) {
-      AppSnackbar.error(message: 'Error loading cities: $e');
+      AppSnackbar.error(message: 'load_cities_error'.trParams({'error': '$e'}));
     } finally {
       isLoadingCities.value = false;
     }
   }
 
   // Step 1
+  /// Worker ki apni photo (chehra). Optional hai, par registration me hi
+  /// maang lete hain — baad me Edit Profile se daalna zyadatar kabhi hota
+  /// hi nahi, aur vendor ko applicant list me chehra dikhna chahiye.
+  final profilePhoto = Rxn<File>();
+
+  Future<void> pickProfilePhoto(ImageSource source) async {
+    try {
+      // Photo preset — avatar chhota dikhta hai, zyada compress theek hai.
+      final picked = await pickPhotoImage(_picker, source);
+      if (picked != null) profilePhoto.value = File(picked.path);
+    } catch (_) {
+      AppSnackbar.error(message: 'image_pick_failed'.tr);
+    }
+  }
+
+  void removeProfilePhoto() => profilePhoto.value = null;
+
   final nameCtrl       = TextEditingController();
+  final nomineeCtrl    = TextEditingController();
   final dobCtrl        = TextEditingController();
   final cityCtrl       = TextEditingController();
   final gender         = 'Male'.obs;
@@ -143,50 +161,55 @@ class WorkerRegController extends GetxController {
   final idProofUploaded = false.obs;             // true after successful upload
   final isUploadingId   = false.obs;
 
-  final workPhotos      = <File>[].obs;          // list of work photo files
-  final isUploadingPhoto = false.obs;
-
   // Pick ID proof from camera or gallery
   Future<void> pickIdProof(ImageSource source) async {
     try {
-      final picked = await _picker.pickImage(
-        source: source,
-        imageQuality: 85,
-        maxWidth: 1200,
-      );
+      // Document preset — admin ko ID par text padhna hota hai.
+      final picked = await pickDocumentImage(_picker, source);
       if (picked == null) return;
       idProofFile.value = File(picked.path);
       idProofUploaded.value = false; // reset if re-picked
     } catch (e) {
-      AppSnackbar.error(message: 'Could not pick image. Please try again.');
+      AppSnackbar.error(message: 'image_pick_retry_error'.tr);
     }
   }
 
-  // Experience certificate — PDF ya image ho sakta hai
-  final experienceCertFile = Rxn<File>();
-  final experienceCertType = ''.obs; // 'pdf' ya 'image'
+  // ── Experience certificates (multiple) ──────────────────────────
+  // Worker alag-alag company/skill ke ek se zyada certificate laga
+  // sakta hai. Har ek PDF ya image ho sakta hai.
+  static const maxExperienceCerts = 5; // backend multer bhi 5 par capped hai
 
-  void removeExperienceCert() {
-    experienceCertFile.value = null;
-    experienceCertType.value = '';
+  final experienceCerts = <File>[].obs;
+
+  /// Kya file PDF hai? (thumbnail ki jagah PDF chip dikhane ke liye)
+  bool isPdf(File f) => f.path.toLowerCase().endsWith('.pdf');
+
+  void removeExperienceCert(int index) {
+    if (index >= 0 && index < experienceCerts.length) {
+      experienceCerts.removeAt(index);
+    }
   }
+
+  /// `source == null` → PDF picker, warna camera/gallery se image.
   Future<void> pickExperienceCert(ImageSource? source) async {
+    if (experienceCerts.length >= maxExperienceCerts) {
+      AppSnackbar.warning(
+          message: 'max_certificates_error'
+              .trParams({'count': '$maxExperienceCerts'}));
+      return;
+    }
     if (source == null) {
-      // ✅ Sahi — instance method
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
       if (result != null && result.files.single.path != null) {
-        experienceCertFile.value = File(result.files.single.path!);
-        experienceCertType.value = 'pdf';
+        experienceCerts.add(File(result.files.single.path!));
       }
     } else {
-      final picked = await _picker.pickImage(source: source, imageQuality: 85);
-      if (picked != null) {
-        experienceCertFile.value = File(picked.path);
-        experienceCertType.value = 'image';
-      }
+      // Document preset — certificate ka text padhne layak rehna chahiye.
+      final picked = await pickDocumentImage(_picker, source);
+      if (picked != null) experienceCerts.add(File(picked.path));
     }
   }
 
@@ -194,30 +217,6 @@ class WorkerRegController extends GetxController {
   void removeIdProof() {
     idProofFile.value = null;
     idProofUploaded.value = false;
-  }
-
-  // Pick a work photo
-  Future<void> pickWorkPhoto(ImageSource source) async {
-    try {
-      final picked = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-        maxWidth: 1200,
-      );
-      if (picked == null) return;
-      if (workPhotos.length >= 6) {
-        AppSnackbar.warning(message: 'You can upload up to 6 work photos.');
-        return;
-      }
-      workPhotos.add(File(picked.path));
-    } catch (e) {
-      AppSnackbar.error(message: 'Could not pick image.');
-    }
-  }
-
-  // Remove a work photo by index
-  void removeWorkPhoto(int index) {
-    if (index < workPhotos.length) workPhotos.removeAt(index);
   }
 
   // Show bottom sheet to choose Camera or Gallery
@@ -247,7 +246,7 @@ class WorkerRegController extends GetxController {
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Camera'),
+                title: Text('camera_label'.tr),
                 onTap: () {
                   Get.back();
                   onSelect(ImageSource.camera);
@@ -255,7 +254,7 @@ class WorkerRegController extends GetxController {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Gallery'),
+                title: Text('gallery_label'.tr),
                 onTap: () {
                   Get.back();
                   onSelect(ImageSource.gallery);
@@ -269,34 +268,54 @@ class WorkerRegController extends GetxController {
   }
 
   // Step 3 navigation
+  /// Step 1 ka Next. Pehle bina check ke aage chala jaata tha, aur
+  /// khaali naam ka pata chauthe step par submit karte waqt chalta tha.
+  void submitStep1() {
+    if (nameCtrl.text.trim().isEmpty) {
+      AppSnackbar.error(message: 'enter_name_error'.tr);
+      return;
+    }
+    if (nomineeCtrl.text.trim().isEmpty) {
+      AppSnackbar.error(message: 'enter_nominee_error'.tr);
+      return;
+    }
+    Get.toNamed(AppRoutes.workerReg2);
+  }
+
   void submitStep3() => Get.toNamed(AppRoutes.documentUpload);
 
   // ── Submit Entire Profile to API ──────────────────────
   Future<void> submitWorkerProfile() async {
+    if (isSubmitting.value) return; // double-submit guard
+
     // Validate required fields
     if (nameCtrl.text.isEmpty) {
-      AppSnackbar.error(message: 'Please enter your name');
+      AppSnackbar.error(message: 'enter_name_error'.tr);
+      return;
+    }
+    if (nomineeCtrl.text.trim().isEmpty) {
+      AppSnackbar.error(message: 'enter_nominee_error'.tr);
       return;
     }
     if (dobCtrl.text.isEmpty) {
-      AppSnackbar.error(message: 'Please select your date of birth');
+      AppSnackbar.error(message: 'select_dob_error'.tr);
       return;
     }
 
     if (selectedPrimarySkillId.value == null) {
-      AppSnackbar.error(message: 'Please select your primary skill');
+      AppSnackbar.error(message: 'select_primary_skill_error'.tr);
       return;
     }
     if (selectedState.value == null) {
-      AppSnackbar.error(message: 'Please select your work state');
+      AppSnackbar.error(message: 'select_work_state_error'.tr);
       return;
     }
     if (selectedCity.value == null) {
-      AppSnackbar.error(message: 'Please select your city');
+      AppSnackbar.error(message: 'select_city_error'.tr);
       return;
     }
     if (salaryCtrl.text.isEmpty) {
-      AppSnackbar.error(message: 'Please enter your expected salary');
+      AppSnackbar.error(message: 'enter_expected_salary_error'.tr);
       return;
     }
 
@@ -318,15 +337,14 @@ class WorkerRegController extends GetxController {
         workStateId: selectedState.value?.id,
         workCityId: selectedCity.value?.id,
         cityName: selectedCity.value?.name,
+        nomineeName: nomineeCtrl.text.trim(),
       );
 
       // Debug logging — pretty print request and files
       final requestMap = request.toJson();
       final filesInfo = {
-        'profileImage': workPhotos.isNotEmpty ? workPhotos.first.path : null,
-        'workSamplesPhoto': workPhotos.length,
         'governmentID': idProofFile.value?.path,
-        'experienceCertificate': experienceCertFile.value?.path,
+        'experienceCertificate': experienceCerts.length,
       };
 
       print('🚀 ===== SUBMIT WORKER PROFILE REQUEST =====');
@@ -336,120 +354,43 @@ class WorkerRegController extends GetxController {
       print('📦 =======================================');
 
       // Submit to API with files (multiple work photos supported)
+      //
+      // `profileImage` ab apne dedicated picker se aata hai (Step 1).
       final response = await _workerApi.createWorkerProfile(
         request,
-        profileImage: workPhotos.isNotEmpty ? workPhotos.first : null,
-        workSamplesPhotos: workPhotos.isNotEmpty ? workPhotos.toList() : null,
-        experienceCertificate: experienceCertFile.value,
+        profileImage: profilePhoto.value,
+        experienceCertificates: experienceCerts.toList(),
         governmentID: idProofFile.value,
       );
 
       if (response.success) {
         // userType persist karo taaki dobara registration na maange
         await SessionService.to.setUserType('worker');
-        AppSnackbar.success(message: response.message ?? 'Profile created successfully');
+        // Navigate pehle, snackbar baad me — snackbar GetX me ek route
+        // hai, isliye pehle dikhane par wo navigation ke saath hi gayab
+        // ho jaata tha aur user ko confirmation kabhi dikhta hi nahi tha.
         Get.offNamed(AppRoutes.profilePending);
+        AppSnackbar.success(message: response.message ?? 'profile_created_success'.tr);
       } else {
-        AppSnackbar.error(message: response.message ?? 'Failed to create profile');
+        AppSnackbar.error(message: response.message ?? 'profile_create_failed'.tr);
       }
     } catch (e) {
-      AppSnackbar.error(message: 'Error: Unable to create profile');
+      AppSnackbar.error(message: 'profile_create_error_generic'.tr);
     } finally {
       isSubmitting.value = false;
     }
   }
 
-  // ── Upload ID Proof ───────────────────────────────────
-  Future<void> _uploadIdProof() async {
-    if (idProofFile.value == null) return;
+  // ID proof ka alag upload step hata diya gaya — `governmentID` seedha
+  // createWorkerProfile ke saath jaata hai (upar submit me). Yahan ek
+  // `_uploadIdProof()` pada tha jise koi call hi nahi karta tha.
 
-    isUploadingId.value = true;
-    try {
-      final response = await _documentApi.uploadIdProof(idProofFile.value!);
-      if (response.success) {
-        idProofUploaded.value = true;
-        AppSnackbar.success(message: 'ID proof uploaded successfully');
-      } else {
-        AppSnackbar.error(
-            message: response.message ?? 'Failed to upload ID proof');
-      }
-    } catch (e) {
-      AppSnackbar.error(message: 'Error uploading ID proof: $e');
-    } finally {
-      isUploadingId.value = false;
-    }
-  }
 
-  // ── Upload Work Photos ────────────────────────────────
-  Future<void> uploadWorkPhotos() async {
-    if (workPhotos.isEmpty) {
-      AppSnackbar.warning(message: 'Please select at least one work photo');
-      return;
-    }
-
-    isUploadingPhoto.value = true;
-    try {
-      int successCount = 0;
-      for (final photo in workPhotos) {
-        final response = await _documentApi.uploadWorkPhoto(photo);
-        if (response.success) {
-          successCount++;
-        }
-      }
-
-      if (successCount == workPhotos.length) {
-        AppSnackbar.success(
-            message: 'All work photos uploaded successfully');
-      } else {
-        AppSnackbar.warning(
-            message: '$successCount of ${workPhotos.length} photos uploaded');
-      }
-    } catch (e) {
-      AppSnackbar.error(message: 'Error uploading photos: $e');
-    } finally {
-      isUploadingPhoto.value = false;
-    }
-  }
-
-  // ── Upload Experience Certificate ─────────────────────
-  Future<void> uploadExperienceCert() async {
-    if (experienceCertFile.value == null) {
-      AppSnackbar.warning(message: 'Please select a certificate file');
-      return;
-    }
-
-    isUploadingPhoto.value = true;
-    try {
-      final response =
-          await _documentApi.uploadExperienceCert(experienceCertFile.value!);
-      if (response.success) {
-        AppSnackbar.success(
-            message: 'Experience certificate uploaded successfully');
-      } else {
-        AppSnackbar.error(
-            message: response.message ?? 'Failed to upload certificate');
-      }
-    } catch (e) {
-      AppSnackbar.error(message: 'Error uploading certificate: $e');
-    } finally {
-      isUploadingPhoto.value = false;
-    }
-  }
-
-  Future<void> submitDocuments() async {
-    // Validate required documents
-    if (idProofFile.value == null) {
-      AppSnackbar.warning(message: 'Please upload your government ID proof.');
-      return;
-    }
-
-    // Call submitWorkerProfile which sends profile + all files
-    await submitWorkerProfile();
-  }
 
   @override
   void onClose() {
     nameCtrl.dispose();
+    nomineeCtrl.dispose();
     dobCtrl.dispose();
     cityCtrl.dispose();
     expDescCtrl.dispose();

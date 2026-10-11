@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,14 +9,20 @@ import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/custom_cirular_indicator.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/services/post_share_service.dart';
 import '../../../../core/services/video_compress_service.dart';
+import '../../../../core/theme/post_image_gallery.dart';
+import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../../core/theme/video_preview_player.dart';
 import '../controllers/worker_feed_controller.dart';
 import '../../../../core/models/community_feed_models.dart';
+import '../../../shared/presentation/controllers/notifications_controller.dart';
+import '../../../../core/theme/app_snackbar.dart';
 import 'comments_sheet.dart';
 import 'worker_plans_view.dart';
 
@@ -122,16 +127,20 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
             ),
             Positioned(
               right: 10, top: 10,
-              child: Container(
-                width: 15, height: 15,
-                decoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle),
-                child: Center(
-                  child: Text('1',
-                      style: KTextStyle.poppins(
-                          fs: 8, fw: FontWeight.bold, c: Colors.white)),
-                ),
-              ),
+              child: Obx(() {
+                final count = NotificationsController.to.unreadCount.value;
+                if (count <= 0) return const SizedBox.shrink();
+                return Container(
+                  width: 15, height: 15,
+                  decoration: const BoxDecoration(
+                      color: AppColors.primary, shape: BoxShape.circle),
+                  child: Center(
+                    child: Text(count > 9 ? '9+' : '$count',
+                        style: KTextStyle.poppins(
+                            fs: 8, fw: FontWeight.bold, c: Colors.white)),
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -172,7 +181,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
               style: KTextStyle.poppins(fs: 13, c: AppColors.textPrimary),
               onChanged: (v) => _searchQuery.value = v,
               decoration: InputDecoration(
-                hintText: 'Search posts, workers, companies...',
+                hintText: 'search_posts_hint'.tr,
                 hintStyle:
                 KTextStyle.poppins(fs: 13, c: AppColors.textHint),
                 prefixIcon: Icon(
@@ -193,7 +202,11 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                       size: 18, color: AppColors.textHint),
                 )
                     : const SizedBox.shrink()),
+                filled: false,
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
                 contentPadding:
                 const EdgeInsets.symmetric(vertical: 11),
               ),
@@ -222,7 +235,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('Community Feed',
+                Text('community_feed_label'.tr,
                     style: KTextStyle.poppins(
                         fs: 13,
                         fw: FontWeight.w600,
@@ -245,7 +258,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                     const Icon(Icons.edit_outlined,
                         size: 13, color: Colors.white),
                     const SizedBox(width: 5),
-                    Text('Post',
+                    Text('post_button_label'.tr,
                         style: KTextStyle.poppins(
                             fs: 12,
                             fw: FontWeight.w600,
@@ -306,7 +319,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
             }
 
             final post = filtered[index];
-            return _FeedPostCard(
+            return FeedPostCard(
               post: post,
               isLikedByMe: feedCtrl.isLikedByMe(post),
               onLike: () => feedCtrl.toggleLike(post.id),
@@ -344,12 +357,13 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
 // ═══════════════════════════════════════════════════════════════════
 //  FEED POST CARD  —  CommunityFeedModel
 // ═══════════════════════════════════════════════════════════════════
-class _FeedPostCard extends StatelessWidget {
+class FeedPostCard extends StatelessWidget {
   final CommunityFeedModel post;
   final bool isLikedByMe;
   final VoidCallback onLike;
 
-  const _FeedPostCard({
+  const FeedPostCard({
+    super.key,
     required this.post,
     required this.isLikedByMe,
     required this.onLike,
@@ -360,6 +374,15 @@ class _FeedPostCard extends StatelessWidget {
     final isVendor   = post.posterType == 'vendor';
     final isAdmin    = post.posterType == 'admin';
     final isVerified = post.verification == 'verified';
+
+    // Vendor ki pehchaan uski company hai, uska personal naam nahi —
+    // isliye vendor par heading me company name aata hai. Company name
+    // na ho (profile adhoora / purani post) to naam par fallback, warna
+    // heading khaali reh jaati.
+    final company = post.companyName?.trim() ?? '';
+    final headingName = (isVendor && company.isNotEmpty)
+        ? company
+        : (post.posterName ?? 'unknown_label'.tr);
 
     return Container(
       color: AppColors.surface,
@@ -374,7 +397,10 @@ class _FeedPostCard extends StatelessWidget {
               children: [
                 _PostAvatar(
                   imageUrl: WorkerFeedController.fullUrl(post.posterImage),
-                  name: post.posterName ?? '',
+                  // Heading wahi naam — warna photo na hone par initials
+                  // heading se match nahi karte ("ABC Constructions" ke
+                  // saath "YS" dikhta tha).
+                  name: headingName,
                   size: 42,
                 ),
                 const SizedBox(width: 10),
@@ -382,11 +408,11 @@ class _FeedPostCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Name + verified tick
+                      // Vendor → company name, warna poster ka naam
                       Row(children: [
                         Flexible(
                           child: Text(
-                            post.posterName ?? 'Unknown',
+                            headingName,
                             style: KTextStyle.poppins(
                                 fs: 13, fw: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
@@ -394,28 +420,27 @@ class _FeedPostCard extends StatelessWidget {
                         ),
                         if (isVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded,
-                              size: 14, color: AppColors.primary),
+                          const VerifiedBadge(size: 14),
                         ],
-                      ]),
-                      const SizedBox(height: 3),
-                      // Role badge + company
-                      Row(children: [
-                        _RoleBadge(
-                            isVendor: isVendor, isAdmin: isAdmin),
-                        if (post.companyName != null &&
-                            post.companyName!.isNotEmpty) ...[
+                        // Worker par rating — wahi jagah jahan vendor ka
+                        // verified badge aata hai. Backend vendor/admin ke
+                        // liye null bhejta hai, isliye unpar kuch nahi.
+                        if (post.posterRating != null) ...[
                           const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              '· ${post.companyName}',
-                              style: KTextStyle.poppins(
-                                  fs: 11, c: AppColors.textHint),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                          RatingBadge(
+                            rating: post.posterRating,
+                            compact: true,
                           ),
                         ],
                       ]),
+                      const SizedBox(height: 3),
+                      // Vendor → "Vendor", admin → "Admin",
+                      // worker → uska primary skill.
+                      _PosterBadge(
+                        isVendor: isVendor,
+                        isAdmin: isAdmin,
+                        designation: post.posterDesignation,
+                      ),
                     ],
                   ),
                 ),
@@ -454,7 +479,9 @@ class _FeedPostCard extends StatelessWidget {
           // ── Images ────────────────────────────────────────────
           if (post.images != null && post.images!.isNotEmpty) ...[
             const SizedBox(height: 10),
-            _PostImagesDisplay(images: post.images!),
+            PostImagesDisplay(
+              urls: post.images!.map(WorkerFeedController.fullUrl).toList(),
+            ),
           ],
 
           // ── Video ─────────────────────────────────────────────
@@ -483,7 +510,8 @@ class _FeedPostCard extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
                 if ((post.commentsCount ?? 0) > 0)
-                  Text('${post.commentsCount} comments',
+                  Text('comments_count_suffix'
+                      .trParams({'count': '${post.commentsCount}'}),
                       style: KTextStyle.poppins(
                           fs: 11, c: AppColors.textHint)),
               ]),
@@ -499,7 +527,7 @@ class _FeedPostCard extends StatelessWidget {
                 icon: isLikedByMe
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
-                label: isLikedByMe ? 'Liked' : 'Like',
+                label: isLikedByMe ? 'liked_label'.tr : 'like_label'.tr,
                 color: isLikedByMe
                     ? AppColors.primary
                     : AppColors.textHint,
@@ -507,15 +535,15 @@ class _FeedPostCard extends StatelessWidget {
               ),
               _ActionButton(
                 icon: Icons.chat_bubble_outline_rounded,
-                label: 'Comment',
+                label: 'comment_label'.tr,
                 color: AppColors.textHint,
                 onTap: () => CommentsSheet.open(context, post.id ?? ''),
               ),
               _ActionButton(
                 icon: Icons.share_outlined,
-                label: 'Share',
+                label: 'share_label'.tr,
                 color: AppColors.textHint,
-                onTap: () {},
+                onTap: () => sharePost(context, post),
               ),
             ]),
           ),
@@ -531,7 +559,7 @@ class _FeedPostCard extends StatelessWidget {
 
   String _timeAgo(DateTime dt) {
     final d = DateTime.now().difference(dt);
-    if (d.inMinutes < 1)  return 'Just now';
+    if (d.inMinutes < 1)  return 'just_now_label'.tr;
     if (d.inMinutes < 60) return '${d.inMinutes}m';
     if (d.inHours   < 24) return '${d.inHours}h';
     if (d.inDays    < 7)  return '${d.inDays}d';
@@ -582,11 +610,32 @@ class _PostAvatar extends StatelessWidget {
   }
 }
 
-// ── Role badge ────────────────────────────────────────────────────
-class _RoleBadge extends StatelessWidget {
+// ── Poster badge ──────────────────────────────────────────────────
+// Name ke neeche wali chhoti pill. 'Vendor'/'Worker' likhna bekaar hai —
+// wo user ko kuch naya nahi batata. Isliye:
+//   vendor → sirf company name
+//   worker → designation / primary skill
+//   admin  → 'Admin' (uska koi company/skill hota hi nahi)
+class _PosterBadge extends StatelessWidget {
   final bool isVendor;
   final bool isAdmin;
-  const _RoleBadge({required this.isVendor, required this.isAdmin});
+
+  /// Sirf worker ka primary skill. Vendor/admin ke liye badge me role hi
+  /// jaata hai, isliye unke liye ye use nahi hota.
+  final String? designation;
+
+  const _PosterBadge({
+    required this.isVendor,
+    required this.isAdmin,
+    this.designation,
+  });
+
+  /// Khaali/whitespace ko null jaisa treat karo — backend se `""` bhi
+  /// aa sakta hai aur wo badge ko khaali dabba bana deta.
+  static String? _clean(String? v) {
+    final t = v?.trim() ?? '';
+    return t.isEmpty ? null : t;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -600,16 +649,37 @@ class _RoleBadge extends StatelessWidget {
         : isVendor
         ? AppColors.primary
         : Colors.green.shade700;
-    final String label =
-    isAdmin ? 'Admin' : isVendor ? 'Vendor' : 'Worker';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(4)),
-      child: Text(label,
-          style: KTextStyle.poppins(
-              fs: 10, fw: FontWeight.w600, c: text)),
+    final String role =
+    isAdmin ? 'admin_label'.tr : isVendor ? AppStrings.Vendor : AppStrings.Worker;
+
+    // Vendor aur admin par sirf role — "Vendor" / "Admin". Pehle vendor ke
+    // liye company name (ya designation) dikhta tha, jisse feed me har
+    // vendor ka badge alag-alag text dikhata tha aur "ye vendor hai" baat
+    // hi kho jaati thi. Company name upar name ke saath already hai.
+    //
+    // Worker par pehle jaisa hi — uska primary skill, na mile to "Worker".
+    final String label = (isAdmin || isVendor)
+        ? role
+        : (_clean(designation) ?? role);
+
+    // Company name / designation lamba ho sakta hai ("ABC Constructions
+    // Pvt Ltd") — card ke bahar na nikle, isliye Align + cap + ellipsis.
+    // Align isliye ki pill sirf apne text jitni chaudi rahe, poori row
+    // na ghere.
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        constraints: const BoxConstraints(maxWidth: 200),
+        decoration: BoxDecoration(
+            color: bg, borderRadius: BorderRadius.circular(4)),
+        child: Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: KTextStyle.poppins(
+                fs: 10, fw: FontWeight.w600, c: text)),
+      ),
     );
   }
 }
@@ -634,307 +704,6 @@ class _FeelingBadge extends StatelessWidget {
       ]),
     );
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  POST IMAGES DISPLAY — adaptive single + 2 / 3+ grid, tap = gallery
-// ═══════════════════════════════════════════════════════════════════
-// Single image apne REAL aspect-ratio me dikhti hai (vertical lambi,
-// horizontal wide). Extreme sizes pe blur background + poori image.
-class _PostImagesDisplay extends StatelessWidget {
-  final List<String> images;
-  const _PostImagesDisplay({required this.images});
-
-  @override
-  Widget build(BuildContext context) {
-    final urls  = images.map(WorkerFeedController.fullUrl).toList();
-    final count = urls.length;
-
-    if (count == 1) {
-      return _AdaptiveNetImg(
-        url: urls[0],
-        onTap: () => _openImageGallery(urls, 0),
-      );
-    }
-
-    if (count == 2) {
-      return Row(children: [
-        Expanded(
-            child: GestureDetector(
-                onTap: () => _openImageGallery(urls, 0),
-                child: _NetImg(url: urls[0], height: 200))),
-        const SizedBox(width: 2),
-        Expanded(
-            child: GestureDetector(
-                onTap: () => _openImageGallery(urls, 1),
-                child: _NetImg(url: urls[1], height: 200))),
-      ]);
-    }
-
-    return Column(children: [
-      GestureDetector(
-        onTap: () => _openImageGallery(urls, 0),
-        child: _NetImg(url: urls[0], height: 210, width: double.infinity),
-      ),
-      const SizedBox(height: 2),
-      Row(children: [
-        for (int i = 1; i < count && i < 4; i++) ...[
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _openImageGallery(urls, i),
-              child: Stack(children: [
-                _NetImg(url: urls[i], height: 110),
-                if (i == 3 && count > 4)
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      child: Center(
-                        child: Text('+${count - 3}',
-                            style: KTextStyle.poppins(
-                                fs: 16,
-                                fw: FontWeight.bold,
-                                c: Colors.white)),
-                      ),
-                    ),
-                  ),
-              ]),
-            ),
-          ),
-          if (i < count - 1 && i < 3) const SizedBox(width: 2),
-        ],
-      ]),
-    ]);
-  }
-}
-
-// ── Adaptive single image — real aspect ratio ke hisaab se ─────────
-// AR caps (Instagram jaise): landscape max 1.91:1, portrait max 4:5.
-// Caps ke bahar wali image crop NAHI hoti — blur bg + poori image (contain).
-class _AdaptiveNetImg extends StatefulWidget {
-  final String url;
-  final VoidCallback? onTap;
-  const _AdaptiveNetImg({required this.url, this.onTap});
-
-  @override
-  State<_AdaptiveNetImg> createState() => _AdaptiveNetImgState();
-}
-
-class _AdaptiveNetImgState extends State<_AdaptiveNetImg> {
-  static const double _maxLandscapeAr = 1.91; // 1.91:1
-  static const double _maxPortraitAr  = 0.75; // 3:4 se zyada lambi → blur bg
-
-  double? _ar; // image ka real aspect ratio
-  bool _failed = false;
-  ImageStream? _stream;
-  ImageStreamListener? _listener;
-
-  @override
-  void initState() {
-    super.initState();
-    _resolve();
-  }
-
-  // Image ke intrinsic dimensions nikaalo (bina layout jump ke)
-  void _resolve() {
-    final provider = NetworkImage(widget.url);
-    _stream = provider.resolve(const ImageConfiguration());
-    _listener = ImageStreamListener(
-      (info, _) {
-        if (!mounted) return;
-        final w = info.image.width.toDouble();
-        final h = info.image.height.toDouble();
-        setState(() => _ar = h > 0 ? w / h : 1);
-      },
-      onError: (_, __) {
-        if (mounted) setState(() => _failed = true);
-      },
-    );
-    _stream!.addListener(_listener!);
-  }
-
-  @override
-  void dispose() {
-    if (_listener != null) _stream?.removeListener(_listener!);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_failed) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          color: AppColors.scaffoldBg,
-          child: Icon(Icons.image_outlined,
-              size: 32, color: Colors.grey.shade400),
-        ),
-      );
-    }
-
-    // Dimensions aane tak neutral 16:9 shimmer-placeholder
-    if (_ar == null) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          color: AppColors.scaffoldBg,
-          child: const Center(
-            child: SizedBox(
-              width: 22, height: 22,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: AppColors.primary),
-            ),
-          ),
-        ),
-      );
-    }
-
-    final ar = _ar!;
-    final displayAr =
-        ar.clamp(_maxPortraitAr, _maxLandscapeAr).toDouble();
-    final withinCaps = (ar - displayAr).abs() < 0.01;
-
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        child: AspectRatio(
-          aspectRatio: displayAr,
-          child: withinCaps
-              // AR caps ke andar → poori image pixel-perfect bharti hai
-              ? Image.network(widget.url,
-                  fit: BoxFit.cover, width: double.infinity)
-              // Extreme vertical/horizontal → blur bg + POORI image
-              : Stack(fit: StackFit.expand, children: [
-                  ImageFiltered(
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: Image.network(widget.url, fit: BoxFit.cover),
-                  ),
-                  Container(color: Colors.black.withValues(alpha: 0.25)),
-                  Image.network(widget.url, fit: BoxFit.contain),
-                ]),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Fullscreen gallery — swipe (multi) + pinch-zoom + counter ──────
-void _openImageGallery(List<String> urls, int initialIndex) {
-  if (urls.isEmpty) return;
-  Get.dialog(
-    _ImageGalleryViewer(urls: urls, initialIndex: initialIndex),
-    barrierColor: Colors.black,
-    useSafeArea: false,
-  );
-}
-
-class _ImageGalleryViewer extends StatefulWidget {
-  final List<String> urls;
-  final int initialIndex;
-  const _ImageGalleryViewer({required this.urls, required this.initialIndex});
-
-  @override
-  State<_ImageGalleryViewer> createState() => _ImageGalleryViewerState();
-}
-
-class _ImageGalleryViewerState extends State<_ImageGalleryViewer> {
-  late final PageController _page =
-      PageController(initialPage: widget.initialIndex);
-  late int _current = widget.initialIndex;
-
-  @override
-  void dispose() {
-    _page.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(children: [
-        PageView.builder(
-          controller: _page,
-          itemCount: widget.urls.length,
-          onPageChanged: (i) => setState(() => _current = i),
-          itemBuilder: (_, i) => InteractiveViewer(
-            maxScale: 4,
-            child: Center(
-              child: Image.network(
-                widget.urls[i],
-                fit: BoxFit.contain,
-                loadingBuilder: (_, child, p) => p == null
-                    ? child
-                    : const Center(
-                        child: CircularProgressIndicator(
-                            color: Colors.white54, strokeWidth: 2)),
-                errorBuilder: (_, __, ___) => const Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white38,
-                    size: 54),
-              ),
-            ),
-          ),
-        ),
-        // Close
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 8,
-          right: 12,
-          child: GestureDetector(
-            onTap: Get.back,
-            child: Container(
-              width: 36, height: 36,
-              decoration: const BoxDecoration(
-                  color: Colors.black54, shape: BoxShape.circle),
-              child: const Icon(Icons.close_rounded, color: Colors.white),
-            ),
-          ),
-        ),
-        // Counter (1/4)
-        if (widget.urls.length > 1)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 14,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text('${_current + 1}/${widget.urls.length}',
-                    style: KTextStyle.poppins(fs: 12, c: Colors.white)),
-              ),
-            ),
-          ),
-      ]),
-    );
-  }
-}
-
-class _NetImg extends StatelessWidget {
-  final String url;
-  final double height;
-  final double? width;
-  const _NetImg({required this.url, required this.height, this.width});
-
-  @override
-  Widget build(BuildContext context) => Image.network(
-    url,
-    width: width ?? double.infinity,
-    height: height,
-    fit: BoxFit.cover,
-    errorBuilder: (_, __, ___) => Container(
-      width: width ?? double.infinity,
-      height: height,
-      color: AppColors.scaffoldBg,
-      child: Icon(Icons.image_outlined,
-          size: 32, color: Colors.grey.shade400),
-    ),
-  );
 }
 
 // ── Inline feed video — usi jagah play hoti hai (koi page nahi) ────
@@ -1173,7 +942,7 @@ class _PostVideoThumbState extends State<_PostVideoThumb> {
                       const Icon(Icons.refresh_rounded,
                           color: Colors.white70, size: 36),
                       const SizedBox(height: 6),
-                      Text('Load nahi hua — retry',
+                      Text('video_load_retry'.tr,
                           style: KTextStyle.poppins(
                               fs: 11, c: Colors.white70)),
                     ])
@@ -1534,12 +1303,11 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                   color: AppColors.error, size: 38),
             ),
             const SizedBox(height: 16),
-            Text('Video Too Long',
+            Text('video_too_long_title'.tr,
                 style: KTextStyle.poppins(fs: 18, fw: FontWeight.w700)),
             const SizedBox(height: 8),
             Text(
-              'Aap 2 minute se badi video upload nahi kar sakte.\n'
-              'Kripya 2 minute se choti video select karein.',
+              'video_too_long_body'.tr,
               textAlign: TextAlign.center,
               style: KTextStyle.poppins(
                   fs: 13, c: AppColors.textSecondary, height: 1.5),
@@ -1547,7 +1315,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              child: CustomButton(label: 'OK', onTap: () => Get.back()),
+              child: CustomButton(label: 'ok_label'.tr, onTap: () => Get.back()),
             ),
           ]),
         ),
@@ -1609,17 +1377,11 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
     if (message != null) {
       if (mounted) Get.back();
       await Future.delayed(const Duration(milliseconds: 300));
-      Get.snackbar(
-        'Posted! 🎉',
-        message, // API se aaya hua: "Post created successfully"
-        snackPosition:   SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF4CAF50),
-        colorText:       Colors.white,
-        duration:        const Duration(seconds: 3),
-        margin:          const EdgeInsets.all(12),
-        borderRadius:    12,
-        icon: const Icon(Icons.check_circle_rounded,
-            color: Colors.white, size: 22),
+      // Hand-styled green snackbar hataa diya — AppSnackbar hi success ka
+      // rang/icon deta hai, aur poore app me ek jaisa dikhta hai.
+      AppSnackbar.success(
+        title: 'posted_celebration_title'.tr,
+        message: message, // API se aaya hua: "Post created successfully"
       );
     }
   }
@@ -1657,7 +1419,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 10),
                 child: Row(children: [
-                  Text('Create Post',
+                  Text('create_post_title'.tr,
                       style: KTextStyle.poppins(
                           fs: 15, fw: FontWeight.w600)),
                   const Spacer(),
@@ -1694,10 +1456,14 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                       fs: 13, c: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText:
-                    'Share something with the community...',
+                    'share_something_hint'.tr,
                     hintStyle: KTextStyle.poppins(
                         fs: 13, c: AppColors.textHint),
+                    filled: false,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.all(12),
                     isDense: true,
                   ),
@@ -1785,7 +1551,8 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                         const Icon(Icons.movie_creation_outlined,
                             size: 14, color: AppColors.primary),
                         const SizedBox(width: 6),
-                        Text('Compressing video… $pct%',
+                        Text('compressing_video_label'
+                            .trParams({'pct': '$pct'}),
                             style: KTextStyle.poppins(
                                 fs: 12,
                                 fw: FontWeight.w600,
@@ -1817,17 +1584,17 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                       child: Row(children: [
                         _MediaActionBtn(
                             icon: Icons.camera_alt_outlined,
-                            label: 'Camera',
+                            label: 'camera_label'.tr,
                             onTap: _pickFromCamera),
                         const SizedBox(width: 6),
                         _MediaActionBtn(
                             icon: Icons.photo_library_outlined,
-                            label: 'Photo',
+                            label: 'photo_label'.tr,
                             onTap: _pickImages),
                         const SizedBox(width: 6),
                         _MediaActionBtn(
                             icon: Icons.videocam_outlined,
-                            label: 'Video',
+                            label: 'video_label'.tr,
                             onTap: _pickVideo),
                       ]),
                     ),
@@ -1854,7 +1621,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white),
                               )
-                            : Text('Post',
+                            : Text('post_button_label'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 13,
                                     fw: FontWeight.w600,
@@ -2004,7 +1771,7 @@ class _MediaThumb extends StatelessWidget {
                 const Icon(Icons.videocam_outlined,
                     color: Colors.white, size: 11),
                 const SizedBox(width: 3),
-                Text('Video',
+                Text('video_label'.tr,
                     style:
                     KTextStyle.poppins(fs: 9, c: Colors.white)),
               ]),
@@ -2107,20 +1874,21 @@ class _PremiumButton extends StatefulWidget {
 
 class _PremiumButtonState extends State<_PremiumButton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _spin;
+  late final AnimationController _shimmer;
 
   @override
   void initState() {
     super.initState();
-    // Ring continuously ghoomti hai (3s / rotation)
-    _spin = AnimationController(
-        vsync: this, duration: const Duration(seconds: 3))
+    // Diagonal shine periodically sweep karti hai button ke upar (2.2s cycle,
+    // beech me thoda pause taaki continuous flashing na lage).
+    _shimmer = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2200))
       ..repeat();
   }
 
   @override
   void dispose() {
-    _spin.dispose();
+    _shimmer.dispose();
     super.dispose();
   }
 
@@ -2129,52 +1897,61 @@ class _PremiumButtonState extends State<_PremiumButton>
     return GestureDetector(
       onTap: widget.onTap ?? () => Get.to(() => const WorkerPlansView()),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 34,
-              height: 34,
-              child: Stack(alignment: Alignment.center, children: [
-                // Ghoomti hui golden gradient ring
-                RotationTransition(
-                  turns: _spin,
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: SweepGradient(
-                        colors: [
-                          Color(0xFFF5A623),
-                          Color(0xFFFFE9B8),
-                          Color(0xFFF5A623),
-                          Color(0xFFB97700),
-                          Color(0xFFF5A623),
-                        ],
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppDimens.radiusMax),
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 7),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFF5A623), Color(0xFFFFC93C)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.workspace_premium_rounded,
+                        size: 16, color: Colors.white),
+                    const SizedBox(width: 5),
+                    Text('plan_badge_label'.tr,
+                        style: KTextStyle.poppins(
+                            fs: 12.5, fw: FontWeight.w700, c: Colors.white)),
+                  ],
+                ),
+              ),
+              // Shine streak — button ki width ke bahar se andar se guzarta hai.
+              AnimatedBuilder(
+                animation: _shimmer,
+                builder: (context, child) {
+                  return Positioned.fill(
+                    child: FractionalTranslation(
+                      translation: Offset(_shimmer.value * 3 - 1.2, 0),
+                      child: Transform.rotate(
+                        angle: 0.5,
+                        child: Container(
+                          width: 18,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white.withValues(alpha: 0),
+                                Colors.white.withValues(alpha: 0.55),
+                                Colors.white.withValues(alpha: 0),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                // Inner circle + crown (ye ghoomta nahi)
-                Container(
-                  width: 27,
-                  height: 27,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFF8EA),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text('👑', style: TextStyle(fontSize: 14)),
-                ),
-              ]),
-            ),
-            const SizedBox(width: 3),
-            Text('Plan',
-                style: KTextStyle.poppins(
-                    fs: 11, fw: FontWeight.w700, c: const Color(0xFFB97700))),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2210,7 +1987,7 @@ class _EmptyFeed extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  isSearch ? 'No results found' : 'No posts yet',
+                  isSearch ? 'no_results_found'.tr : 'no_posts_yet'.tr,
                   style: KTextStyle.poppins(
                       fs: 14,
                       fw: FontWeight.w500,
@@ -2219,8 +1996,8 @@ class _EmptyFeed extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   isSearch
-                      ? 'Try different keywords'
-                      : 'Pull down to refresh',
+                      ? 'try_different_keywords'.tr
+                      : 'pull_down_refresh'.tr,
                   style: KTextStyle.poppins(
                       fs: 12, c: AppColors.textHint),
                 ),

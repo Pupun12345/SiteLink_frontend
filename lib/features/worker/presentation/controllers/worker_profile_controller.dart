@@ -10,8 +10,10 @@ import '../../../../core/services/locale_service.dart';
 // Jo fields API nahi deta (phone, experience, stats, documents) wo abhi
 // mock/default hain.
 class WorkerProfileController extends GetxController {
-  final _profileApi = ProfileApiService();
+  final _profileApi   = ProfileApiService();
+  final _communityApi = CommunityApiService();
   final isLoading = false.obs;
+  final isLoadingPosts = false.obs;
 
   // ── From API ────────────────────────────────────────────────────
   final name         = ''.obs;
@@ -31,16 +33,26 @@ class WorkerProfileController extends GetxController {
   final isVerified   = false.obs; // ✅ ab API se aata hai (mock true nahi)
   final totalJobs     = 12.obs;
   final completedJobs = 11.obs;
-  final rating        = 4.6.obs;
-  final documents = <Map<String, dynamic>>[
-    {'label': 'Aadhaar Card',           'verified': true},
-    {'label': 'Work Experience Letter', 'verified': true},
-  ].obs;
+  /// Admin ki di hui rating (1–5). null = admin ne abhi rating nahi di.
+  /// Automatic rating (job outcomes se) ka system hata diya gaya hai.
+  final rating = Rxn<num>();
+  /// Admin ka comment, rating ke saath.
+  final ratingComment = ''.obs;
+
+  /// Plan chal raha hai? Rating card isse batata hai ki rating doosron
+  /// ko dikhegi ya nahi ("Skill Rating & Verification" plan ka feature
+  /// hai). Backend live compute karke bhejta hai.
+  final hasActivePlan = false.obs;
+  List<Map<String, dynamic>> get documents => [
+    {'label': 'doc_aadhaar_card'.tr,           'verified': true},
+    {'label': 'doc_work_experience_letter'.tr, 'verified': true},
+  ];
 
   @override
   void onInit() {
     super.onInit();
     fetchProfile();
+    fetchMyPosts();
   }
 
   Future<void> fetchProfile() async {
@@ -58,15 +70,16 @@ class WorkerProfileController extends GetxController {
           final yrs = u.totalExperience!;
           final isWhole = yrs == yrs.roundToDouble();
           experience.value =
-              '${isWhole ? yrs.toInt() : yrs} ${yrs == 1 ? 'yr' : 'yrs'}';
+              '${isWhole ? yrs.toInt() : yrs} ${yrs == 1 ? 'yr_singular'.tr : 'yr_plural'.tr}';
         }
         if (u.locationLabel.isNotEmpty) location.value = u.locationLabel;
         if (u.skills.isNotEmpty) skills.assignAll(u.skills);
         profileImage.value = u.profileImage ?? '';
         email.value = u.email ?? '';
         isVerified.value = u.isVerified; // real key se — pending par false
-        posts.assignAll(u.posts);
-        postsCount.value = u.posts.length;
+        rating.value = u.rating;
+        ratingComment.value = u.ratingComment ?? '';
+        hasActivePlan.value = u.hasActivePlan;
         // Server-side language preference restore (cross-device).
         LocaleService.to.applyFromProfile(u.language);
       }
@@ -74,6 +87,25 @@ class WorkerProfileController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  /// "My Posts" — dedicated endpoint (GET /community/posts/mine), profile
+  /// fetch se decoupled taaki apni saari posts dikhein (koi approval/
+  /// isActive filter nahi).
+  Future<void> fetchMyPosts() async {
+    isLoadingPosts.value = true;
+    try {
+      final res = await _communityApi.getMyPosts();
+      if (res.success ?? false) {
+        posts.assignAll(res.data ?? const []);
+        postsCount.value = posts.length;
+      }
+    } finally {
+      isLoadingPosts.value = false;
+    }
+  }
+
+  /// Pull-to-refresh — profile + posts dono ek saath.
+  Future<void> refreshAll() => Future.wait([fetchProfile(), fetchMyPosts()]);
 
   /// Delete ke baad local list se hata do (UI turant update).
   void removePostLocally(String? id) {

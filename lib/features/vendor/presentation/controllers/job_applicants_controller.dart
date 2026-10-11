@@ -53,7 +53,7 @@ class JobApplicantsController extends GetxController {
 
     // Optimistic update
     if (idx != -1) {
-      applicants[idx] = _withStatus(a, newStatus);
+      applicants[idx] = _copy(a, status: newStatus);
     }
 
     final res = await _jobsApi.updateApplicantStatus(jobId, id, newStatus);
@@ -61,14 +61,21 @@ class JobApplicantsController extends GetxController {
 
     if (res.success) {
       AppSnackbar.success(
-          message: res.message ?? '${a.name ?? 'Worker'} $verb');
+          message: res.message ?? '${a.name ?? 'worker'.tr} $verb');
     } else {
       if (idx != -1 && previous != null) applicants[idx] = previous; // revert
-      AppSnackbar.error(message: res.message ?? 'Update nahi hua');
+      AppSnackbar.error(message: res.message ?? 'update_failed_generic'.tr);
     }
   }
 
-  JobApplicant _withStatus(JobApplicant a, String status) => JobApplicant(
+  /// Ek field badal ke baaki sab jaisa ka waisa. Har naya field yahan
+  /// bhi add karna zaroori hai — warna optimistic update par wo chup-chaap
+  /// gayab ho jaata hai.
+  JobApplicant _copy(
+    JobApplicant a, {
+    String? status,
+  }) =>
+      JobApplicant(
         applicationId: a.applicationId,
         workerId: a.workerId,
         name: a.name,
@@ -81,9 +88,11 @@ class JobApplicantsController extends GetxController {
         workState: a.workState,
         isVerified: a.isVerified,
         rating: a.rating,
+        ratingComment: a.ratingComment,
         coverLetter: a.coverLetter,
         experienceNote: a.experienceNote,
-        status: status,
+        status: status ?? a.status,
         appliedAt: a.appliedAt,
       );
+
 }

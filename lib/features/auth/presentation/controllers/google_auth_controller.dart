@@ -2,8 +2,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/theme/app_snackbar.dart';
 
@@ -35,37 +37,39 @@ class GoogleAuthController extends GetxController {
       if (response.success && response.token != null) {
         await SessionService.to
             .saveSession(token: response.token!, user: response.user);
-        // FCM token save-token endpoint pe bhi (fire & forget)
-        if (deviceToken.isNotEmpty) {
-          MiscApiService().saveFcmToken(deviceToken);
-        }
+        // FCM token save-token endpoint pe bhi — debug me token +
+        // SUCCESS/FAILED log hota hai (fire & forget).
+        NotificationService.instance
+            .syncTokenIfLoggedIn(label: 'google-login');
         AppSnackbar.success(
-            message: 'Welcome, ${result.displayName ?? 'User'}!');
+            message: 'welcome_user_greeting'
+                .trParams({'name': result.displayName ?? 'default_user_name'.tr}));
 
         final userType = (response.user?.userType ?? '').toLowerCase();
         if (response.isNewUser == true || userType.isEmpty) {
           Get.offAllNamed(AppRoutes.role);
         } else if (userType == 'worker') {
           Get.offAllNamed(AppRoutes.workerHome);
+          DeepLinkService.instance.resumePending();
         } else {
           Get.offAllNamed(AppRoutes.vendorHome);
+          DeepLinkService.instance.resumePending();
         }
       } else {
-        AppSnackbar.error(message: response.message ?? 'Google login failed');
+        AppSnackbar.error(message: response.message ?? 'google_login_failed'.tr);
       }
     } on AuthException catch (e) {
       AppSnackbar.error(message: e.message);
     } catch (e) {
       debugPrint('[GoogleAuth] error: $e');
-      AppSnackbar.error(message: 'Google sign-in failed. Please try again.');
+      AppSnackbar.error(message: 'google_signin_failed_retry'.tr);
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> signOut() async {
-    await AuthService.instance.signOut();
-    await SessionService.to.clear();
-    Get.offAllNamed(AppRoutes.language);
-  }
+  // Yahan ek `signOut()` pada tha jise koi call nahi karta tha, aur wo
+  // backend ka token blacklist (MiscApiService().logout()) bhi skip kar
+  // deta tha. Logout ke liye core/services/logout_service.dart ka
+  // `performLogout()` use karo — guard, loader aur poora sequence wahan hai.
 }

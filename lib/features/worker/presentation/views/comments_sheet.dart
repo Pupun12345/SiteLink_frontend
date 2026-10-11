@@ -68,8 +68,9 @@ class CommentsSheet extends StatelessWidget {
                 children: [
                   Obx(() => Text(
                         ctrl.comments.isEmpty
-                            ? 'Comments'
-                            : 'Comments (${ctrl.comments.length})',
+                            ? 'comments_title'.tr
+                            : 'comments_title_count'.trParams(
+                                {'count': '${ctrl.comments.length}'}),
                         style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700),
                       )),
                   const Spacer(),
@@ -128,7 +129,7 @@ class CommentsSheet extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('Edit comment',
+        title: Text('edit_comment_title'.tr,
             style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
         content: TextField(
           controller: editCtrl,
@@ -137,7 +138,7 @@ class CommentsSheet extends StatelessWidget {
           minLines: 1,
           style: KTextStyle.poppins(fs: 14, c: AppColors.textPrimary),
           decoration: InputDecoration(
-            hintText: 'Update your comment...',
+            hintText: 'update_comment_hint'.tr,
             hintStyle: KTextStyle.poppins(fs: 13, c: AppColors.textHint),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimens.radiusMd),
@@ -145,7 +146,7 @@ class CommentsSheet extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
             onPressed: () {
               final t = editCtrl.text.trim();
@@ -153,7 +154,7 @@ class CommentsSheet extends StatelessWidget {
               Get.back();
               ctrl.updateComment(c.id!, t);
             },
-            child: Text('Save',
+            child: Text('save_label'.tr,
                 style: KTextStyle.poppins(
                     fs: 13, fw: FontWeight.w600, c: AppColors.primary)),
           ),
@@ -167,18 +168,18 @@ class CommentsSheet extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('Delete comment?',
+        title: Text('delete_comment_title'.tr,
             style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
-        content: Text('Ye comment permanently delete ho jaayega.',
+        content: Text('delete_comment_body'.tr,
             style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
             onPressed: () {
               Get.back();
               ctrl.deleteComment(c);
             },
-            child: Text('Delete',
+            child: Text('delete_label'.tr,
                 style: KTextStyle.poppins(
                     fs: 13, fw: FontWeight.w600, c: AppColors.error)),
           ),
@@ -207,7 +208,7 @@ class _CommentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = (comment.userName ?? '').trim().isEmpty
-        ? 'User'
+        ? 'default_user_name'.tr
         : comment.userName!.trim();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
@@ -269,7 +270,7 @@ class _CommentTile extends StatelessWidget {
                     const Icon(Icons.edit_outlined,
                         size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
-                    Text('Edit', style: KTextStyle.poppins(fs: 13)),
+                    Text('edit_label'.tr, style: KTextStyle.poppins(fs: 13)),
                   ]),
                 ),
                 PopupMenuItem(
@@ -278,7 +279,7 @@ class _CommentTile extends StatelessWidget {
                     Icon(Icons.delete_outline_rounded,
                         size: 16, color: AppColors.error),
                     const SizedBox(width: 8),
-                    Text('Delete',
+                    Text('delete_label'.tr,
                         style: KTextStyle.poppins(fs: 13, c: AppColors.error)),
                   ]),
                 ),
@@ -338,7 +339,7 @@ class _CommentComposerState extends State<_CommentComposer> {
                 maxLines: 4,
                 style: KTextStyle.poppins(fs: 14, c: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Add a comment...',
+                  hintText: 'add_comment_hint'.tr,
                   hintStyle: KTextStyle.poppins(fs: 13, c: AppColors.textHint),
                   filled: true,
                   fillColor: AppColors.scaffoldBg,
@@ -403,11 +404,11 @@ class _EmptyComments extends StatelessWidget {
           Icon(Icons.chat_bubble_outline_rounded,
               size: 38, color: Colors.grey.shade400),
           const SizedBox(height: 10),
-          Text('No comments yet',
+          Text('no_comments_yet'.tr,
               style: KTextStyle.poppins(
                   fs: 14, fw: FontWeight.w500, c: AppColors.textSecondary)),
           const SizedBox(height: 2),
-          Text('Be the first to comment',
+          Text('be_first_to_comment'.tr,
               style: KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
         ],
       ),

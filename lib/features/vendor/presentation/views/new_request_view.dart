@@ -6,6 +6,7 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/utils/amenity_category_label.dart';
 import '../controllers/new_request_controller.dart';
 import 'location_picker_view.dart';
 
@@ -65,14 +66,18 @@ class NewRequestView extends StatelessWidget {
                                 CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Hiring: ${ctrl.preFilledWorkerName.value}',
+                                    'hiring_prefix'.trParams(
+                                        {'name': ctrl.preFilledWorkerName.value}),
                                     style: KTextStyle.poppins(
                                         fs: 13,
                                         fw: FontWeight.w600,
                                         c: AppColors.primary),
                                   ),
                                   Text(
-                                    'Skill: ${ctrl.preFilledSkill.value}  ·  ${ctrl.preFilledWorkerId.value}',
+                                    'skill_id_line'.trParams({
+                                      'skill': ctrl.preFilledSkill.value,
+                                      'id': ctrl.preFilledWorkerId.value,
+                                    }),
                                     style: KTextStyle.poppins(
                                         fs: 11,
                                         c: AppColors.textSecondary),
@@ -121,8 +126,9 @@ class NewRequestView extends StatelessWidget {
                                     final count = ctrl.selectedRoles.length;
                                     return Text(
                                       count == 0
-                                          ? 'Select roles...'
-                                          : '$count role${count == 1 ? '' : 's'} selected',
+                                          ? 'select_roles_placeholder'.tr
+                                          : 'roles_selected_count'
+                                              .trParams({'count': '$count'}),
                                       style: KTextStyle.poppins(
                                         fs: 13,
                                         c: count == 0
@@ -231,18 +237,17 @@ class NewRequestView extends StatelessWidget {
                         children: [
                           SitelinkTextField(
                             label: '${AppStrings.City} *',
-                            hint: 'Enter city',
+                            hint: 'enter_city_hint'.tr,
                             controller: ctrl.cityCtrl,
                             prefixIcon:
                             Icons.location_city_rounded,
                           ),
                           const SizedBox(height: AppDimens.md),
                           SitelinkTextField(
-                            label: 'Area / Landmark',
-                            hint: 'Area or landmark (optional)',
+                            label: 'area_landmark_label'.tr,
+                            hint: 'area_landmark_hint'.tr,
                             controller: ctrl.areaCtrl,
                             prefixIcon: Icons.place_outlined,
-                            isOptional: true,
                           ),
                           const SizedBox(height: AppDimens.md),
                           GestureDetector(
@@ -279,8 +284,8 @@ class NewRequestView extends StatelessWidget {
                                   Expanded(
                                     child: Text(
                                       set
-                                          ? 'Location set — Change'
-                                          : 'Pick exact location on map',
+                                          ? 'location_set_change'.tr
+                                          : 'pick_location_on_map'.tr,
                                       style: KTextStyle.poppins(
                                         fs: 13,
                                         c: set
@@ -308,7 +313,7 @@ class NewRequestView extends StatelessWidget {
                         children: [
                           SitelinkTextField(
                             label: AppStrings.StartDate,
-                            hint: 'Select date',
+                            hint: 'select_date_hint'.tr,
                             controller: ctrl.startDateCtrl,
                             prefixIcon: Icons.event_rounded,
                             readOnly: true,
@@ -331,6 +336,9 @@ class NewRequestView extends StatelessWidget {
                                 ),
                               );
                               if (d != null) {
+                                // Asli date bhi rakho — backend ko ISO me
+                                // yahi jaati hai, text sirf display ke liye.
+                                ctrl.startDate.value = d;
                                 ctrl.startDateCtrl.text =
                                 '${d.day.toString().padLeft(2, '0')} ${_month(d.month)} ${d.year}';
                               }
@@ -350,8 +358,9 @@ class NewRequestView extends StatelessWidget {
                             ctrl.duration.value.isEmpty
                                 ? null
                                 : ctrl.duration.value,
+                            isExpanded: true,
                             hint: Text(
-                              'Select duration',
+                              'select_duration_hint'.tr,
                               style: KTextStyle.poppins(
                                   fs: 13,
                                   c: AppColors.textHint),
@@ -408,8 +417,8 @@ class NewRequestView extends StatelessWidget {
                                   padding: const EdgeInsets.only(
                                       top: AppDimens.md),
                                   child: SitelinkTextField(
-                                    label: 'Custom Duration *',
-                                    hint: 'e.g. 6 Weeks',
+                                    label: 'custom_duration_label'.tr,
+                                    hint: 'custom_duration_hint'.tr,
                                     controller: ctrl.customDurationCtrl,
                                     prefixIcon: Icons.edit_calendar_outlined,
                                   ),
@@ -421,20 +430,20 @@ class NewRequestView extends StatelessWidget {
 
                     // ── Section 4b: Pay & Experience ───────
                     _SectionCard(
-                      title: 'Pay & Experience',
+                      title: 'pay_experience_section'.tr,
                       icon: Icons.currency_rupee_rounded,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SitelinkTextField(
-                            label: 'Salary (₹) *',
-                            hint: 'e.g. 900',
+                            label: 'salary_rupee_label'.tr,
+                            hint: 'salary_hint_example'.tr,
                             controller: ctrl.salaryCtrl,
                             keyboardType: TextInputType.number,
                             prefixIcon: Icons.payments_outlined,
                           ),
                           const SizedBox(height: AppDimens.md),
-                          Text('Salary Type',
+                          Text('salary_type'.tr,
                               style: KTextStyle.poppins(
                                   fs: 12,
                                   fw: FontWeight.w500,
@@ -468,8 +477,7 @@ class NewRequestView extends StatelessWidget {
                                                   : AppColors.border),
                                         ),
                                         child: Text(
-                                          t[0].toUpperCase() +
-                                              t.substring(1),
+                                          _salaryTypeLabel(t),
                                           style: KTextStyle.poppins(
                                             fs: 12,
                                             fw: sel
@@ -488,16 +496,15 @@ class NewRequestView extends StatelessWidget {
                               )),
                           const SizedBox(height: AppDimens.md),
                           SitelinkTextField(
-                            label: 'Experience Required (years)',
-                            hint: 'e.g. 3',
+                            label: 'experience_required_years_label'.tr,
+                            hint: 'experience_hint_example'.tr,
                             controller: ctrl.experienceCtrl,
                             keyboardType: TextInputType.number,
-                            isOptional: true,
                           ),
                           const SizedBox(height: AppDimens.md),
                           Obx(() => Row(children: [
                                 Expanded(
-                                  child: Text('Urgent hiring?',
+                                  child: Text('urgent_hiring_question'.tr,
                                       style: KTextStyle.poppins(
                                           fs: 12,
                                           fw: FontWeight.w500,
@@ -518,7 +525,7 @@ class NewRequestView extends StatelessWidget {
                     // ── Section 4c: Amenities & Benefits ───
                     Column(children: [
                       _SectionCard(
-                        title: 'Amenities & Benefits',
+                        title: 'amenities_benefits_label'.tr,
                         icon: Icons.card_giftcard_rounded,
                         action: GestureDetector(
                           onTap: () => _showAddAmenity(context, ctrl),
@@ -526,7 +533,7 @@ class NewRequestView extends StatelessWidget {
                             const Icon(Icons.add_circle_outline_rounded,
                                 size: 15, color: AppColors.primary),
                             const SizedBox(width: 3),
-                            Text('Add',
+                            Text('add_label'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 12,
                                     fw: FontWeight.w600,
@@ -552,14 +559,14 @@ class NewRequestView extends StatelessWidget {
                             return Row(children: [
                               Expanded(
                                 child: Text(
-                                  'No amenities loaded — tap "Add" to create one.',
+                                  'no_amenities_loaded'.tr,
                                   style: KTextStyle.poppins(
                                       fs: 12, c: AppColors.textHint),
                                 ),
                               ),
                               GestureDetector(
                                 onTap: ctrl.loadAmenities,
-                                child: Text('Retry',
+                                child: Text('retry_label'.tr,
                                     style: KTextStyle.poppins(
                                         fs: 12,
                                         fw: FontWeight.w600,
@@ -664,8 +671,7 @@ class NewRequestView extends StatelessWidget {
                         maxLines: 3,
                         style: KTextStyle.poppins(fs: 13),
                         decoration: InputDecoration(
-                          hintText:
-                          'Any specific requirements like tools, experience level, shift...',
+                          hintText: 'special_req_hint'.tr,
                           hintStyle: KTextStyle.poppins(
                               fs: 12, c: AppColors.textHint),
                           filled: true,
@@ -725,7 +731,7 @@ class NewRequestView extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '$summary  ·  ${ctrl.cityCtrl.text.isEmpty ? 'Location' : ctrl.cityCtrl.text}  ·  ${ctrl.effectiveDuration.isEmpty ? 'Duration' : ctrl.effectiveDuration.split('/').first}',
+                                '$summary  ·  ${ctrl.cityCtrl.text.isEmpty ? 'location_label'.tr : ctrl.cityCtrl.text}  ·  ${ctrl.effectiveDuration.isEmpty ? 'duration'.tr : ctrl.effectiveDuration.split('/').first}',
                                 style: KTextStyle.poppins(
                                     fs: 12,
                                     fw: FontWeight.w500,
@@ -811,14 +817,14 @@ class NewRequestView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Text('Select Roles',
+              Text('select_roles_title'.tr,
                   style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
               const SizedBox(height: 12),
               TextField(
                 controller: searchCtrl,
                 style: KTextStyle.poppins(fs: 13),
                 decoration: InputDecoration(
-                  hintText: 'Search roles...',
+                  hintText: 'search_roles_hint'.tr,
                   hintStyle:
                       KTextStyle.poppins(fs: 12, c: AppColors.textHint),
                   prefixIcon: const Icon(Icons.search_outlined,
@@ -846,8 +852,13 @@ class NewRequestView extends StatelessWidget {
               const SizedBox(height: 4),
               Expanded(
                 child: Obx(() {
+                  if (ctrl.isLoadingSkills.value && ctrl.allSkills.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    );
+                  }
                   final q = query.value.toLowerCase().trim();
-                  final filtered = AppStrings.allSkills
+                  final filtered = ctrl.allSkills
                       .where((s) =>
                           q.isEmpty || s.toLowerCase().contains(q))
                       .toList()
@@ -855,7 +866,7 @@ class NewRequestView extends StatelessWidget {
                         (a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
                   if (filtered.isEmpty) {
                     return Center(
-                      child: Text('No roles found',
+                      child: Text('no_roles_found'.tr,
                           style: KTextStyle.poppins(
                               fs: 13, c: AppColors.textHint)),
                     );
@@ -934,7 +945,7 @@ class NewRequestView extends StatelessWidget {
               const SizedBox(height: 8),
               SafeArea(
                 child: CustomButton(
-                  label: 'Done',
+                  label: 'done_label'.tr,
                   onTap: () => Navigator.pop(sheetCtx),
                 ),
               ),
@@ -954,18 +965,18 @@ class NewRequestView extends StatelessWidget {
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Amenity',
+        title: Text('add_amenity_title'.tr,
             style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SitelinkTextField(
-                label: 'Amenity Name',
+                label: 'amenity_name_label'.tr,
                 controller: nameCtrl,
-                hint: 'e.g. Provident Fund'),
+                hint: 'amenity_name_hint'.tr),
             const SizedBox(height: 12),
-            Text('Category',
+            Text('category_label'.tr,
                 style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
             const SizedBox(height: 6),
             Obx(() => Container(
@@ -979,9 +990,10 @@ class NewRequestView extends StatelessWidget {
                       value: category.value,
                       isExpanded: true,
                       items: NewRequestController.amenityCategories
+                          // value backend ka enum rehta hai, label alag.
                           .map((c) => DropdownMenuItem(
                               value: c,
-                              child: Text(c,
+                              child: Text(amenityCategoryLabel(c),
                                   style: KTextStyle.poppins(fs: 13))))
                           .toList(),
                       onChanged: (v) => category.value = v ?? category.value,
@@ -991,7 +1003,7 @@ class NewRequestView extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
@@ -999,13 +1011,28 @@ class NewRequestView extends StatelessWidget {
               Get.back();
               ctrl.addCustomAmenity(name, category.value);
             },
-            child: Text('Add',
+            child: Text('add_label'.tr,
                 style: KTextStyle.poppins(
                     fs: 13, fw: FontWeight.w600, c: AppColors.primary)),
           ),
         ],
       ),
     );
+  }
+
+  /// Salary type chip label — value stays English (backend-matched
+  /// `ctrl.salaryType`), only the shown label is translated.
+  String _salaryTypeLabel(String t) {
+    switch (t) {
+      case 'daily':
+        return 'daily'.tr;
+      case 'weekly':
+        return 'weekly_label'.tr;
+      case 'monthly':
+        return 'monthly'.tr;
+      default:
+        return t;
+    }
   }
 }
 

@@ -6,6 +6,8 @@ import 'package:sitelink/features/worker/presentation/views/worker_my_job_tab.da
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/services/app_update_service.dart';
+import '../../../../core/services/maintenance_service.dart';
 import '../controllers/worker_home_controller.dart';
 import 'worker_home_tab.dart';
 
@@ -22,14 +24,21 @@ class WorkerHomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = Get.put(WorkerHomeController());
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
-      body: Obx(() => _resolveTab(ctrl)),
-      bottomNavigationBar: Obx(
-            () => _WorkerBottomNav(
-          current: ctrl.tabIndex.value,
-          onTap: ctrl.changeTab,
+    // Admin ne maintenance mode on kiya ho to yahan info dialog dikhta hai
+    return AppUpdateWatcher(
+      // Force/soft update pehle — purani build par baaki kuch dikhane ka
+      // matlab nahi.
+      child: MaintenanceWatcher(
+      child: Scaffold(
+        backgroundColor: AppColors.scaffoldBg,
+        body: Obx(() => _resolveTab(ctrl)),
+        bottomNavigationBar: Obx(
+              () => _WorkerBottomNav(
+            current: ctrl.tabIndex.value,
+            onTap: ctrl.changeTab,
+          ),
         ),
+      ),
       ),
     );
   }
@@ -56,11 +65,11 @@ class _WorkerBottomNav extends StatelessWidget {
   final void Function(int) onTap;
   const _WorkerBottomNav({required this.current, required this.onTap});
 
-  static const _items = [
-    (Icons.home_rounded,          Icons.home_outlined,             'Home'),
-    (Icons.work_rounded,          Icons.work_outline_rounded,      'My Jobs'),
-    (Icons.notifications_rounded, Icons.notifications_outlined,    'Alerts'),
-    (Icons.person_rounded,        Icons.person_outline_rounded,    'Profile'),
+  static List<(IconData, IconData, String)> get _items => [
+    (Icons.home_rounded,          Icons.home_outlined,             'nav_home'.tr),
+    (Icons.work_rounded,          Icons.work_outline_rounded,      'my_jobs'.tr),
+    (Icons.notifications_rounded, Icons.notifications_outlined,    'notifications'.tr),
+    (Icons.person_rounded,        Icons.person_outline_rounded,    'profile'.tr),
   ];
 
   @override

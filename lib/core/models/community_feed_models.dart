@@ -52,7 +52,19 @@ class CommunityFeedModel {
   String? posterName;
   String? posterImage;
   String? posterType;   // 'vendor' | 'worker' | 'admin'
+  /// Vendor ka designation / worker ka primary skill — feed me name ke
+  /// neeche role ki jagah yahi dikhta hai.
+  String? posterDesignation;
   String? companyName;
+
+  /// Worker ki automatic performance rating — feed me naam ke baad
+  /// dikhti hai (jaise vendor ke naam ke baad verified badge). Backend
+  /// ise live bhejta hai, snapshot nahi. Vendor/admin par null.
+  num? posterRating;
+
+  /// Kitni jobs par rating bani hai. 0 → UI "New" dikhata hai, 0 stars nahi.
+  int? posterRatedJobsCount;
+
   String? verification;   // 'verified' | 'pending'
   String? approvalStatus; // 'approved' | 'pending' | 'rejected'
   int? likesCount;
@@ -69,7 +81,10 @@ class CommunityFeedModel {
     this.posterName,
     this.posterImage,
     this.posterType,
+    this.posterDesignation,
     this.companyName,
+    this.posterRating,
+    this.posterRatedJobsCount,
     this.verification,
     this.approvalStatus,
     this.likesCount,
@@ -90,7 +105,13 @@ class CommunityFeedModel {
         posterName:    json["posterName"],
         posterImage:   json["posterImage"],
         posterType:    json["posterType"],
+        posterDesignation: json["posterDesignation"]?.toString(),
         companyName:   json["companyName"],
+        posterRating: json["posterRating"] is num
+            ? json["posterRating"] as num
+            : num.tryParse(json["posterRating"]?.toString() ?? ""),
+        posterRatedJobsCount:
+            int.tryParse(json["posterRatedJobsCount"]?.toString() ?? ""),
         verification:  json["verification"],
         approvalStatus:json["approvalStatus"],
         likesCount:    json["likesCount"],
@@ -112,7 +133,10 @@ class CommunityFeedModel {
     "posterName":   posterName,
     "posterImage":  posterImage,
     "posterType":   posterType,
+    "posterDesignation": posterDesignation,
     "companyName":  companyName,
+    "posterRating": posterRating,
+    "posterRatedJobsCount": posterRatedJobsCount,
     "verification": verification,
     "approvalStatus": approvalStatus,
     "likesCount":   likesCount,

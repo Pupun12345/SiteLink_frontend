@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../core/services/api_services.dart'; // RestApi yahan define hai
 import '../../core/services/auth_service.dart';
+import '../../core/services/maintenance_service.dart';
 import '../../core/services/session_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -14,5 +15,7 @@ class InitialBinding extends Bindings {
     Get.put<SessionService>(SessionService(), permanent: true);
     Get.put<RestApi>(RestApi(), permanent: true);
     Get.put<AuthService>(AuthService.instance, permanent: true);
+    // RestApi ke BAAD — MaintenanceService uspe depend karta hai.
+    Get.put<MaintenanceService>(MaintenanceService(), permanent: true);
   }
 }

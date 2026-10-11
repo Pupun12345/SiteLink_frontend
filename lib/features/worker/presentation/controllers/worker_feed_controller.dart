@@ -5,22 +5,14 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
 
+import '../../../../app/config/app_config.dart';
 import '../../../../core/models/community_feed_models.dart'; // apna path adjust karo
+import '../../../../core/services/api_client.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/services/video_compress_service.dart';
-import 'worker_profile_controller.dart';
-
-// ─────────────────────────────────────────────────────────────────
-//  CONSTANTS
-// ─────────────────────────────────────────────────────────────────
-const String _kHost = "https://sitelink-backend-4.onrender.com";
-
-class _Ep {
-  static const String feed       = "$_kHost/api/community/feed";
-  static const String posts      = "$_kHost/api/community/posts";
-  static String like  (String id) => "$_kHost/api/community/posts/$id/like";
-  static String delete(String id) => "$_kHost/api/community/posts/$id";
-}
+import '../../../../core/theme/app_snackbar.dart';
+import '../../../shared/presentation/controllers/app_refresh.dart';
+import '../../../../core/services/review_service.dart';
 
 /// File extension se sahi MIME type (multipart Content-Type ke liye).
 MediaType _mediaTypeFor(String path) {
@@ -97,7 +89,7 @@ class WorkerFeedController extends GetxController {
     page == 1 ? isLoading.value = true : isLoadingMore.value = true;
 
     try {
-      final uri = Uri.parse("${_Ep.feed}?page=$page&limit=10");
+      final uri = Uri.parse("${ApiEndpoints.communityFeed}?page=$page&limit=10");
       if (kDebugMode) print("[Feed] GET $uri");
 
       final res = await http
@@ -116,13 +108,11 @@ class WorkerFeedController extends GetxController {
         _totalPages = parsed.pagination?.pages   ?? 1;
         hasMore.value = _page < _totalPages;
       } else {
-        Get.snackbar("Error", "Feed load nahi ho saka",
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.error(message: "feed_load_failed".tr);
       }
     } catch (e) {
       if (kDebugMode) print("[Feed] fetchFeed error: $e");
-      Get.snackbar("Error", "Network error",
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error(message: "network_error".tr);
     } finally {
       isLoading.value     = false;
       isLoadingMore.value = false;
@@ -170,8 +160,8 @@ class WorkerFeedController extends GetxController {
         isCompressing.value = false;
         if (!result.success) {
           // Compressed bhi bada / compress fail → upload block.
-          Get.snackbar('Video', result.error ?? 'Video process nahi hua',
-              snackPosition: SnackPosition.BOTTOM);
+          AppSnackbar.warning(
+              message: result.error ?? 'video_process_failed'.tr);
           return null;
         }
         uploadVideoPath = result.path; // sirf compressed upload hoga
@@ -217,7 +207,7 @@ class WorkerFeedController extends GetxController {
       }
 
       if (kDebugMode) {
-        print("[Feed] POST ${_Ep.posts}");
+        print("[Feed] POST ${ApiEndpoints.communityPosts}");
         print("[Feed] fields: ${form.fields}");
         print("[Feed] files:  ${form.files.map((f) => f.value.filename)}");
       }
@@ -229,7 +219,7 @@ class WorkerFeedController extends GetxController {
         validateStatus: (_) => true, // 400 ko throw mat karo, hum handle karenge
       ));
       final resp = await client.post(
-        _Ep.posts,
+        ApiEndpoints.communityPosts,
         data: form,
         options: dio.Options(headers: {'Authorization': 'Bearer $_token'}),
       );
@@ -238,32 +228,46 @@ class WorkerFeedController extends GetxController {
       if (kDebugMode) print("[Feed] createPost $status: ${resp.data}");
 
       final data = resp.data;
+
+      // nginx/proxy reject (413 — video/photos bahut badi) par body HTML
+      // hoti hai; jsonDecode se pehle saaf message de do.
+      final proxyError = proxyErrorMessage(status, data?.toString() ?? '');
+      if (proxyError != null) {
+        AppSnackbar.error(message: proxyError);
+        return null;
+      }
+
       final Map body = data is Map
           ? data
           : (data is String && data.isNotEmpty ? jsonDecode(data) as Map : {});
 
       if (status == 200 || status == 201) {
         final message =
-            body['message']?.toString() ?? 'Post created successfully';
+            body['message']?.toString() ?? 'post_created_success'.tr;
         await refreshFeed();
-        // "My Posts" (Profile tab, GET /profile/me se) bhi turant refresh —
-        // warna wahan naya post tab tak nahi dikhta jab tak manually pull-
-        // to-refresh na karo. Tab open na ho to controller registered hi
-        // nahi hoga, safe skip.
-        if (Get.isRegistered<WorkerProfileController>()) {
-          Get.find<WorkerProfileController>().fetchProfile();
-        }
+        // Profile tab ka posts list + count bhi turant refresh — warna
+        // wahan naya post aur badhi hui count tab tak nahi dikhti jab tak
+        // manually pull-to-refresh na karo.
+        //
+        // Pehle yahan `fetchProfile()` bulaya jaata tha, par posts alag
+        // endpoint se aate hain — isliye count kabhi update hi nahi hota
+        // tha. Helper dono roles ka dhyaan rakhta hai.
+        await refreshProfilePosts();
+        // Post ban gayi — achha moment hai rating maangne ka. Service
+        // khud dekh leti hai ki pehle maang chuke hain ya nahi.
+        // `await` nahi karte: rating prompt ki wajah se sheet band hone
+        // me der nahi honi chahiye.
+        ReviewService.maybeAsk();
         return message; // ← sheet ko return karo, woh band hokar snackbar dikhayega
       } else {
-        final errMsg = body['message']?.toString() ?? 'Post create nahi hua';
+        final errMsg = body['message']?.toString() ?? 'post_create_failed'.tr;
         // Error snackbar yahan dikhao (sheet context se bahar nahi jaana)
-        Get.snackbar('Error', errMsg, snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.error(message: errMsg);
         return null;
       }
     } catch (e) {
       if (kDebugMode) print("[Feed] submitPost error: $e");
-      Get.snackbar('Error', 'Network error — try again',
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error(message: 'network_error_retry'.tr);
       return null;
     } finally {
       isPosting.value      = false;
@@ -304,7 +308,7 @@ class WorkerFeedController extends GetxController {
 
     try {
       final res = await http
-          .put(Uri.parse(_Ep.like(postId)), headers: _headers)
+          .put(Uri.parse(ApiEndpoints.communityPostLike(postId)), headers: _headers)
           .timeout(const Duration(seconds: 10));
 
       if (kDebugMode) print("[Feed] like ${res.statusCode}: ${res.body}");
@@ -351,26 +355,28 @@ class WorkerFeedController extends GetxController {
 
     try {
       final res = await http
-          .delete(Uri.parse(_Ep.delete(postId)), headers: _headers)
+          .delete(Uri.parse(ApiEndpoints.communityPostDelete(postId)), headers: _headers)
           .timeout(const Duration(seconds: 10));
 
       if (kDebugMode) print("[Feed] delete ${res.statusCode}: ${res.body}");
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        Get.snackbar("Deleted", "Post delete ho gaya",
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.success(message: "post_deleted_success".tr);
+        // Profile tab ka count bhi ghatna chahiye, warna delete ke baad
+        // wahan purani ginti dikhti rehti hai.
+        await refreshProfilePosts();
       } else {
         // ── Revert ─────────────────────────────────────────────
         if (backup != null && idx != -1) posts.insert(idx, backup);
         final body = jsonDecode(res.body);
-        Get.snackbar("Error", body['message']?.toString() ?? "Delete nahi ho saka",
-            snackPosition: SnackPosition.BOTTOM);
+        AppSnackbar.error(
+            message: body['message']?.toString() ??
+                "delete_failed_generic".tr);
       }
     } catch (e) {
       if (kDebugMode) print("[Feed] deletePost error: $e");
       if (backup != null && idx != -1) posts.insert(idx, backup);
-      Get.snackbar("Error", "Network error",
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error(message: "network_error".tr);
     }
   }
 
@@ -385,13 +391,16 @@ class WorkerFeedController extends GetxController {
   }
 
   /// Partial path → full URL
-  /// e.g. "/uploads/abc.jpg" → "https://sitelink.../uploads/abc.jpg"
+  /// e.g. "/uploads/abc.jpg" → "http://host/uploads/abc.jpg"
+  /// Most images already come back as absolute Cloudinary URLs — this is
+  /// only a fallback for legacy relative paths. Uses [AppConfig.mediaBaseUrl]
+  /// (no `/api` prefix) since `/uploads` is served from the backend's root.
   static String fullUrl(String? path) {
     if (path == null || path.trim().isEmpty) return '';
     final p = path.trim();
     if (p.startsWith('http://') || p.startsWith('https://')) return p;
     final normalized = p.replaceAll(r'\', '/');
     final clean = normalized.startsWith('/') ? normalized.substring(1) : normalized;
-    return '$_kHost/$clean';
+    return '${AppConfig.mediaBaseUrl}/$clean';
   }
 }

@@ -65,7 +65,6 @@ class AppStrings {
   static String get City => 'city'.tr;
   static String get WorkArea => 'work_area'.tr;
   static String get GSTNumber => 'gst_number'.tr;
-  static String get Optional => 'optional'.tr;
   static String get CreateAccount => 'create_account'.tr;
   static String get YourAccountWillBeActivatedWithin12HoursAfterReview =>
       'account_activated_12_hours'.tr;
@@ -104,7 +103,6 @@ class AppStrings {
   // ── Document Upload ───────────────────────────────────────────
   static String get UploadDocuments => 'upload_documents'.tr;
   static String get GovernmentID => 'government_id'.tr;
-  static String get WorkSamplePhotos => 'work_sample_photos'.tr;
   static String get SubmitForVerification => 'submit_for_verification'.tr;
 
   // ── Pending Screen ────────────────────────────────────────────

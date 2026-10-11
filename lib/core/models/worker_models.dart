@@ -19,6 +19,8 @@ class WorkerProfileRequest {
   final int? workStateId;  // backend: workStateID
   final int? workCityId;   // backend: workCityID
   final String? cityName;  // backend: city (display name)
+  /// Family Protection claim isi vyakti ko milta hai.
+  final String? nomineeName;
 
   WorkerProfileRequest({
     this.name,
@@ -35,6 +37,7 @@ class WorkerProfileRequest {
     this.workStateId,
     this.workCityId,
     this.cityName,
+    this.nomineeName,
   });
 
   Map<String, dynamic> toJson() => {
@@ -53,6 +56,7 @@ class WorkerProfileRequest {
         if (workStateId != null) "workStateID": workStateId,
         if (workCityId != null) "workCityID": workCityId,
         if (cityName != null) "city": cityName,
+        if (nomineeName != null) "nomineeName": nomineeName,
       };
 }
 

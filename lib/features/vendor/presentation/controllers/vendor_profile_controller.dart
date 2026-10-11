@@ -9,8 +9,9 @@ import '../../../../core/services/session_service.dart';
 //  VENDOR PROFILE CONTROLLER — GET /api/profile/me (vendor-shaped)
 // ═══════════════════════════════════════════════════════════════════
 class VendorProfileController extends GetxController {
-  final _profileApi = ProfileApiService();
-  final _jobsApi    = JobsApiService();
+  final _profileApi   = ProfileApiService();
+  final _jobsApi      = JobsApiService();
+  final _communityApi = CommunityApiService();
 
   final isLoading = true.obs;
   final profile   = Rxn<MyProfile>();
@@ -21,13 +22,18 @@ class VendorProfileController extends GetxController {
 
   // Community feed — vendor apne bhi posts karta hai (same shared feed
   // jo worker use karta hai), isliye "My Posts" yahan bhi dikhta hai.
-  final posts      = <CommunityFeedModel>[].obs;
-  final postsCount = 0.obs;
+  // Dedicated endpoint (GET /community/posts/mine) — /profile/me se
+  // decouple, taaki apni saari posts dikhein (koi approval/isActive filter
+  // nahi) bina profile fetch ko bhaari kiye.
+  final posts        = <CommunityFeedModel>[].obs;
+  final postsCount    = 0.obs;
+  final isLoadingPosts = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     fetchProfile();
+    fetchMyPosts();
   }
 
   Future<void> fetchProfile() async {
@@ -36,8 +42,6 @@ class VendorProfileController extends GetxController {
       final res = await _profileApi.getMe();
       if (res.success && res.user != null) {
         profile.value = res.user;
-        posts.assignAll(res.user!.posts);
-        postsCount.value = res.user!.posts.length;
         // Server-side language preference restore (cross-device).
         LocaleService.to.applyFromProfile(res.user!.language);
       }
@@ -46,6 +50,22 @@ class VendorProfileController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<void> fetchMyPosts() async {
+    isLoadingPosts.value = true;
+    try {
+      final res = await _communityApi.getMyPosts();
+      if (res.success ?? false) {
+        posts.assignAll(res.data ?? const []);
+        postsCount.value = posts.length;
+      }
+    } finally {
+      isLoadingPosts.value = false;
+    }
+  }
+
+  /// Pull-to-refresh — profile + posts dono ek saath.
+  Future<void> refreshAll() => Future.wait([fetchProfile(), fetchMyPosts()]);
 
   /// Delete ke baad local list se hata do (UI turant update).
   void removePostLocally(String? id) {

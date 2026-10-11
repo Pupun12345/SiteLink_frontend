@@ -166,8 +166,7 @@ class RateWorkerView extends StatelessWidget {
                             maxLines: 4,
                             style: KTextStyle.poppins(fs: 13),
                             decoration: InputDecoration(
-                              hintText:
-                              'Share your experience... / अपना अनुभव लिखें...',
+                              hintText: 'share_experience_hint'.tr,
                               hintStyle: KTextStyle.poppins(
                                   fs: 12, c: AppColors.textHint),
                               filled: true,
@@ -204,7 +203,7 @@ class RateWorkerView extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            "WORKER'S AVERAGE RATING",
+                            'worker_average_rating_label'.tr,
                             style: KTextStyle.poppins(
                               fs: 10,
                               fw: FontWeight.bold,
@@ -287,17 +286,17 @@ class RateWorkerView extends StatelessWidget {
   String _ratingLabel(int r) {
     switch (r) {
       case 1:
-        return 'Poor / खराब';
+        return 'rating_poor'.tr;
       case 2:
-        return 'Fair / ठीक';
+        return 'rating_fair'.tr;
       case 3:
-        return 'Good / अच्छा';
+        return 'rating_good'.tr;
       case 4:
-        return 'Very Good / बहुत अच्छा';
+        return 'rating_very_good'.tr;
       case 5:
-        return 'Excellent! / बहुत बढ़िया!';
+        return 'rating_excellent'.tr;
       default:
-        return 'Tap a star to rate';
+        return 'tap_star_to_rate'.tr;
     }
   }
 }
@@ -313,7 +312,7 @@ class _RateCtrl extends GetxController {
     await Future.delayed(const Duration(seconds: 1));
     isLoading.value = false;
     Get.back();
-    AppSnackbar.success(message: 'Rating submitted successfully.');
+    AppSnackbar.success(message: 'rating_submitted_success'.tr);
   }
 
   @override

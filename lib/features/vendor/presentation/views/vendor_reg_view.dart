@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -8,6 +9,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/location_models.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/utils/tax_id_formats.dart';
 import '../controllers/vendor_reg_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -72,13 +74,13 @@ class VendorRegistrationView extends StatelessWidget {
                 // ── Company Details Section ─────────────────
                 _FieldSectionLabel(
                   icon: Icons.business_rounded,
-                  title: 'Company Details',
+                  title: 'company_details_section'.tr,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
                   label: AppStrings.CompanyName,
-                  hint: 'Enter company name',
+                  hint: 'enter_company_name_hint'.tr,
                   controller: ctrl.companyNameCtrl,
                   prefixIcon: Icons.business_rounded,
                 ),
@@ -86,7 +88,7 @@ class VendorRegistrationView extends StatelessWidget {
 
                 SitelinkTextField(
                   label: AppStrings.ContactPerson,
-                  hint: 'Enter name',
+                  hint: 'enter_name_hint'.tr,
                   controller: ctrl.contactPersonCtrl,
                   prefixIcon: Icons.person_outline_rounded,
                 ),
@@ -94,38 +96,57 @@ class VendorRegistrationView extends StatelessWidget {
 
                 SitelinkTextField(
                   label: AppStrings.Designation,
-                  hint: 'e.g., Manager, Owner, Site Engineer',
+                  hint: 'designation_hint'.tr,
                   controller: ctrl.designationCtrl,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: 'Email',
-                  hint: 'company@email.com',
+                  label: 'email_label'.tr,
+                  hint: 'company_email_hint'.tr,
                   controller: ctrl.emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  isOptional: true,
+                ),
+                const SizedBox(height: AppDimens.md),
+
+                // Contact number — `user.phone`. Yahi number baad me OTP se
+                // badalta hai (Settings → Change phone number), isliye ise
+                // WhatsApp se alag lena zaroori hai.
+                SitelinkTextField(
+                  label: '${'phone_number_label'.tr} *',
+                  hint: 'ten_digit_number_hint'.tr,
+                  controller: ctrl.phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  maxLength: 10,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: 'WhatsApp Number',
-                  hint: '10-digit number',
+                  label: 'whatsapp_number_label'.tr,
+                  hint: 'ten_digit_number_hint'.tr,
                   controller: ctrl.whatsappCtrl,
                   keyboardType: TextInputType.phone,
-                  isOptional: true,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  maxLength: 10,
                 ),
                 const SizedBox(height: AppDimens.xl),
 
                 // ── Location Section ────────────────────────
                 _FieldSectionLabel(
                   icon: Icons.location_on_outlined,
-                  title: 'Location & Area',
+                  title: 'location_area_section'.tr,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 Text(
-                  'State',
+                  'state_label'.tr,
                   style: KTextStyle.poppins(
                       fs: 12,
                       fw: FontWeight.w500,
@@ -134,7 +155,7 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: 6),
                 Obx(() => _apiDropdown<StateModel>(
                       value: ctrl.selectedState.value,
-                      hint: 'Select state',
+                      hint: 'select_state_hint'.tr,
                       icon: Icons.map_outlined,
                       items: ctrl.allStates
                           .map((s) => DropdownMenuItem(
@@ -170,7 +191,7 @@ class VendorRegistrationView extends StatelessWidget {
                   }
                   return _apiDropdown<CityModel>(
                     value: ctrl.selectedCity.value,
-                    hint: 'Select city',
+                    hint: 'select_city_hint'.tr,
                     icon: Icons.location_on_outlined,
                     items: ctrl.allCities
                         .map((c) => DropdownMenuItem(
@@ -185,43 +206,47 @@ class VendorRegistrationView extends StatelessWidget {
 
                 SitelinkTextField(
                   label: AppStrings.WorkArea,
-                  hint: 'Areas where you hire',
+                  hint: 'areas_you_hire_hint'.tr,
                   controller: ctrl.workAreaCtrl,
-                  isOptional: true,
                 ),
                 const SizedBox(height: AppDimens.xl),
 
                 // ── Optional Section ────────────────────────
                 _FieldSectionLabel(
                   icon: Icons.receipt_long_rounded,
-                  title: 'Tax Details',
+                  title: 'tax_details_section'.tr,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
-                  label: 'PAN Number *',
-                  hint: 'ABCDE1234F',
+                  label: 'pan_number_label'.tr,
+                  hint: 'pan_hint_example'.tr,
                   controller: ctrl.panCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: TaxIdFormats.panInput,
+                  maxLength: TaxIdFormats.panLength,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 SitelinkTextField(
                   label: AppStrings.GSTNumber,
-                  hint: 'Enter GSTIN',
+                  hint: 'enter_gstin_hint'.tr,
                   controller: ctrl.gstCtrl,
-                  isOptional: true,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: TaxIdFormats.gstInput,
+                  maxLength: TaxIdFormats.gstLength,
                 ),
                 const SizedBox(height: AppDimens.xl),
 
                 // ── Documents Section ───────────────────────
                 _FieldSectionLabel(
                   icon: Icons.upload_file_rounded,
-                  title: 'Documents',
+                  title: 'documents_label'.tr,
                 ),
                 const SizedBox(height: AppDimens.md),
 
                 Obx(() => _DocUploadTile(
-                      label: 'PAN Card Photo *',
+                      label: 'pan_card_photo_label'.tr,
                       file: ctrl.panCardImage.value,
                       onPick: (src) => ctrl.pickFile(ctrl.panCardImage, src),
                       onRemove: () => ctrl.panCardImage.value = null,
@@ -229,7 +254,7 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: AppDimens.md),
 
                 Obx(() => _DocUploadTile(
-                      label: 'GST Certificate *',
+                      label: '${'gst_certificate_label'.tr} *',
                       file: ctrl.gstCertificate.value,
                       onPick: (src) => ctrl.pickFile(ctrl.gstCertificate, src),
                       onRemove: () => ctrl.gstCertificate.value = null,
@@ -237,7 +262,7 @@ class VendorRegistrationView extends StatelessWidget {
                 const SizedBox(height: AppDimens.md),
 
                 Obx(() => _DocUploadTile(
-                      label: 'Company Logo (optional)',
+                      label: 'company_logo_optional_label'.tr,
                       file: ctrl.companyLogo.value,
                       onPick: (src) => ctrl.pickFile(ctrl.companyLogo, src),
                       onRemove: () => ctrl.companyLogo.value = null,
@@ -367,7 +392,7 @@ class _DocUploadTile extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text('Camera'),
+            title: Text('camera_label'.tr),
             onTap: () {
               Get.back();
               onPick(ImageSource.camera);
@@ -375,7 +400,7 @@ class _DocUploadTile extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Gallery'),
+            title: Text('gallery_label'.tr),
             onTap: () {
               Get.back();
               onPick(ImageSource.gallery);
@@ -434,7 +459,7 @@ class _DocUploadTile extends StatelessWidget {
                 const Icon(Icons.cloud_upload_outlined,
                     color: AppColors.primary, size: 26),
                 const SizedBox(height: 6),
-                Text('Tap to upload',
+                Text('tap_to_upload_label'.tr,
                     style:
                         KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
               ]),

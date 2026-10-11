@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/job_models.dart';
+import '../../../../core/services/post_share_service.dart';
+import '../../../../core/theme/job_roles_view.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/vendor_jobs_controller.dart';
 import 'job_applicants_view.dart';
@@ -25,7 +28,31 @@ class VendorJobDetailView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      appBar: GradientAppBar(title: 'Job Details'),
+      appBar: GradientAppBar(
+        title: 'job_details_title'.tr,
+        actions: [
+          // Vendor apni job share karta hai taaki zyada log apply karein.
+          // Sirf live job — pending/rejected ka link kholne par doosre
+          // ko "not available" hi milega.
+          if ((job.approvalStatus ?? 'approved').toLowerCase() ==
+                  'approved' &&
+              job.isActive)
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.share_outlined),
+                tooltip: 'share_label'.tr,
+                onPressed: () => shareJob(
+                  ctx,
+                  jobId: job.id,
+                  title: job.title,
+                  company: job.companyName,
+                  location: job.location,
+                  pay: job.salary != null ? salary : null,
+                ),
+              ),
+            ),
+        ],
+      ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -41,7 +68,7 @@ class VendorJobDetailView extends StatelessWidget {
                   children: [
                     Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Expanded(
-                        child: Text(job.title ?? 'Job',
+                        child: Text(job.title ?? 'job_fallback_title'.tr,
                             style: KTextStyle.poppins(
                                 fs: 19, fw: FontWeight.w700)),
                       ),
@@ -55,7 +82,7 @@ class VendorJobDetailView extends StatelessWidget {
                     const SizedBox(height: 10),
                     Wrap(spacing: 6, runSpacing: 6, children: [
                       _badge(
-                        label: isOpen ? 'Open' : 'Closed',
+                        label: isOpen ? 'open_badge'.tr : 'closed_badge'.tr,
                         color: isOpen ? AppColors.success : AppColors.textHint,
                         icon: isOpen
                             ? Icons.radio_button_checked_rounded
@@ -63,7 +90,7 @@ class VendorJobDetailView extends StatelessWidget {
                       ),
                       if (job.isUrgent)
                         _badge(
-                            label: 'Urgent Hiring',
+                            label: 'urgent_hiring_label'.tr,
                             color: AppColors.error,
                             icon: Icons.bolt_rounded),
                       _approvalBadge(job.approvalStatus),
@@ -99,14 +126,41 @@ class VendorJobDetailView extends StatelessWidget {
                       _row(Icons.business_outlined, job.companyName),
                     const SizedBox(height: 10),
                     _row(Icons.location_on_outlined, job.location ?? ''),
+                    // Kaam kab shuru hoga — posting date se alag cheez hai,
+                    // isliye alag row me aur label ke saath.
+                    if (job.startDate != null) ...[
+                      const SizedBox(height: 10),
+                      _row(Icons.event_rounded,
+                          '${'start_label'.tr}: ${DateFormat('d MMM yyyy').format(job.startDate!)}'),
+                    ],
                     if ((job.postedAt) != null) ...[
                       const SizedBox(height: 10),
                       _row(Icons.calendar_today_rounded,
-                          'Posted ${_timeAgo(job.postedAt!)}'),
+                          '${'posted_prefix'.tr} ${_timeAgo(job.postedAt!)}'),
                     ],
                   ],
                 ),
               ),
+              // ── Roles maange gaye — kaun-kaun aur kitne ──────
+              // Vendor ne jo breakdown post karte waqt bhara tha, wahi
+              // yahan wapas dikhta hai (pehle sirf title me summary
+              // reh jaata tha).
+              if (job.roles.isNotEmpty) ...[
+                const SizedBox(height: AppDimens.md),
+                AppCard(
+                  showShadow: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('roles_required_label'.tr,
+                          style:
+                              KTextStyle.poppins(fs: 14, fw: FontWeight.w700)),
+                      const SizedBox(height: 12),
+                      JobRolesBreakdown(roles: job.roles),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: AppDimens.md),
 
               // ── Applicants CTA — bada, prominent ──────────────
@@ -132,15 +186,16 @@ class VendorJobDetailView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${job.applicationsCount} Applicant${job.applicationsCount == 1 ? '' : 's'}',
+                          'applicants_count_suffix'
+                              .trParams({'count': '${job.applicationsCount}'}),
                           style: KTextStyle.poppins(
                               fs: 15, fw: FontWeight.w700),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           hasApplicants
-                              ? 'Tap to view & confirm workers'
-                              : 'No applications yet',
+                              ? 'tap_to_view_confirm_workers'.tr
+                              : 'no_applications_yet'.tr,
                           style: KTextStyle.poppins(
                               fs: 11.5, c: AppColors.textSecondary),
                         ),
@@ -159,38 +214,38 @@ class VendorJobDetailView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Job Details',
+                    Text('job_details_title'.tr,
                         style: KTextStyle.poppins(
                             fs: 14, fw: FontWeight.w700)),
                     const SizedBox(height: 14),
                     Row(children: [
                       Expanded(
                           child: _detailTile(Icons.people_outline_rounded,
-                              'Workers Needed', '${job.workersCount}')),
+                              'workers_needed_label'.tr, '${job.workersCount}')),
                       const SizedBox(width: 10),
                       Expanded(
                           child: _detailTile(
-                              Icons.payments_outlined, 'Pay', salary)),
+                              Icons.payments_outlined, 'pay_label'.tr, salary)),
                     ]),
                     const SizedBox(height: 10),
                     Row(children: [
                       Expanded(
                           child: _detailTile(
                               Icons.work_history_outlined,
-                              'Experience',
+                              'experience_label'.tr,
                               (job.experience ?? '').isNotEmpty
                                   ? '${job.experience} yrs'
                                   : '—')),
                       const SizedBox(width: 10),
                       Expanded(
                           child: _detailTile(Icons.timelapse_rounded,
-                              'Duration', job.duration ?? '—')),
+                              'duration'.tr, job.duration ?? '—')),
                     ]),
                     if ((job.description ?? '').isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Divider(height: 1, color: AppColors.divider),
                       const SizedBox(height: 14),
-                      Text('Description',
+                      Text('description'.tr,
                           style: KTextStyle.poppins(
                               fs: 13, fw: FontWeight.w600)),
                       const SizedBox(height: 6),
@@ -212,7 +267,7 @@ class VendorJobDetailView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Amenities & Benefits',
+                      Text('amenities_benefits_label'.tr,
                           style: KTextStyle.poppins(
                               fs: 14, fw: FontWeight.w700)),
                       const SizedBox(height: 12),
@@ -262,7 +317,7 @@ class VendorJobDetailView extends StatelessWidget {
           minimum:
               const EdgeInsets.fromLTRB(AppDimens.lg, 10, AppDimens.lg, 10),
           child: CustomButton(
-            label: 'Deactivate Job',
+            label: 'deactivate_job_btn'.tr,
             isOutlined: true,
             leading: const Icon(Icons.block_rounded,
                 size: 18, color: AppColors.error),
@@ -276,14 +331,13 @@ class VendorJobDetailView extends StatelessWidget {
   void _confirmDelete(BuildContext context) {
     Get.dialog(
       AlertDialog(
-        title: Text('Deactivate Job?',
+        title: Text('deactivate_job_title'.tr,
             style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
         content: Text(
-            'Ye job workers ko dikhna band ho jaayega. Aapke plan ke worker '
-            'quota me ye phir bhi count hota rahega.',
+            'deactivate_job_body'.tr,
             style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
             onPressed: () {
               Get.back(); // dialog
@@ -292,7 +346,7 @@ class VendorJobDetailView extends StatelessWidget {
               }
               Get.back(); // detail screen
             },
-            child: Text('Deactivate',
+            child: Text('deactivate_label'.tr,
                 style: KTextStyle.poppins(
                     fs: 13, fw: FontWeight.w600, c: AppColors.error)),
           ),
@@ -357,17 +411,17 @@ class VendorJobDetailView extends StatelessWidget {
     switch (v) {
       case 'approved':
         return _badge(
-            label: 'Live',
+            label: 'live_badge'.tr,
             color: AppColors.success,
             icon: Icons.verified_rounded);
       case 'rejected':
         return _badge(
-            label: 'Rejected',
+            label: 'status_rejected'.tr,
             color: AppColors.error,
             icon: Icons.cancel_rounded);
       default:
         return _badge(
-            label: 'Pending Admin Approval',
+            label: 'pending_admin_approval'.tr,
             color: AppColors.warning,
             icon: Icons.hourglass_top_rounded);
     }

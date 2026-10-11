@@ -34,7 +34,7 @@ class VendorJobsController extends GetxController {
         jobs.assignAll(mine);
         quota.value = res.quota;
       } else {
-        AppSnackbar.error(message: res.message ?? 'Jobs load nahi hue');
+        AppSnackbar.error(message: res.message ?? 'jobs_load_failed'.tr);
       }
     } finally {
       isLoading.value = false;
@@ -47,10 +47,10 @@ class VendorJobsController extends GetxController {
   Future<void> deleteJob(String jobId) async {
     final res = await _jobsApi.deleteJob(jobId);
     if (res.success) {
-      AppSnackbar.success(message: 'Job deactivated');
+      AppSnackbar.success(message: 'job_deactivated_success'.tr);
       await fetchMyJobs();
     } else {
-      AppSnackbar.error(message: res.message ?? 'Deactivate nahi hua');
+      AppSnackbar.error(message: res.message ?? 'deactivate_failed_generic'.tr);
     }
   }
 }

@@ -66,7 +66,7 @@ class JobOfferView extends StatelessWidget {
                     BorderRadius.circular(AppDimens.radiusMax),
                   ),
                   child: Text(
-                    '🔔  New Offer',
+                    'new_offer_badge'.tr,
                     style: KTextStyle.poppins(
                         fs: 11, fw: FontWeight.w600, c: Colors.white),
                   ),
@@ -80,7 +80,7 @@ class JobOfferView extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Review the offer and respond within 2 hours',
+                  'offer_review_subtitle'.tr,
                   style: KTextStyle.poppins(
                       fs: 12, c: Colors.white.withOpacity(0.8)),
                   textAlign: TextAlign.center,
@@ -127,14 +127,14 @@ class JobOfferView extends StatelessWidget {
                             const SizedBox(height: AppDimens.md),
 
                             // ── Details grid ─────────────────
-                            _DetailGrid(items: const [
-                              (Icons.location_on_outlined, 'Location',
+                            _DetailGrid(items: [
+                              (Icons.location_on_outlined, 'location_label'.tr,
                               'Vaishali Nagar, Jaipur'),
-                              (Icons.calendar_today_rounded, 'Start Date',
+                              (Icons.calendar_today_rounded, AppStrings.StartDate,
                               '20 March 2026'),
-                              (Icons.timelapse_rounded, 'Duration',
+                              (Icons.timelapse_rounded, AppStrings.Duration,
                               '1 Month'),
-                              (Icons.currency_rupee_rounded, 'Daily Rate',
+                              (Icons.currency_rupee_rounded, 'daily_rate_label'.tr,
                               '₹650 / day'),
                             ]),
                             const SizedBox(height: AppDimens.md),
@@ -170,7 +170,7 @@ class JobOfferView extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Verified Contractor ✓',
+                                        'verified_contractor_label'.tr,
                                         style: KTextStyle.poppins(
                                             fs: 11, c: AppColors.success),
                                       ),

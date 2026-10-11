@@ -23,12 +23,11 @@ class MyRequestsView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
       appBar: GradientAppBar(
-        title: 'My Posted Jobs',
+        title: 'my_posted_jobs'.tr,
         showBack: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded,
-                color: Colors.white),
+            icon: const Icon(Icons.add_circle_outline_rounded),
             onPressed: () async {
               await Get.toNamed(AppRoutes.newRequest);
               ctrl.fetchMyJobs(); // naya job post hone par refresh
@@ -75,20 +74,19 @@ class MyRequestsView extends StatelessWidget {
   void _confirmDelete(VendorJobsController ctrl, JobModel job) {
     Get.dialog(
       AlertDialog(
-        title: Text('Deactivate Job?',
+        title: Text('deactivate_job_title'.tr,
             style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
         content: Text(
-            'Ye job workers ko dikhna band ho jaayega. Aapke plan ke worker '
-            'quota me ye phir bhi count hota rahega.',
+            'deactivate_job_body'.tr,
             style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
             onPressed: () {
               Get.back();
               ctrl.deleteJob(job.id ?? '');
             },
-            child: Text('Deactivate',
+            child: Text('deactivate_label'.tr,
                 style: KTextStyle.poppins(
                     fs: 13, fw: FontWeight.w600, c: AppColors.error)),
           ),
@@ -110,8 +108,8 @@ class _QuotaBanner extends StatelessWidget {
       return _wrap(
         color: AppColors.warning,
         icon: Icons.workspace_premium_outlined,
-        title: 'No active subscription',
-        subtitle: 'Job post karne ke liye ek plan subscribe karein.',
+        title: 'no_active_subscription'.tr,
+        subtitle: 'subscribe_plan_to_post'.tr,
       );
     }
     // Plan hai par admin ne worker-limit set nahi ki.
@@ -119,8 +117,8 @@ class _QuotaBanner extends StatelessWidget {
       return _wrap(
         color: AppColors.success,
         icon: Icons.verified_rounded,
-        title: 'Subscription active',
-        subtitle: '${quota.used} workers posted so far.',
+        title: 'subscription_active'.tr,
+        subtitle: 'workers_posted_so_far'.trParams({'count': '${quota.used}'}),
       );
     }
     final used = quota.used;
@@ -143,9 +141,17 @@ class _QuotaBanner extends StatelessWidget {
           Row(children: [
             Icon(Icons.groups_rounded, size: 18, color: color),
             const SizedBox(width: 8),
-            Text('Worker quota',
-                style: KTextStyle.poppins(fs: 13, fw: FontWeight.w700)),
-            const Spacer(),
+            // Expanded + ellipsis: label lamba hai ("Employees / Workers
+            // this month") aur bade font wale phone par to aur lamba. Pehle
+            // Spacer 0 par collapse ho jaata tha aur "2 / 50" label se
+            // chipak kar kinare se bahar nikal jaata tha.
+            Expanded(
+              child: Text('worker_quota_label'.tr,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: KTextStyle.poppins(fs: 13, fw: FontWeight.w700)),
+            ),
+            const SizedBox(width: 8),
             Text('$used / $max',
                 style: KTextStyle.poppins(
                     fs: 13, fw: FontWeight.w700, c: color)),
@@ -163,8 +169,11 @@ class _QuotaBanner extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             full
-                ? 'Limit reached — upgrade your plan to post more workers.'
-                : '$remaining workers left in your plan.',
+                ? 'quota_limit_reached'.trParams({'date': quota.resetLabel})
+                : 'workers_left_in_plan'.trParams({
+                    'count': '$remaining',
+                    'date': quota.resetLabel,
+                  }),
             style: KTextStyle.poppins(fs: 11.5, c: AppColors.textSecondary),
           ),
         ],
@@ -240,7 +249,7 @@ class _JobCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(job.title ?? 'Job',
+                  Text(job.title ?? 'job_fallback_title'.tr,
                       style:
                           KTextStyle.poppins(fs: 16, fw: FontWeight.w700),
                       maxLines: 2,
@@ -269,7 +278,7 @@ class _JobCard extends StatelessWidget {
                       const Icon(Icons.block_rounded,
                           size: 16, color: AppColors.error),
                       const SizedBox(width: 8),
-                      Text('Deactivate',
+                      Text('deactivate_label'.tr,
                           style:
                               KTextStyle.poppins(fs: 13, c: AppColors.error)),
                     ]),
@@ -283,13 +292,13 @@ class _JobCard extends StatelessWidget {
           Wrap(spacing: 6, runSpacing: 6, children: [
             if (!job.isActive)
               _badge(
-                  label: 'Deactivated',
+                  label: 'deactivated_badge'.tr,
                   color: AppColors.textHint,
                   icon: Icons.block_rounded),
             _approvalBadge(job.approvalStatus),
             if (job.isActive)
               _badge(
-                label: isOpen ? 'Open' : 'Closed',
+                label: isOpen ? 'open_badge'.tr : 'closed_badge'.tr,
                 color: isOpen ? AppColors.success : AppColors.textHint,
                 icon: isOpen
                     ? Icons.radio_button_checked_rounded
@@ -297,7 +306,7 @@ class _JobCard extends StatelessWidget {
               ),
             if (job.isUrgent && job.isActive)
               _badge(
-                  label: 'Urgent',
+                  label: 'urgent_label'.tr,
                   color: AppColors.error,
                   icon: Icons.bolt_rounded),
           ]),
@@ -328,10 +337,10 @@ class _JobCard extends StatelessWidget {
               Row(children: [
                 Expanded(
                     child: _detailItem(Icons.people_outline_rounded,
-                        'Workers', '${job.workersCount}')),
+                        'workers_label'.tr, '${job.workersCount}')),
                 Expanded(
                     child: _detailItem(
-                        Icons.payments_outlined, 'Pay', salary)),
+                        Icons.payments_outlined, 'pay_label'.tr, salary)),
               ]),
               if ((job.experience ?? '').isNotEmpty ||
                   (job.duration ?? '').isNotEmpty) ...[
@@ -339,10 +348,10 @@ class _JobCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                       child: _detailItem(Icons.work_history_outlined,
-                          'Experience', '${job.experience ?? '—'} yrs')),
+                          'experience_label'.tr, '${job.experience ?? '—'} yrs')),
                   Expanded(
                       child: _detailItem(Icons.timelapse_rounded,
-                          'Duration', job.duration ?? '—')),
+                          'duration'.tr, job.duration ?? '—')),
                 ]),
               ],
             ]),
@@ -372,7 +381,8 @@ class _JobCard extends StatelessWidget {
                           : AppColors.textHint),
                   const SizedBox(width: 5),
                   Text(
-                    '${job.applicationsCount} Applicant${job.applicationsCount == 1 ? '' : 's'}',
+                    'applicants_count_suffix'
+                        .trParams({'count': '${job.applicationsCount}'}),
                     style: KTextStyle.poppins(
                       fs: 12,
                       fw: FontWeight.w600,
@@ -388,7 +398,7 @@ class _JobCard extends StatelessWidget {
             GestureDetector(
               onTap: onTap,
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('View Details',
+                Text('view_details_label'.tr,
                     style: KTextStyle.poppins(
                         fs: 12, fw: FontWeight.w600, c: AppColors.primary)),
                 const SizedBox(width: 3),
@@ -426,17 +436,17 @@ class _JobCard extends StatelessWidget {
     switch (v) {
       case 'approved':
         return _badge(
-            label: 'Live',
+            label: 'live_badge'.tr,
             color: AppColors.success,
             icon: Icons.verified_rounded);
       case 'rejected':
         return _badge(
-            label: 'Rejected',
+            label: 'status_rejected'.tr,
             color: AppColors.error,
             icon: Icons.cancel_rounded);
       default:
         return _badge(
-            label: 'Pending Admin Approval',
+            label: 'pending_admin_approval'.tr,
             color: AppColors.warning,
             icon: Icons.hourglass_top_rounded);
     }
@@ -486,15 +496,15 @@ class _EmptyState extends StatelessWidget {
                   size: 40, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 16),
-            Text('No jobs posted yet',
+            Text('no_jobs_posted_yet'.tr,
                 style: KTextStyle.poppins(
                     fs: 15, fw: FontWeight.w600, c: AppColors.textPrimary)),
             const SizedBox(height: 4),
-            Text('Post a job to start hiring workers',
+            Text('post_job_to_start_hiring'.tr,
                 style: KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
             const SizedBox(height: 24),
             CustomButton(
-              label: 'Post New Job',
+              label: 'post_new_job_btn'.tr,
               onTap: () => Get.toNamed(AppRoutes.newRequest),
               width: 240,
             ),

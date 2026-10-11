@@ -234,8 +234,7 @@ class ReplacementRequestView extends StatelessWidget {
                             maxLines: 4,
                             style: KTextStyle.poppins(fs: 13),
                             decoration: InputDecoration(
-                              hintText:
-                              'Describe the issue... / समस्या बताएं...',
+                              hintText: 'describe_issue_hint'.tr,
                               hintStyle: KTextStyle.poppins(
                                   fs: 12, c: AppColors.textHint),
                               filled: true,
@@ -292,26 +291,9 @@ class ReplacementRequestView extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Add Photo Proof / फोटो जोड़ें',
+                                'add_photo_proof_label'.tr,
                                 style: KTextStyle.poppins(
                                     fs: 14, fw: FontWeight.w700),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding:
-                                const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(
-                                      AppDimens.radiusMax),
-                                ),
-                                child: Text(
-                                  'Optional',
-                                  style: KTextStyle.poppins(
-                                      fs: 10,
-                                      c: AppColors.textHint),
-                                ),
                               ),
                             ],
                           ),
@@ -350,7 +332,7 @@ class ReplacementRequestView extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'Take photo or upload',
+                                    'take_photo_or_upload_label'.tr,
                                     style: KTextStyle.poppins(
                                         fs: 12,
                                         c: AppColors.textSecondary),
@@ -383,7 +365,7 @@ class ReplacementRequestView extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Your 48-hour replacement clock starts when you submit this form.',
+                              'replacement_clock_warning'.tr,
                               style: KTextStyle.poppins(
                                   fs: 12,
                                   c: Colors.amber.shade800),
@@ -433,7 +415,7 @@ class _ReplacementCtrl extends GetxController {
 
   void submit() async {
     if (selectedReason.isEmpty) {
-      AppSnackbar.error(message: 'Please select a reason');
+      AppSnackbar.error(message: 'select_reason_error'.tr);
       return;
     }
     isLoading.value = true;
@@ -441,7 +423,7 @@ class _ReplacementCtrl extends GetxController {
     isLoading.value = false;
     Get.back();
     AppSnackbar.success(
-      message: 'Replacement request received. We will respond within 48 hours.',
+      message: 'replacement_request_received'.tr,
       duration: const Duration(seconds: 4),
     );
   }

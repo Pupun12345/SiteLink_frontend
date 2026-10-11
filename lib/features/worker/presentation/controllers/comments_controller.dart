@@ -53,7 +53,7 @@ class CommentsController extends GetxController {
         await fetchComments();
         _bumpFeedCount(1);
       } else {
-        AppSnackbar.error(message: res.message ?? 'Comment add nahi hua');
+        AppSnackbar.error(message: res.message ?? 'comment_add_failed'.tr);
       }
     } finally {
       isSending.value = false;
@@ -68,9 +68,9 @@ class CommentsController extends GetxController {
       final res = await _api.updateComment(postId, commentId, t);
       if (res.success) {
         await fetchComments();
-        AppSnackbar.success(message: 'Comment updated');
+        AppSnackbar.success(message: 'comment_updated'.tr);
       } else {
-        AppSnackbar.error(message: res.message ?? 'Update nahi hua');
+        AppSnackbar.error(message: res.message ?? 'comment_update_failed'.tr);
       }
     } finally {
       isSending.value = false;
@@ -86,10 +86,10 @@ class CommentsController extends GetxController {
     final res = await _api.deleteComment(postId, c.id!);
     if (res.success) {
       _bumpFeedCount(-1);
-      AppSnackbar.success(message: 'Comment deleted');
+      AppSnackbar.success(message: 'comment_deleted'.tr);
     } else {
       if (idx != -1) comments.insert(idx, c); // revert
-      AppSnackbar.error(message: res.message ?? 'Delete nahi hua');
+      AppSnackbar.error(message: res.message ?? 'comment_delete_failed'.tr);
     }
   }
 

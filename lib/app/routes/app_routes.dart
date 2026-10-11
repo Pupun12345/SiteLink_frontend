@@ -19,6 +19,9 @@ abstract class AppRoutes {
   static const myRequests = '/vendor/my-requests';
   static const requestDetail = '/vendor/request-detail';
   static const rateWorker = '/vendor/rate-worker';
+
+  /// Shared deep link (`sitelink://post/<id>` ya `/p/<id>`) yahan khulta hai
+  static const postDetail = '/post';
   static const replacementRequest = '/vendor/replacement-request';
 
   // Worker

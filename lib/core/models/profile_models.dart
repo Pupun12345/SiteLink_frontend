@@ -1,8 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════
 //  PROFILE MODELS — /api/profile/me
 // ═══════════════════════════════════════════════════════════════════
-import 'community_feed_models.dart';
-
 class MyProfile {
   final String? id;
   final String? name;
@@ -11,8 +9,30 @@ class MyProfile {
   final String? profileImage;
   final String? primarySkill;
   final num? totalExperience; // worker ka overall experience (years)
+  final String? experienceDescription;
+  /// Worker ka nominee (Family Protection). Purane workers ke liye null.
+  final String? nomineeName;
+  final String? gender;          // 'Male' | 'Female' | 'Other'
+  final bool? willingtoRelocate;
+  final String? salaryType;      // 'daily' | 'monthly' | 'hourly' | 'project-based'
+  final num? salary;
+  /// Admin ki di hui rating (1–5). null = admin ne abhi rating nahi di.
+  /// Automatic rating (job outcomes se) ka system hata diya gaya hai.
+  final num? rating;
+  /// Admin ka comment, rating ke saath.
+  final String? ratingComment;
+
+  /// Abhi koi plan chal raha hai? Backend live compute karke bhejta hai.
+  /// Paid features (Contact Support waghairah) ka lock isi se decide hota
+  /// hai — purana `subscription` boolean expiry par false nahi hota tha.
+  final bool hasActivePlan;
+
+  /// Rating mili hai? null/0 par UI kuch nahi dikhata.
+  bool get hasRating => (rating ?? 0) > 0;
+
   final List<String> skills;
-  final List<CommunityFeedModel> posts; // user ke apne posts
+  // "My Posts" — ab dedicated endpoint se aata hai (GET /community/posts/mine,
+  // CommunityApiService.getMyPosts()), yahan embed nahi hota.
   final String? workCity;
   final String? workState;
   final String? userType;
@@ -23,8 +43,9 @@ class MyProfile {
   final String? phone;
   // ── Worker documents (relative server paths) ──
   final String? governmentID;
-  final String? experienceCertificate;
-  final List<String> workSamplesPhoto;
+  /// Ek se zyada ho sakte hain (alag company/skill ke). Purane users ke
+  /// paas ek hi hota tha — backend usse bhi array hi bhejta hai.
+  final List<String> experienceCertificate;
   // ── Vendor fields ──
   final String? companyName;
   final String? designation;
@@ -45,8 +66,16 @@ class MyProfile {
     this.profileImage,
     this.primarySkill,
     this.totalExperience,
+    this.experienceDescription,
+    this.nomineeName,
+    this.gender,
+    this.willingtoRelocate,
+    this.salaryType,
+    this.salary,
+    this.rating,
+    this.ratingComment,
+    this.hasActivePlan = false,
     this.skills = const [],
-    this.posts = const [],
     this.workCity,
     this.workState,
     this.userType,
@@ -56,8 +85,7 @@ class MyProfile {
     this.dateOfBirth,
     this.phone,
     this.governmentID,
-    this.experienceCertificate,
-    this.workSamplesPhoto = const [],
+    this.experienceCertificate = const [],
     this.companyName,
     this.designation,
     this.panNumber,
@@ -76,8 +104,6 @@ class MyProfile {
   String get locationLabel =>
       [workCity, workState].where((e) => (e ?? '').isNotEmpty).join(', ');
 
-  int get postsCount => posts.length;
-
   /// Account verified? Sirf jab backend 'verified' bheje. Warna false.
   bool get isVerified => (verification ?? '').toLowerCase() == 'verified';
 
@@ -95,16 +121,25 @@ class MyProfile {
           : num.tryParse(
               (json['totalExperience'] ?? json['experience'])?.toString() ??
                   ''),
+      experienceDescription: json['experienceDescription']?.toString(),
+      nomineeName: json['nomineeName']?.toString(),
+      gender: json['gender']?.toString(),
+      willingtoRelocate: json['willingtoRelocate'] is bool
+          ? json['willingtoRelocate'] as bool
+          : (json['willingtoRelocate']?.toString() == 'true' ? true : null),
+      salaryType: json['salaryType']?.toString(),
+      salary: json['salary'] is num
+          ? json['salary'] as num
+          : num.tryParse(json['salary']?.toString() ?? ''),
+      rating: json['rating'] is num
+          ? json['rating'] as num
+          : num.tryParse(json['rating']?.toString() ?? ''),
+      ratingComment: json['ratingComment']?.toString(),
+      hasActivePlan: json['hasActivePlan'] == true,
       skills: skillsRaw
               ?.map((e) =>
                   (e is Map ? e['skillName'] : e)?.toString() ?? '')
               .where((s) => s.isNotEmpty)
-              .toList() ??
-          const [],
-      posts: (json['posts'] as List?)
-              ?.whereType<Map>()
-              .map((e) =>
-                  CommunityFeedModel.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           const [],
       workCity: json['workCity']?.toString(),
@@ -117,12 +152,12 @@ class MyProfile {
       dateOfBirth: DateTime.tryParse(json['dateOfBirth']?.toString() ?? ''),
       phone: json['phone']?.toString(),
       governmentID: json['governmentID']?.toString(),
-      experienceCertificate: json['experienceCertificate']?.toString(),
-      workSamplesPhoto: (json['workSamplesPhoto'] as List?)
-              ?.map((e) => e.toString())
-              .where((s) => s.isNotEmpty)
-              .toList() ??
-          const [],
+      // Purane records me ye single string ho sakti hai — dono handle karo.
+      experienceCertificate: switch (json['experienceCertificate']) {
+        final List l => l.map((e) => e.toString()).where((s) => s.isNotEmpty).toList(),
+        final String s when s.isNotEmpty => [s],
+        _ => const <String>[],
+      },
       companyName: json['companyName']?.toString(),
       designation: json['designation']?.toString(),
       panNumber: json['panNumber']?.toString(),

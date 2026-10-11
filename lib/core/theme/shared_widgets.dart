@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_dimens.dart';
 import '../constants/k_text_style.dart';
@@ -98,6 +99,7 @@ class SitelinkTextField extends StatelessWidget {
   final Widget? suffix;
   final TextInputType keyboardType;
   final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
   final bool obscureText;
   final bool readOnly;
@@ -108,7 +110,6 @@ class SitelinkTextField extends StatelessWidget {
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
   final VoidCallback? onTap;
-  final bool isOptional;
   final bool showLabel;
 
   const SitelinkTextField({
@@ -122,6 +123,7 @@ class SitelinkTextField extends StatelessWidget {
     this.suffix,
     this.keyboardType = TextInputType.text,
     this.textInputAction,
+    this.textCapitalization = TextCapitalization.none,
     this.inputFormatters,
     this.obscureText = false,
     this.readOnly = false,
@@ -132,7 +134,6 @@ class SitelinkTextField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.onTap,
-    this.isOptional = false,
     this.showLabel = true,
   });
 
@@ -142,15 +143,7 @@ class SitelinkTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showLabel) ...[
-          Row(
-            children: [
-              Text(label, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: AppColors.textSecondary)),
-              if (isOptional) ...[
-                const SizedBox(width: 4),
-                Text('(Optional)', style: KTextStyle.poppins(fs: 11, c: AppColors.textHint)),
-              ],
-            ],
-          ),
+          Text(label, style: KTextStyle.poppins(fs: 12, fw: FontWeight.w500, c: AppColors.textSecondary)),
           const SizedBox(height: 6),
         ],
         TextFormField(
@@ -158,6 +151,7 @@ class SitelinkTextField extends StatelessWidget {
           focusNode: focusNode,
           keyboardType: keyboardType,
           textInputAction: textInputAction,
+          textCapitalization: textCapitalization,
           inputFormatters: inputFormatters,
           obscureText: obscureText,
           readOnly: readOnly,
@@ -233,13 +227,13 @@ class StatusBadge extends StatelessWidget {
 
   (Color, Color, String) _data() {
     switch (type) {
-      case BadgeType.pending:    return (AppColors.warningLight,  AppColors.warning, 'Pending');
-      case BadgeType.active:     return (AppColors.successLight,  AppColors.success, 'Active');
-      case BadgeType.fulfilled:  return (AppColors.infoLight,     AppColors.info,    'Fulfilled');
-      case BadgeType.replaced:   return (AppColors.errorLight,    AppColors.error,   'Replaced');
-      case BadgeType.verified:   return (AppColors.successLight,  AppColors.success, '✓ Verified');
-      case BadgeType.rejected:   return (AppColors.errorLight,    AppColors.error,   'Rejected');
-      case BadgeType.completed:  return (AppColors.infoLight,     AppColors.info,    'Completed');
+      case BadgeType.pending:    return (AppColors.warningLight,  AppColors.warning, 'pending'.tr);
+      case BadgeType.active:     return (AppColors.successLight,  AppColors.success, 'active_status_label'.tr);
+      case BadgeType.fulfilled:  return (AppColors.infoLight,     AppColors.info,    'status_fulfilled_badge'.tr);
+      case BadgeType.replaced:   return (AppColors.errorLight,    AppColors.error,   'status_replaced_badge'.tr);
+      case BadgeType.verified:   return (AppColors.successLight,  AppColors.success, 'status_verified_badge'.tr);
+      case BadgeType.rejected:   return (AppColors.errorLight,    AppColors.error,   'status_rejected'.tr);
+      case BadgeType.completed:  return (AppColors.infoLight,     AppColors.info,    'status_completed_badge'.tr);
     }
   }
 }
@@ -348,11 +342,44 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
               Expanded(
                 child: Text(title, style: KTextStyle.poppins(fs: 18, fw: FontWeight.w600, c: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
               ),
-              if (actions != null) ...actions!,
+              // Appbar ab flat white hai (pehle gradient tha), isliye
+              // actions ko yahin se dark tint milta hai — call site pe
+              // color dena zaroori nahi, warna white-on-white invisible.
+              if (actions != null)
+                IconTheme.merge(
+                  data: const IconThemeData(color: AppColors.textPrimary),
+                  child: DefaultTextStyle.merge(
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: actions!),
+                  ),
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  VERIFIED BADGE — "secure" icon next to a verified poster's name
+// ═══════════════════════════════════════════════════════════════════
+class VerifiedBadge extends StatelessWidget {
+  final double size;
+  final Color color;
+  const VerifiedBadge({super.key, this.size = 11, this.color = AppColors.primary});
+
+  @override
+  Widget build(BuildContext context) {
+    // secure.png ek solid black silhouette hai (transparent bg) — srcIn
+    // blend se use app ke primary color me tint kar dete hai.
+    return Image.asset(
+      'assets/images/secure.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      color: color,
+      colorBlendMode: BlendMode.srcIn,
     );
   }
 }

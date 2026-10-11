@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../utils/mask_secret.dart';
+
 class RestApi {
   final GetStorage storage = GetStorage();
 
@@ -12,10 +14,12 @@ class RestApi {
   String get _token => storage.read("token") ?? "";
 
   /// Har token-wali (auth) API pe endpoint + bearer token print karo.
+  /// Token masked hai — poora JWT log me jaana account handover ke
+  /// barabar hai, aur debug logs share hote rehte hain.
   void _logAuth(String method, String url) {
     if (!kDebugMode) return;
     print("[RestApi] $method (Auth) → $url");
-    print("[RestApi] 🔑 Bearer Token: $_token");
+    print("[RestApi] 🔑 Bearer Token: ${maskSecret(_token)}");
   }
 
   Map<String, String> get _baseHeaders => {

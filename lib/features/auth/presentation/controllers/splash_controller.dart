@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/session_service.dart';
 
@@ -29,14 +30,16 @@ class SplashController extends GetxController {
 
     // Token login ke baad hi bheja gaya tha — cold-start par dobara sync
     // taaki rotate/stale token backend me pura rahe. Fire-and-forget.
-    NotificationService.instance.syncTokenIfLoggedIn();
+    NotificationService.instance.syncTokenIfLoggedIn(label: 'app-start');
 
     switch (session.userType) {
       case 'worker':
         Get.offAllNamed(AppRoutes.workerHome);
+        DeepLinkService.instance.resumePending();
         break;
       case 'vendor':
         Get.offAllNamed(AppRoutes.vendorHome);
+        DeepLinkService.instance.resumePending();
         break;
       default:
         Get.offAllNamed(AppRoutes.role);
