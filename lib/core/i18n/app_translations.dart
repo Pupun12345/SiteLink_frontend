@@ -355,7 +355,7 @@ const Map<String, String> _en = {
       'Cut out middlemen. Connect directly with hiring managers and top firms.',
   'worker_plans_footer_about': 'SiteLink is an industrial workforce platform by Smartnex Technologies.',
   'plans_brand_pill': 'SiteLink • A Product of Smartnex Technologies',
-  'plans_copyright': '© 2024 Smartnex Technologies Pvt. Ltd. All rights reserved.',
+  'plans_copyright': '© 2026 Smartnex Technologies Pvt. Ltd. All rights reserved.',
 
   // Comments Sheet
   'comments_title': 'Comments',
@@ -1332,7 +1332,7 @@ const Map<String, String> _hi = {
       'बिचौलियों को हटाएं। सीधे हायरिंग मैनेजरों और बड़ी कंपनियों से जुड़ें।',
   'worker_plans_footer_about': 'SiteLink, Smartnex Technologies का एक औद्योगिक वर्कफ़ोर्स प्लेटफ़ॉर्म है।',
   'plans_brand_pill': 'SiteLink • Smartnex Technologies का एक प्रोडक्ट',
-  'plans_copyright': '© 2024 Smartnex Technologies Pvt. Ltd. सर्वाधिकार सुरक्षित।',
+  'plans_copyright': '© 2026 Smartnex Technologies Pvt. Ltd. सर्वाधिकार सुरक्षित।',
 
   // Comments Sheet
   'comments_title': 'कमेंट्स',
