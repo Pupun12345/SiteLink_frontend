@@ -132,10 +132,13 @@ class PaymentService {
       'method': _allowedMethods(),
       'name': 'SiteLink',
       'description': plan.name ?? 'Subscription',
+      // Email nahi maangte — SiteLink ke users phone se login karte hain,
+      // aksar unke paas email hota hi nahi. Sirf prefill hatane par
+      // Razorpay khud khaali email box dikha deta, isliye `hidden`.
       'prefill': {
         'contact': user?.phone ?? '',
-        'email': user?.email ?? '',
       },
+      'hidden': {'email': true},
       'theme': {'color': '#F97316'},
     };
 
@@ -246,12 +249,12 @@ class PaymentService {
       'method': _allowedMethods(),
       'name': 'SiteLink',
       'description': subRes.planName ?? plan.name ?? 'Subscription',
-      // Recurring ke liye customer ka contact/email chahiye hota hai —
-      // mandate inhi par register hota hai.
+      // Mandate phone number par register hota hai. Email nahi maangte —
+      // upar wale one-time checkout jaisa hi, box bhi chhupa dete hain.
       'prefill': {
         'contact': user?.phone ?? '',
-        'email': user?.email ?? '',
       },
+      'hidden': {'email': true},
       'theme': {'color': '#F97316'},
     };
 
