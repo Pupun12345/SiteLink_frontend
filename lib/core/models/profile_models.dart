@@ -37,6 +37,13 @@ class MyProfile {
   final String? workState;
   final String? userType;
   final String? verification; // account verification key ('verified' | 'pending' | null)
+  /// Documents ka admin review: 'pending' | 'verified' | 'rejected'.
+  final String? verificationStatus;
+  /// Admin ne reject kiya to uski wajah (warna null).
+  final String? rejectionReason;
+  /// Har document ka admin review, file path se. Jis path ka review nahi
+  /// wo "under review" hai (naya upload).
+  final Map<String, DocumentReview> documentReviews;
   final String? language;     // 'hindi' | 'english' — app language preference
   final DateTime? createdAt;
   final DateTime? dateOfBirth;
@@ -80,6 +87,9 @@ class MyProfile {
     this.workState,
     this.userType,
     this.verification,
+    this.verificationStatus,
+    this.rejectionReason,
+    this.documentReviews = const {},
     this.language,
     this.createdAt,
     this.dateOfBirth,
@@ -106,6 +116,25 @@ class MyProfile {
 
   /// Account verified? Sirf jab backend 'verified' bheje. Warna false.
   bool get isVerified => (verification ?? '').toLowerCase() == 'verified';
+
+  /// Admin ne documents reject kiye — worker naye upload kar sakta hai.
+  bool get isRejected => (verificationStatus ?? '').toLowerCase() == 'rejected';
+
+  DocumentReview? reviewFor(String? path) =>
+      path == null ? null : documentReviews[path];
+
+  /// Admin ne document-wise reject kiya hai? (purane reject me ye info nahi
+  /// hoti — tab saare documents dobara upload ho sakte hain.)
+  bool get hasDocumentRejections =>
+      documentReviews.values.any((r) => r.isRejected);
+
+  /// Ye document worker badal sakta hai? Sirf reject hone par — aur agar
+  /// admin ne specific documents chune the to sirf wahi.
+  bool canReplaceDocument(String? path) {
+    if (!isRejected) return false;
+    if (!hasDocumentRejections) return true;
+    return reviewFor(path)?.isRejected ?? false;
+  }
 
   factory MyProfile.fromJson(Map<String, dynamic> json) {
     final skillsRaw = json['skills'] as List?;
@@ -147,6 +176,14 @@ class MyProfile {
       userType: json['userType']?.toString(),
       verification: json['verification']?.toString() ??
           (json['isVerified'] == true ? 'verified' : null),
+      verificationStatus: json['verificationStatus']?.toString(),
+      rejectionReason: json['verificationRejectedReason']?.toString(),
+      documentReviews: {
+        for (final r in (json['documentReviews'] as List? ?? const []).whereType<Map>())
+          if ((r['path'] ?? '').toString().isNotEmpty)
+            r['path'].toString():
+                DocumentReview.fromJson(Map<String, dynamic>.from(r)),
+      },
       language: json['language']?.toString(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       dateOfBirth: DateTime.tryParse(json['dateOfBirth']?.toString() ?? ''),
@@ -209,4 +246,20 @@ class PhoneChangeOtpResponse {
       devOtp: data is Map ? data['otp']?.toString() : null,
     );
   }
+}
+
+// ── Ek document ka admin review ──────────────────────────────────────
+class DocumentReview {
+  final String status; // 'approved' | 'rejected'
+  final String? reason;
+
+  const DocumentReview({required this.status, this.reason});
+
+  bool get isApproved => status == 'approved';
+  bool get isRejected => status == 'rejected';
+
+  factory DocumentReview.fromJson(Map<String, dynamic> json) => DocumentReview(
+        status: json['status']?.toString() ?? '',
+        reason: json['reason']?.toString(),
+      );
 }

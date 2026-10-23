@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/models/location_models.dart';
 import '../../../../core/models/skill_models.dart';
@@ -31,9 +32,169 @@ class WorkerRegController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _prefillFromSession();
+    final restored = _restoreDraft();
+    if (!restored) _prefillFromSession();
     _loadSkills();
     _loadStates();
+    if (restored) _recoverLostPick();
+  }
+
+  // ── Draft (process death se bachav) ────────────────────────────
+  // Gallery / camera khulne par kam RAM wale phone par Android hamara
+  // process maar deta hai. Wapas aane par app splash se shuru hota hai aur
+  // poora bhara hua form gayab. Isliye form ka draft GetStorage me rakhte
+  // hain — har step change aur har picker khulne se PEHLE — aur splash
+  // isse dekh kar user ko usi step par wapas le aata hai.
+  static const _kDraft = 'worker_reg_draft';
+  static final _box = GetStorage();
+
+  /// Picker kis cheez ke liye khula tha — process death ke baad
+  /// `retrieveLostData()` se mili image sahi jagah lagane ke liye.
+  static const _pickProfile = 'profile';
+  static const _pickIdProof = 'idProof';
+  static const _pickCert = 'cert';
+
+  /// Abhi user kis step par hai (route name).
+  String _step = AppRoutes.workerReg1;
+
+  /// Adhoora registration hai to uska step (route), warna null. Splash
+  /// isse user ko wapas form par laata hai.
+  static String? pendingDraftStep() {
+    final raw = _box.read(_kDraft);
+    if (raw is! Map) return null;
+    final step = raw['step'];
+    return step is String && step.isNotEmpty ? step : null;
+  }
+
+  static Future<void> clearDraft() => _box.remove(_kDraft);
+
+  void _saveDraft({String? pendingPick}) {
+    _box.write(_kDraft, {
+      'step': _step,
+      'pendingPick': pendingPick,
+      'profilePhoto': profilePhoto.value?.path,
+      'name': nameCtrl.text,
+      'nominee': nomineeCtrl.text,
+      'dob': dobCtrl.text,
+      'city': cityCtrl.text,
+      'gender': gender.value,
+      'primarySkillId': selectedPrimarySkillId.value,
+      'secondarySkillIds': selectedSecondarySkillIds.toList(),
+      'experienceYears': experienceYears.value,
+      'expDesc': expDescCtrl.text,
+      'otherSkill': otherSkillCtrl.text,
+      'stateId': selectedState.value?.id,
+      'stateName': selectedState.value?.name,
+      'cityId': selectedCity.value?.id,
+      'cityName': selectedCity.value?.name,
+      'preferredArea': preferredAreaCtrl.text,
+      'willRelocate': willRelocate.value,
+      'salaryType': salaryType.value,
+      'salary': salaryCtrl.text,
+      'idType': selectedIdType.value,
+      'idProof': idProofFile.value?.path,
+      'certs': experienceCerts.map((f) => f.path).toList(),
+    });
+  }
+
+  String? _pendingPick;
+
+  /// Draft mila aur form me bhar diya → true.
+  bool _restoreDraft() {
+    final raw = _box.read(_kDraft);
+    if (raw is! Map) return false;
+    final d = Map<String, dynamic>.from(raw);
+
+    // Sirf wahi file wapas lagao jo disk par abhi bhi hai (cache saaf ho
+    // sakta hai).
+    File? existing(Object? path) =>
+        path is String && path.isNotEmpty && File(path).existsSync()
+            ? File(path)
+            : null;
+    String str(String k) => d[k] is String ? d[k] as String : '';
+
+    _step = str('step').isEmpty ? AppRoutes.workerReg1 : str('step');
+    _pendingPick = d['pendingPick'] as String?;
+    profilePhoto.value = existing(d['profilePhoto']);
+    nameCtrl.text = str('name');
+    nomineeCtrl.text = str('nominee');
+    dobCtrl.text = str('dob');
+    cityCtrl.text = str('city');
+    if (str('gender').isNotEmpty) gender.value = str('gender');
+    selectedPrimarySkillId.value = d['primarySkillId'] as int?;
+    selectedSecondarySkillIds.assignAll(
+        (d['secondarySkillIds'] as List? ?? const []).whereType<int>());
+    if (d['experienceYears'] is int) {
+      experienceYears.value = d['experienceYears'] as int;
+    }
+    expDescCtrl.text = str('expDesc');
+    otherSkillCtrl.text = str('otherSkill');
+    final stateId = d['stateId'] as int?;
+    if (stateId != null) {
+      selectedState.value =
+          StateModel(id: stateId, name: d['stateName'] as String?);
+      loadCitiesForState(stateId);
+    }
+    final cityId = d['cityId'] as int?;
+    if (cityId != null) {
+      selectedCity.value =
+          CityModel(id: cityId, name: d['cityName'] as String?);
+    }
+    preferredAreaCtrl.text = str('preferredArea');
+    if (d['willRelocate'] is bool) willRelocate.value = d['willRelocate'] as bool;
+    if (str('salaryType').isNotEmpty) salaryType.value = str('salaryType');
+    salaryCtrl.text = str('salary');
+    if (str('idType').isNotEmpty) selectedIdType.value = str('idType');
+    idProofFile.value = existing(d['idProof']);
+    experienceCerts.assignAll(
+        (d['certs'] as List? ?? const []).map(existing).whereType<File>());
+    return true;
+  }
+
+  /// Process death se pehle jo image chuni gayi thi, Android use
+  /// `retrieveLostData()` me rakh deta hai — use sahi field me lagao.
+  Future<void> _recoverLostPick() async {
+    final target = _pendingPick;
+    if (target == null || !Platform.isAndroid) return;
+    try {
+      final lost = await _picker.retrieveLostData();
+      final path = lost.file?.path;
+      if (path == null) return;
+      final file = File(path);
+      switch (target) {
+        case _pickProfile:
+          profilePhoto.value = file;
+        case _pickIdProof:
+          idProofFile.value = file;
+          idProofUploaded.value = false;
+        case _pickCert:
+          if (experienceCerts.length < maxExperienceCerts) {
+            experienceCerts.add(file);
+          }
+      }
+    } catch (_) {
+      // Recover na ho paaye to user dobara chun lega — form to bacha hai.
+    } finally {
+      _pendingPick = null;
+      _saveDraft();
+    }
+  }
+
+  /// Step badalte waqt draft me step bhi likho, phir navigate.
+  void _goTo(String route) {
+    _step = route;
+    _saveDraft();
+    Get.toNamed(route);
+  }
+
+  /// Step 2 ka Next.
+  void goToStep3() => _goTo(AppRoutes.workerReg3);
+
+  /// Picker khulne se pehle: jis screen par picker hai wahi step, aur
+  /// kis field ke liye khula — taaki restart ke baad wahin wapas aayein.
+  void _beforePick(String step, String? target) {
+    _step = step;
+    _saveDraft(pendingPick: target);
   }
 
   /// Google/OTP login ke baad session me jo naam hai (Google se aata hai)
@@ -105,6 +266,7 @@ class WorkerRegController extends GetxController {
   final profilePhoto = Rxn<File>();
 
   Future<void> pickProfilePhoto(ImageSource source) async {
+    _beforePick(AppRoutes.workerReg1, _pickProfile);
     try {
       // Photo preset — avatar chhota dikhta hai, zyada compress theek hai.
       final picked = await pickPhotoImage(_picker, source);
@@ -112,6 +274,7 @@ class WorkerRegController extends GetxController {
     } catch (_) {
       AppSnackbar.error(message: 'image_pick_failed'.tr);
     }
+    _saveDraft();
   }
 
   void removeProfilePhoto() => profilePhoto.value = null;
@@ -163,15 +326,18 @@ class WorkerRegController extends GetxController {
 
   // Pick ID proof from camera or gallery
   Future<void> pickIdProof(ImageSource source) async {
+    _beforePick(AppRoutes.documentUpload, _pickIdProof);
     try {
       // Document preset — admin ko ID par text padhna hota hai.
       final picked = await pickDocumentImage(_picker, source);
-      if (picked == null) return;
-      idProofFile.value = File(picked.path);
-      idProofUploaded.value = false; // reset if re-picked
+      if (picked != null) {
+        idProofFile.value = File(picked.path);
+        idProofUploaded.value = false; // reset if re-picked
+      }
     } catch (e) {
       AppSnackbar.error(message: 'image_pick_retry_error'.tr);
     }
+    _saveDraft();
   }
 
   // ── Experience certificates (multiple) ──────────────────────────
@@ -187,6 +353,7 @@ class WorkerRegController extends GetxController {
   void removeExperienceCert(int index) {
     if (index >= 0 && index < experienceCerts.length) {
       experienceCerts.removeAt(index);
+      _saveDraft();
     }
   }
 
@@ -198,25 +365,34 @@ class WorkerRegController extends GetxController {
               .trParams({'count': '$maxExperienceCerts'}));
       return;
     }
-    if (source == null) {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
-      if (result != null && result.files.single.path != null) {
-        experienceCerts.add(File(result.files.single.path!));
+    // PDF (file_picker) ke liye lost-data recovery nahi hoti, par form
+    // phir bhi draft se bach jaata hai.
+    _beforePick(AppRoutes.documentUpload, source == null ? null : _pickCert);
+    try {
+      if (source == null) {
+        final result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['pdf'],
+        );
+        if (result != null && result.files.single.path != null) {
+          experienceCerts.add(File(result.files.single.path!));
+        }
+      } else {
+        // Document preset — certificate ka text padhne layak rehna chahiye.
+        final picked = await pickDocumentImage(_picker, source);
+        if (picked != null) experienceCerts.add(File(picked.path));
       }
-    } else {
-      // Document preset — certificate ka text padhne layak rehna chahiye.
-      final picked = await pickDocumentImage(_picker, source);
-      if (picked != null) experienceCerts.add(File(picked.path));
+    } catch (_) {
+      AppSnackbar.error(message: 'image_pick_retry_error'.tr);
     }
+    _saveDraft();
   }
 
   // Remove ID proof
   void removeIdProof() {
     idProofFile.value = null;
     idProofUploaded.value = false;
+    _saveDraft();
   }
 
   // Show bottom sheet to choose Camera or Gallery
@@ -279,10 +455,10 @@ class WorkerRegController extends GetxController {
       AppSnackbar.error(message: 'enter_nominee_error'.tr);
       return;
     }
-    Get.toNamed(AppRoutes.workerReg2);
+    _goTo(AppRoutes.workerReg2);
   }
 
-  void submitStep3() => Get.toNamed(AppRoutes.documentUpload);
+  void submitStep3() => _goTo(AppRoutes.documentUpload);
 
   // ── Submit Entire Profile to API ──────────────────────
   Future<void> submitWorkerProfile() async {
@@ -366,6 +542,7 @@ class WorkerRegController extends GetxController {
       if (response.success) {
         // userType persist karo taaki dobara registration na maange
         await SessionService.to.setUserType('worker');
+        await clearDraft();
         // Navigate pehle, snackbar baad me — snackbar GetX me ek route
         // hai, isliye pehle dikhane par wo navigation ke saath hi gayab
         // ho jaata tha aur user ko confirmation kabhi dikhta hi nahi tha.

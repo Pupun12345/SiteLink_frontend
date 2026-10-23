@@ -118,7 +118,7 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
 
   Future<void> _verifyOtp() async {
     final otp = _otpCtrl.text.trim();
-    if (otp.length != 6) {
+    if (otp.length != AppConfig.otpLength) {
       AppSnackbar.error(message: 'enter_six_digit_otp_error'.tr);
       return;
     }

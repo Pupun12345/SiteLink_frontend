@@ -9,6 +9,7 @@ import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/vendor_jobs_controller.dart';
 import 'job_applicants_view.dart';
 import 'vendor_job_detail_view.dart';
+import 'vendor_plans_view.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  MY REQUESTS (POSTED JOBS) — real GET /api/jobs (own filter)
@@ -62,6 +63,12 @@ class MyRequestsView extends StatelessWidget {
                   onDelete: () => _confirmDelete(ctrl, job),
                   onViewApplicants: () =>
                       Get.to(() => JobApplicantsView(job: job)),
+                  // Plan renew karke lautne par list refresh — job turant
+                  // wapas "Live" dikhe.
+                  onRenewPlan: () async {
+                    await Get.to(() => const VendorPlansView());
+                    ctrl.fetchMyJobs();
+                  },
                 );
               },
             ),
@@ -221,11 +228,13 @@ class _JobCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onViewApplicants;
+  final VoidCallback onRenewPlan;
   const _JobCard({
     required this.job,
     required this.onTap,
     required this.onDelete,
     required this.onViewApplicants,
+    required this.onRenewPlan,
   });
 
   @override
@@ -295,8 +304,21 @@ class _JobCard extends StatelessWidget {
                   label: 'deactivated_badge'.tr,
                   color: AppColors.textHint,
                   icon: Icons.block_rounded),
-            _approvalBadge(job.approvalStatus),
-            if (job.isActive)
+            // Approved hai par workers ko ab nahi dikhti (30 din / plan khatam)
+            // to "Live" ki jagah asli haalat.
+            if (job.isExpired)
+              _badge(
+                  label: 'job_expired_badge'.tr,
+                  color: AppColors.textHint,
+                  icon: Icons.event_busy_rounded)
+            else if (job.isHiddenByPlan)
+              _badge(
+                  label: 'job_hidden_badge'.tr,
+                  color: AppColors.error,
+                  icon: Icons.visibility_off_rounded)
+            else
+              _approvalBadge(job.approvalStatus),
+            if (job.isActive && job.isLive != false)
               _badge(
                 label: isOpen ? 'open_badge'.tr : 'closed_badge'.tr,
                 color: isOpen ? AppColors.success : AppColors.textHint,
@@ -304,12 +326,13 @@ class _JobCard extends StatelessWidget {
                     ? Icons.radio_button_checked_rounded
                     : Icons.check_circle_rounded,
               ),
-            if (job.isUrgent && job.isActive)
+            if (job.isUrgent && job.isActive && job.isLive != false)
               _badge(
                   label: 'urgent_label'.tr,
                   color: AppColors.error,
                   icon: Icons.bolt_rounded),
           ]),
+          _VisibilityNote(job: job, onRenewPlan: onRenewPlan),
           const SizedBox(height: 12),
 
           // ── Location ────────────────────────────────────────────
@@ -469,6 +492,100 @@ class _JobCard extends StatelessWidget {
         ),
       ),
     ]);
+  }
+}
+
+// ── Workers ko kab tak dikhegi — note + "Renew plan" ───────────────
+// Backend rule: job post se max 30 din dikhti hai, aur tabhi tak jab tak
+// vendor ka plan chale. Vendor ko pehle se pata ho ki job kab band hogi,
+// aur plan ki wajah se band hui (ya hone wali) ho to wahin se renew kare.
+class _VisibilityNote extends StatelessWidget {
+  final JobModel job;
+  final VoidCallback onRenewPlan;
+  const _VisibilityNote({required this.job, required this.onRenewPlan});
+
+  static const _jobVisibleDays = 30;
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  String _fmt(DateTime d) => '${d.day} ${_months[d.month - 1]}';
+
+  @override
+  Widget build(BuildContext context) {
+    final until = job.visibleUntil;
+    final posted = job.postedAt?.toLocal();
+    final approved = (job.approvalStatus ?? '').toLowerCase() == 'approved';
+    if (!approved || !job.isActive || job.isLive == null || posted == null) {
+      return const SizedBox.shrink();
+    }
+    // Plan na hota to job kab tak dikhti (30 din ki limit).
+    final maxDate = posted.add(const Duration(days: _jobVisibleDays));
+
+    final String text;
+    final Color color;
+    var showRenew = false;
+
+    if (job.isExpired) {
+      text = 'job_expired_note'.tr;
+      color = AppColors.textHint;
+    } else if (job.isHiddenByPlan) {
+      text = 'job_hidden_plan_note'.trParams({'date': _fmt(maxDate)});
+      color = AppColors.error;
+      showRenew = true;
+    } else if (until != null) {
+      final endsByPlan = until.isBefore(maxDate.subtract(const Duration(hours: 1)));
+      final daysLeft = until.difference(DateTime.now()).inDays;
+      if (endsByPlan) {
+        // Plan 30 din se pehle khatam ho raha hai — abhi se bata do.
+        text = 'job_ends_with_plan_note'
+            .trParams({'date': _fmt(until), 'max': _fmt(maxDate)});
+        color = AppColors.warning;
+        showRenew = true;
+      } else if (daysLeft < 3) {
+        text = daysLeft < 1
+            ? 'job_ends_today_note'.tr
+            : 'job_ends_in_days_note'.trParams({'days': '$daysLeft'});
+        color = AppColors.warning;
+      } else {
+        text = 'job_visible_till_note'.trParams({'date': _fmt(until)});
+        color = AppColors.textSecondary;
+      }
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+        ),
+        child: Row(children: [
+          Icon(Icons.schedule_rounded, size: 14, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(text,
+                style: KTextStyle.poppins(fs: 11.5, c: color, fw: FontWeight.w500)),
+          ),
+          if (showRenew)
+            TextButton(
+              onPressed: onRenewPlan,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                minimumSize: const Size(0, 30),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text('renew_plan_label'.tr,
+                  style: KTextStyle.poppins(
+                      fs: 12, fw: FontWeight.w700, c: AppColors.primary)),
+            ),
+        ]),
+      ),
+    );
   }
 }
 

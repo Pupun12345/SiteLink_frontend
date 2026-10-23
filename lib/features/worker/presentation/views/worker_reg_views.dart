@@ -592,7 +592,7 @@ class WorkerReg2View extends StatelessWidget {
 
                       CustomButton(
                         label: AppStrings.Next,
-                        onTap: () => Get.toNamed(AppRoutes.workerReg3),
+                        onTap: ctrl.goToStep3,
                       ),
                     ],
                   ),

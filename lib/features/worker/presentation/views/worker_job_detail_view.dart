@@ -194,6 +194,14 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
       // upar na aayein. Service khud dekh leti hai ki pehle maang
       // chuke hain ya nahi.
       ReviewService.maybeAsk();
+    } else if (res.code == 'JOB_EXPIRED') {
+      // Job 30 din poore kar chuki ya vendor ka plan khatam — list purani
+      // thi. Wapas list par bhejo aur use taaza karo, taaki ye job hat jaaye.
+      Get.back();
+      AppSnackbar.warning(message: 'job_no_longer_available'.tr);
+      if (Get.isRegistered<MyJobsController>()) {
+        Get.find<MyJobsController>().fetchJobs();
+      }
     } else {
       AppSnackbar.error(message: res.message ?? 'apply_failed_generic'.tr);
     }

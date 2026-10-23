@@ -1,8 +1,10 @@
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/session_service.dart';
+import '../../../worker/presentation/controllers/worker_reg_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  SPLASH CONTROLLER — auto-login (session-based) redirect
@@ -43,6 +45,29 @@ class SplashController extends GetxController {
         break;
       default:
         Get.offAllNamed(AppRoutes.role);
+        await _resumeWorkerRegistration();
+    }
+  }
+
+  /// Registration adhoora tha (aksar gallery khulte waqt Android ne app
+  /// band kar diya) → user ko usi step par wapas le jao. Stack poora
+  /// banate hain (Role → Step1 → … → current), taaki back button sahi
+  /// chale. Step 1 ki screen hi WorkerRegController ko `Get.put` karti
+  /// hai, isliye har push ke baad ek frame rukte hain.
+  Future<void> _resumeWorkerRegistration() async {
+    final step = WorkerRegController.pendingDraftStep();
+    if (step == null) return;
+    const order = [
+      AppRoutes.workerReg1,
+      AppRoutes.workerReg2,
+      AppRoutes.workerReg3,
+      AppRoutes.documentUpload,
+    ];
+    final last = order.indexOf(step);
+    if (last < 0) return;
+    for (var i = 0; i <= last; i++) {
+      await WidgetsBinding.instance.endOfFrame;
+      Get.toNamed(order[i]);
     }
   }
 }

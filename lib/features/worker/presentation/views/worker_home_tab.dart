@@ -108,9 +108,9 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
       surfaceTintColor: Colors.transparent,
       primary: false,
       title: Text(
-        AppStrings.SiteLink,
+        'Sitelink',
         style: KTextStyle.poppins(
-            fs: 19, fw: FontWeight.w700, c: AppColors.primary,
+            fs: 16, fw: FontWeight.w700, c: AppColors.primary,
             letterSpacing: 0.2),
       ),
       centerTitle: false,

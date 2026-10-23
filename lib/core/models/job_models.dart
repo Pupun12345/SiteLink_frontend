@@ -114,6 +114,17 @@ class JobModel {
   final String? jobId;          // human-readable e.g. "REQ-20E7"
   final String? applicationStatus; // logged-in worker ki apni application ka status (agar apply kar chuka ho)
 
+  // ── Workers ko kab tak dikhegi (sirf vendor ki /jobs/my me aata hai) ──
+  // Rule: post se max 30 din, aur tabhi tak jab tak vendor ka plan chale.
+  final DateTime? visibleUntil;
+  /// null = backend ne bheja hi nahi (purana response / worker list).
+  final bool? isLive;
+  /// Band kyun hai: 'expired' (30 din poore) | 'plan_ended' | null.
+  final String? hiddenReason;
+
+  bool get isExpired => hiddenReason == 'expired';
+  bool get isHiddenByPlan => hiddenReason == 'plan_ended';
+
   bool get hasApplied => (applicationStatus ?? '').isNotEmpty;
 
   const JobModel({
@@ -143,6 +154,9 @@ class JobModel {
     this.rejectionReason,
     this.jobId,
     this.applicationStatus,
+    this.visibleUntil,
+    this.isLive,
+    this.hiddenReason,
   });
 
   /// Map/directions ke liye coords available hain?
@@ -212,6 +226,10 @@ class JobModel {
       rejectionReason: json['rejectionReason']?.toString(),
       jobId: json['jobId']?.toString(),
       applicationStatus: json['applicationStatus']?.toString(),
+      visibleUntil:
+          DateTime.tryParse(json['visibleUntil']?.toString() ?? '')?.toLocal(),
+      isLive: json['isLive'] is bool ? json['isLive'] as bool : null,
+      hiddenReason: json['hiddenReason']?.toString(),
     );
   }
 }

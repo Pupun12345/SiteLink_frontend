@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'app/bindings/initial_binding.dart';
 import 'app/firebase_options.dart';
 import 'app/routes/app_pages.dart';
@@ -21,6 +23,14 @@ import 'core/services/notification_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+
+  // Gallery ke liye Android ka system Photo Picker. Default me plugin bahar
+  // ka Gallery app (MIUI Gallery / Google Photos) kholta hai — wo bhaari
+  // hota hai aur kam RAM wale phone par Android hamara process maar deta
+  // tha, wapas aane par app splash se restart hota (registration ka data
+  // gayab). Photo Picker system ka halka UI hai, ye problem kam hoti hai.
+  final picker = ImagePickerPlatform.instance;
+  if (picker is ImagePickerAndroid) picker.useAndroidPhotoPicker = true;
 
   await GetStorage.init();
   Get.put<LocaleService>(LocaleService(), permanent: true);
