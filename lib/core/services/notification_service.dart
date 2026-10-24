@@ -115,7 +115,10 @@ class NotificationService {
   }
 
   Future<void> _initLocalNotifications() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // Status bar ka chhota icon — safed SiteLink "S" (res/drawable*/
+    // ic_stat_notification.png). Pehle '@mipmap/ic_launcher' tha jo Flutter
+    // ka default icon hai, isliye notification me Flutter logo dikhta tha.
+    const androidInit = AndroidInitializationSettings('@drawable/ic_stat_notification');
     const iosInit = DarwinInitializationSettings();
     await _local.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
@@ -152,6 +155,8 @@ class NotificationService {
           channelDescription: _channel.description,
           importance: Importance.high,
           priority: Priority.high,
+          icon: '@drawable/ic_stat_notification',
+          color: const Color(0xFFF97316), // brand orange — icon ka tint
         ),
         iOS: const DarwinNotificationDetails(),
       ),

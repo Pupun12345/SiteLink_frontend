@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#F97316</color>
+    <!-- Notification icon ka tint (brand orange) -->
+    <color name="notification_color">#F97316</color>
 </resources>
