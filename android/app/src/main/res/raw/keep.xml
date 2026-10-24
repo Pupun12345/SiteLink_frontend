@@ -3,4 +3,4 @@
      hata deta hai jo code me naam se (string) use hote hain. Notification
      icon flutter_local_notifications naam se dhoondhta hai — isliye rakho. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_stat_notification" />
+    tools:keep="@drawable/ic_stat_notification,@drawable/ic_notification_large" />

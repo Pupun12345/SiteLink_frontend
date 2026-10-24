@@ -155,8 +155,12 @@ class NotificationService {
           channelDescription: _channel.description,
           importance: Importance.high,
           priority: Priority.high,
+          // Status bar: safed "S" (Android wahan rangeen icon nahi dikhne deta).
           icon: '@drawable/ic_stat_notification',
           color: const Color(0xFFF97316), // brand orange — icon ka tint
+          // Notification kholne par dikhne wala bada, rangeen SiteLink logo
+          // (assets/images/app_logo_icon.png se bana).
+          largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
         ),
         iOS: const DarwinNotificationDetails(),
       ),
