@@ -326,7 +326,7 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
     return ListView(
       padding: const EdgeInsets.all(AppDimens.lg),
       children: [
-        _StatusBanner(profile: p),
+        _StatusBanner(profile: p, onReuploadId: _uploadGovtId),
         const SizedBox(height: AppDimens.md),
         _DocCard(
           label: AppStrings.GovernmentID,
@@ -402,7 +402,10 @@ bool _isPdf(String url) =>
 // ── Verification status banner (pending / verified / rejected) ────
 class _StatusBanner extends StatelessWidget {
   final MyProfile profile;
-  const _StatusBanner({required this.profile});
+  /// Government ID reject hui ho to banner me hi "Re-upload ID" button —
+  /// worker ko neeche card tak scroll na karna pade.
+  final VoidCallback onReuploadId;
+  const _StatusBanner({required this.profile, required this.onReuploadId});
 
   @override
   Widget build(BuildContext context) {
@@ -410,6 +413,7 @@ class _StatusBanner extends StatelessWidget {
     final String? note;
     final Color color;
     final IconData icon;
+    var showReupload = false;
     if (profile.isVerified) {
       title = 'docs_status_verified'.tr;
       note = null;
@@ -417,10 +421,12 @@ class _StatusBanner extends StatelessWidget {
       icon = Icons.verified_rounded;
     } else if (profile.isRejected && profile.hasDocumentRejections) {
       // Admin ne Government ID reject ki — sirf wahi dobara chahiye.
+      // Reason ID card par dikhta hai, yahan sirf kya karna hai.
       title = 'docs_need_reupload_title'.tr;
       note = 'docs_need_reupload_note'.tr;
       color = AppColors.error;
-      icon = Icons.error_outline_rounded;
+      icon = Icons.badge_outlined;
+      showReupload = true;
     } else if (profile.isRejected) {
       final reason = (profile.rejectionReason ?? '').trim();
       title = 'docs_status_rejected'.tr;
@@ -439,27 +445,60 @@ class _StatusBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title,
-                style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600, c: color)),
-            if (note != null) ...[
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Gol icon — haalat ek nazar me samajh aaye.
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 21, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const SizedBox(height: 2),
-              Text(note,
-                  style:
-                      KTextStyle.poppins(fs: 11.5, c: AppColors.textSecondary)),
-            ],
-          ]),
-        ),
+              Text(title,
+                  style: KTextStyle.poppins(
+                      fs: 14.5, fw: FontWeight.w700, c: AppColors.textPrimary)),
+              if (note != null) ...[
+                const SizedBox(height: 3),
+                Text(note,
+                    style: KTextStyle.poppins(
+                        fs: 12, c: AppColors.textSecondary, height: 1.4)),
+              ],
+            ]),
+          ),
+        ]),
+        if (showReupload) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              label: 'reupload_id_now'.tr,
+              height: 42,
+              leading: const Icon(Icons.upload_rounded,
+                  size: 18, color: Colors.white),
+              onTap: onReuploadId,
+            ),
+          ),
+        ],
       ]),
     );
   }

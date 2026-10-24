@@ -521,9 +521,10 @@ const Map<String, String> _en = {
   'docs_status_rejected': 'Documents rejected',
   'docs_status_rejected_note': 'Please re-upload correct documents.',
   'docs_rejected_reason': 'Reason: @reason',
-  'docs_need_reupload_title': 'Please re-upload your Government ID',
+  'docs_need_reupload_title': 'Your Government ID was not approved',
   'docs_need_reupload_note':
-      'Admin rejected your Government ID (reason below). Upload a clear, correct copy — it will go for review again.',
+      'Please upload a clear photo of your ID. We will check it again.',
+  'reupload_id_now': 'Re-upload ID',
   'docs_more_to_reupload':
       'Uploaded. @count more rejected document(s) left — re-upload them to send for review.',
   'doc_rejected_no_reason': 'Admin rejected this document. Please upload a clear, correct copy.',
@@ -1534,9 +1535,10 @@ const Map<String, String> _hi = {
   'docs_status_rejected': 'दस्तावेज़ अस्वीकार हुए',
   'docs_status_rejected_note': 'कृपया सही दस्तावेज़ दोबारा अपलोड करें।',
   'docs_rejected_reason': 'कारण: @reason',
-  'docs_need_reupload_title': 'कृपया अपना सरकारी पहचान पत्र दोबारा अपलोड करें',
+  'docs_need_reupload_title': 'आपका सरकारी पहचान पत्र स्वीकार नहीं हुआ',
   'docs_need_reupload_note':
-      'एडमिन ने आपका सरकारी पहचान पत्र अस्वीकार किया है (कारण नीचे)। साफ़ और सही कॉपी अपलोड करें — यह फिर से जाँच के लिए जाएगा।',
+      'कृपया अपने पहचान पत्र की साफ़ फ़ोटो अपलोड करें। हम इसे दोबारा जाँचेंगे।',
+  'reupload_id_now': 'पहचान पत्र दोबारा अपलोड करें',
   'docs_more_to_reupload':
       'अपलोड हो गया। अभी @count अस्वीकार दस्तावेज़ बाकी हैं — उन्हें भी अपलोड करें, तभी जाँच के लिए जाएगा।',
   'doc_rejected_no_reason': 'एडमिन ने यह दस्तावेज़ अस्वीकार किया है। साफ़ और सही कॉपी अपलोड करें।',
