@@ -24,7 +24,9 @@ import '../controllers/worker_profile_controller.dart';
 //
 // Registration ke baad bhi documents yahin se add / re-upload hote hain:
 //   • jo document missing hai → "Upload"
-//   • admin ne reject kiya → "Re-upload"
+//   • Government ID admin ne reject ki → "Re-upload" (sirf ID ka review hota hai)
+//   • experience certificates ka review nahi — vendor ko dikhane ke liye,
+//     worker kabhi bhi badle / hataye
 //   • experience certificate kabhi bhi aur jode ja sakte hain (max 5)
 // Rejected ke baad naya upload karne par backend status wapas 'pending'
 // kar deta hai, taaki admin dobara review kare.
@@ -170,9 +172,8 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
   /// Abhi kitne documents rejected hain (jo dobara upload karne hain).
   static int _rejectedCount(MyProfile? p) {
     if (p == null || !p.isRejected || !p.hasDocumentRejections) return 0;
-    return [p.governmentID, ...p.experienceCertificate]
-        .where((path) => p.reviewFor(path)?.isRejected ?? false)
-        .length;
+    // Sirf Government ID ka review hota hai.
+    return (p.reviewFor(p.governmentID)?.isRejected ?? false) ? 1 : 0;
   }
 
   Future<void> _uploadGovtId() async {
@@ -193,6 +194,8 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
     if (file == null) return;
     await _upload(
       certificate: file,
+      // Certificate ka review nahi hota — "admin review karega" mat bolo.
+      successKey: 'certificate_saved_success',
       keepCertificates: replaceIndex == null
           ? null
           : [
@@ -202,7 +205,7 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
     );
   }
 
-  /// Rejected certificate hatao (naya upload kiye bina) — baaki waise hi.
+  /// Certificate hatao (naya upload kiye bina) — baaki waise hi.
   Future<void> _removeCert(int index) async {
     final certs = _profile?.experienceCertificate ?? const <String>[];
     final ok = await Get.dialog<bool>(AlertDialog(
@@ -357,13 +360,12 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
               icon: Icons.workspace_premium_outlined,
               path: certs[i],
               onView: _view,
-              review: p.reviewFor(certs[i]),
-              canReplace: p.canReplaceDocument(certs[i]),
+              // Certificate ka admin review nahi hota (sirf vendor ko dikhane
+              // ke liye) — worker kabhi bhi badal ya hata sakta hai.
+              reviewable: false,
+              canReplace: true,
               onUpload: () => _uploadCert(replaceIndex: i),
-              // Galat certificate ki jagah naya na ho to hata bhi sakte hain.
-              onRemove: p.canReplaceDocument(certs[i])
-                  ? () => _removeCert(i)
-                  : null,
+              onRemove: () => _removeCert(i),
             ),
           ],
           if (certs.length < _maxCerts) ...[
@@ -414,9 +416,8 @@ class _StatusBanner extends StatelessWidget {
       color = AppColors.success;
       icon = Icons.verified_rounded;
     } else if (profile.isRejected && profile.hasDocumentRejections) {
-      // Admin ne specific documents chune — sirf wahi dobara chahiye.
-      final left = _WorkerDocumentsViewState._rejectedCount(profile);
-      title = 'docs_need_reupload_title'.trParams({'count': '$left'});
+      // Admin ne Government ID reject ki — sirf wahi dobara chahiye.
+      title = 'docs_need_reupload_title'.tr;
       note = 'docs_need_reupload_note'.tr;
       color = AppColors.error;
       icon = Icons.error_outline_rounded;
@@ -475,8 +476,11 @@ class _DocCard extends StatelessWidget {
   /// Uploaded document badla ja sakta hai? (admin ne ise reject kiya hai)
   final bool canReplace;
   final VoidCallback onUpload;
-  /// Rejected certificate hatane ke liye (ID proof ke liye null).
+  /// Certificate hatane ke liye (ID proof ke liye null).
   final VoidCallback? onRemove;
+  /// Admin is document ko review karta hai? Sirf Government ID — certificate
+  /// par koi review status nahi dikhate.
+  final bool reviewable;
 
   const _DocCard({
     required this.label,
@@ -487,13 +491,14 @@ class _DocCard extends StatelessWidget {
     required this.onUpload,
     this.review,
     this.onRemove,
+    this.reviewable = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final url = WorkerFeedController.fullUrl(path);
     final hasDoc = url.isNotEmpty;
-    final rejected = hasDoc && (review?.isRejected ?? false);
+    final rejected = reviewable && hasDoc && (review?.isRejected ?? false);
     final reason = (review?.reason ?? '').trim();
     final card = AppCard(
       child: Column(
@@ -517,6 +522,8 @@ class _DocCard extends StatelessWidget {
             _StatusPill(
               state: !hasDoc
                   ? _DocState.missing
+                  : !reviewable
+                      ? _DocState.uploaded
                   : rejected
                       ? _DocState.rejected
                       : (review?.isApproved ?? false)
@@ -693,7 +700,7 @@ class _NotUploaded extends StatelessWidget {
 }
 
 // ── Document ka haal: Approved / Rejected / Under review / Missing ──
-enum _DocState { missing, inReview, approved, rejected }
+enum _DocState { missing, uploaded, inReview, approved, rejected }
 
 class _StatusPill extends StatelessWidget {
   final _DocState state;
@@ -704,6 +711,8 @@ class _StatusPill extends StatelessWidget {
     final (Color color, IconData icon, String label) = switch (state) {
       _DocState.missing =>
         (AppColors.textHint, Icons.remove_circle_outline, 'missing_label'.tr),
+      _DocState.uploaded =>
+        (AppColors.success, Icons.check_circle_rounded, 'uploaded_label'.tr),
       _DocState.inReview =>
         (AppColors.warning, Icons.hourglass_top_rounded, 'doc_in_review_label'.tr),
       _DocState.approved =>

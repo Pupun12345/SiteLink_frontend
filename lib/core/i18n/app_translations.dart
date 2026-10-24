@@ -521,9 +521,9 @@ const Map<String, String> _en = {
   'docs_status_rejected': 'Documents rejected',
   'docs_status_rejected_note': 'Please re-upload correct documents.',
   'docs_rejected_reason': 'Reason: @reason',
-  'docs_need_reupload_title': '@count document(s) need re-upload',
+  'docs_need_reupload_title': 'Please re-upload your Government ID',
   'docs_need_reupload_note':
-      'Admin rejected only the documents marked "Rejected" below. Re-upload just those — the rest are fine.',
+      'Admin rejected your Government ID (reason below). Upload a clear, correct copy — it will go for review again.',
   'docs_more_to_reupload':
       'Uploaded. @count more rejected document(s) left — re-upload them to send for review.',
   'doc_rejected_no_reason': 'Admin rejected this document. Please upload a clear, correct copy.',
@@ -532,8 +532,9 @@ const Map<String, String> _en = {
   'doc_rejected_label': 'Rejected',
   'remove_certificate_title': 'Remove certificate?',
   'remove_certificate_body':
-      'This rejected certificate will be removed from your profile. You can add another one later.',
+      'This certificate will be removed from your profile. You can add another one anytime.',
   'certificate_removed_success': 'Certificate removed',
+  'certificate_saved_success': 'Certificate saved — vendors can now see it on your profile.',
 
   // Worker My Jobs Tab
   'jobs_header_title': 'Jobs',
@@ -1533,9 +1534,9 @@ const Map<String, String> _hi = {
   'docs_status_rejected': 'दस्तावेज़ अस्वीकार हुए',
   'docs_status_rejected_note': 'कृपया सही दस्तावेज़ दोबारा अपलोड करें।',
   'docs_rejected_reason': 'कारण: @reason',
-  'docs_need_reupload_title': '@count दस्तावेज़ दोबारा अपलोड करने हैं',
+  'docs_need_reupload_title': 'कृपया अपना सरकारी पहचान पत्र दोबारा अपलोड करें',
   'docs_need_reupload_note':
-      'एडमिन ने सिर्फ़ नीचे "अस्वीकार" वाले दस्तावेज़ रिजेक्ट किए हैं। सिर्फ़ उन्हें दोबारा अपलोड करें — बाकी सही हैं।',
+      'एडमिन ने आपका सरकारी पहचान पत्र अस्वीकार किया है (कारण नीचे)। साफ़ और सही कॉपी अपलोड करें — यह फिर से जाँच के लिए जाएगा।',
   'docs_more_to_reupload':
       'अपलोड हो गया। अभी @count अस्वीकार दस्तावेज़ बाकी हैं — उन्हें भी अपलोड करें, तभी जाँच के लिए जाएगा।',
   'doc_rejected_no_reason': 'एडमिन ने यह दस्तावेज़ अस्वीकार किया है। साफ़ और सही कॉपी अपलोड करें।',
@@ -1544,8 +1545,9 @@ const Map<String, String> _hi = {
   'doc_rejected_label': 'अस्वीकार',
   'remove_certificate_title': 'प्रमाण पत्र हटाएं?',
   'remove_certificate_body':
-      'यह अस्वीकार प्रमाण पत्र आपकी प्रोफ़ाइल से हट जाएगा। आप बाद में दूसरा जोड़ सकते हैं।',
+      'यह प्रमाण पत्र आपकी प्रोफ़ाइल से हट जाएगा। आप कभी भी दूसरा जोड़ सकते हैं।',
   'certificate_removed_success': 'प्रमाण पत्र हटा दिया गया',
+  'certificate_saved_success': 'प्रमाण पत्र सेव हो गया — अब वेंडर इसे आपकी प्रोफ़ाइल पर देख सकते हैं।',
 
   // Worker My Jobs Tab
   'jobs_header_title': 'जॉब्स',
