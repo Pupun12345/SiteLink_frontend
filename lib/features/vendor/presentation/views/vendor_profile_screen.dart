@@ -26,7 +26,7 @@ const _kVendorPrivacyPolicy = '''
 Last updated: March 2026
 
 1. INFORMATION WE COLLECT
-SiteLink collects information you provide directly, such as your company name, contact person details, PAN, GST number, company documents, and job postings when you register as a Vendor on our platform.
+Sitelink collects information you provide directly, such as your company name, contact person details, PAN, GST number, company documents, and job postings when you register as a Vendor on our platform.
 
 2. HOW WE USE YOUR INFORMATION
 We use the information we collect to:
@@ -39,7 +39,7 @@ We use the information we collect to:
 We share your company profile and job details (title, location, pay, requirements) publicly with workers browsing jobs. Applicant details (worker profiles) are shared with you only after they apply to your job. We do not sell your business data to third parties.
 
 4. DOCUMENT SECURITY
-Documents such as PAN card and GST certificate are stored securely and used solely for business verification purposes. Access is restricted to authorised SiteLink admin staff only.
+Documents such as PAN card and GST certificate are stored securely and used solely for business verification purposes. Access is restricted to authorised Sitelink admin staff only.
 
 5. DATA RETENTION
 We retain your account information for as long as your account is active or as needed to provide services. You may request deletion of your account by contacting support.
@@ -55,21 +55,21 @@ const _kVendorTermsOfService = '''
 Last updated: March 2026
 
 1. ACCEPTANCE OF TERMS
-By using the SiteLink platform, you agree to be bound by these Terms of Service.
+By using the Sitelink platform, you agree to be bound by these Terms of Service.
 
 2. VENDOR ELIGIBILITY
-To register as a Vendor on SiteLink, you must:
+To register as a Vendor on Sitelink, you must:
 • Represent a genuine, registered business or hiring entity
 • Provide valid PAN and (where applicable) GST documentation
 • Have a genuine requirement to hire workers through the platform
 
 3. PLATFORM ROLE
-SiteLink acts as an intermediary platform. We do not directly employ workers or guarantee hiring outcomes. Job postings and applications are facilitated through our platform, with admin oversight to ensure quality and trust.
+Sitelink acts as an intermediary platform. We do not directly employ workers or guarantee hiring outcomes. Job postings and applications are facilitated through our platform, with admin oversight to ensure quality and trust.
 
 4. JOB POSTING RULES
 • Job postings must accurately describe the role, pay, and requirements
 • Fraudulent, misleading, or discriminatory job postings are not allowed
-• SiteLink reserves the right to remove any job posting that violates these terms
+• Sitelink reserves the right to remove any job posting that violates these terms
 
 5. VENDOR RESPONSIBILITIES
 • Maintain accurate and up-to-date company information
@@ -78,10 +78,10 @@ SiteLink acts as an intermediary platform. We do not directly employ workers or 
 • Behave professionally with workers at all times
 
 6. PLATFORM FEES
-SiteLink currently offers its platform services free of charge to vendors. This may be subject to change with prior notice. Optional premium plans may be introduced for additional visibility.
+Sitelink currently offers its platform services free of charge to vendors. This may be subject to change with prior notice. Optional premium plans may be introduced for additional visibility.
 
 7. TERMINATION
-SiteLink reserves the right to suspend or terminate accounts that violate these terms, post fraudulent jobs, or engage in unfair hiring practices.
+Sitelink reserves the right to suspend or terminate accounts that violate these terms, post fraudulent jobs, or engage in unfair hiring practices.
 
 8. CONTACT
 For terms-related queries, contact: legal@sitelink.in
@@ -140,7 +140,7 @@ class VendorProfileScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       vertical: AppDimens.lg),
                   child: Center(
-                    child: Text('SiteLink  v1.0.0',
+                    child: Text('Sitelink  v1.0.0',
                         style: KTextStyle.poppins(
                             fs: 11, c: AppColors.textHint)),
                   ),

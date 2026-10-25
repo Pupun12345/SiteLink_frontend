@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/constants/k_text_style.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-//  PLANS THEME — "SiteLink Plans" sub-brand palette (worker + vendor)
+//  PLANS THEME — "Sitelink Plans" sub-brand palette (worker + vendor)
 // ═══════════════════════════════════════════════════════════════════
 // Worker aur vendor dono ke subscription screens isi ek palette se
 // consistent dikhte hain (design reference ke exact shades).
@@ -29,7 +29,7 @@ class PlansTheme {
   /// hai" aur "ye khareedo" nazar me hi alag dikhein.
   static const Color activeGreen = Color(0xFF10B981);
 
-  // "SiteLink • A product of Smartnex Technologies" pill — halka neela,
+  // "Sitelink • A product of Smartnex Technologies" pill — halka neela,
   // taaki amber (khareedo) aur green (active) se alag dikhe.
   static const Color brandPillBg     = Color(0xFFEEF3FB);
   static const Color brandPillBorder = Color(0xFFB9C8E2);

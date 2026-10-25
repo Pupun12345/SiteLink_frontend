@@ -8,7 +8,7 @@ import '../controllers/vendor_plans_controller.dart';
 // ═══════════════════════════════════════════════════════════════════
 //  VENDOR PLANS — Standard + Premium subscription (Stitch design)
 // ═══════════════════════════════════════════════════════════════════
-// Palette shared with WorkerPlansView via PlansTheme (same "SiteLink
+// Palette shared with WorkerPlansView via PlansTheme (same "Sitelink
 // Plans" sub-brand). Indigo/blue accents yahin file-local hain (design
 // reference me sirf vendor screen par use hue hain).
 const _indigo    = Color(0xFF6366F1);
@@ -300,7 +300,7 @@ class VendorPlansView extends StatelessWidget {
     );
   }
 
-  // ── Why Choose SiteLink? card ───────────────────────────────────────
+  // ── Why Choose Sitelink? card ───────────────────────────────────────
   Widget _whyChooseCard() {
     return Container(
       width: double.infinity,

@@ -27,7 +27,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
   static const _channel = AndroidNotificationChannel(
     'sitelink_default_channel',
-    'SiteLink Notifications',
+    'Sitelink Notifications',
     description: 'Job updates, applications aur account alerts.',
     importance: Importance.high,
   );
@@ -115,7 +115,7 @@ class NotificationService {
   }
 
   Future<void> _initLocalNotifications() async {
-    // Status bar ka chhota icon — safed SiteLink "S" (res/drawable*/
+    // Status bar ka chhota icon — safed Sitelink "S" (res/drawable*/
     // ic_stat_notification.png). Pehle '@mipmap/ic_launcher' tha jo Flutter
     // ka default icon hai, isliye notification me Flutter logo dikhta tha.
     const androidInit = AndroidInitializationSettings('@drawable/ic_stat_notification');
@@ -158,7 +158,7 @@ class NotificationService {
           // Status bar: safed "S" (Android wahan rangeen icon nahi dikhne deta).
           icon: '@drawable/ic_stat_notification',
           color: const Color(0xFFF97316), // brand orange — icon ka tint
-          // Notification kholne par dikhne wala bada, rangeen SiteLink logo
+          // Notification kholne par dikhne wala bada, rangeen Sitelink logo
           // (assets/images/app_logo_icon.png se bana).
           largeIcon: const DrawableResourceAndroidBitmap('ic_notification_large'),
         ),

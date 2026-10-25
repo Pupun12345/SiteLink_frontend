@@ -14,7 +14,7 @@ import '../../../shared/presentation/controllers/app_refresh.dart';
 // ═══════════════════════════════════════════════════════════════════
 // Design reference ke hisaab se: amber accent + navy CTA + white cards.
 // Palette ab shared (PlansTheme) — vendor plans screen bhi wahi use
-// karta hai taaki dono "SiteLink Plans" screens consistent dikhein.
+// karta hai taaki dono "Sitelink Plans" screens consistent dikhein.
 const _amber      = PlansTheme.amber;
 const _amberDark  = PlansTheme.amberDark;
 const _amberSoft  = PlansTheme.amberSoft;
@@ -158,7 +158,7 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
               ),
               if (_sub.active || _sub.isExpired) const SizedBox(height: 20),
 
-              // ── "SiteLink • A product of Smartnex" ──────────────
+              // ── "Sitelink • A product of Smartnex" ──────────────
               const PlansBrandPill(uppercase: true),
               const SizedBox(height: 14),
 
@@ -360,7 +360,7 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
               ),
               const SizedBox(height: 36),
 
-              // ── Why Choose SiteLink ─────────────────────────────
+              // ── Why Choose Sitelink ─────────────────────────────
               Text('worker_plans_why_title'.tr,
                   textAlign: TextAlign.center,
                   style: KTextStyle.poppins(

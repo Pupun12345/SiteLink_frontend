@@ -439,7 +439,7 @@ const _kPrivacyPolicy = '''
 Last updated: March 2026
 
 1. INFORMATION WE COLLECT
-SiteLink collects information you provide directly to us, such as your name, phone number, Aadhaar number, work experience, and profile photo when you register as a Worker on our platform.
+Sitelink collects information you provide directly to us, such as your name, phone number, Aadhaar number, work experience, and profile photo when you register as a Worker on our platform.
 
 2. HOW WE USE YOUR INFORMATION
 We use the information we collect to:
@@ -452,7 +452,7 @@ We use the information we collect to:
 We share your profile information (name, skills, experience) with vendors only after an admin approves a job assignment. We do not sell your personal data to third parties.
 
 4. DOCUMENT SECURITY
-Documents such as Aadhaar cards and experience letters are stored securely and used solely for identity verification purposes. Access is restricted to authorised SiteLink admin staff only.
+Documents such as Aadhaar cards and experience letters are stored securely and used solely for identity verification purposes. Access is restricted to authorised Sitelink admin staff only.
 
 5. DATA RETENTION
 We retain your account information for as long as your account is active or as needed to provide services. You may request deletion of your account by contacting support.
@@ -468,31 +468,31 @@ const _kTermsOfService = '''
 Last updated: March 2026
 
 1. ACCEPTANCE OF TERMS
-By using the SiteLink platform, you agree to be bound by these Terms of Service.
+By using the Sitelink platform, you agree to be bound by these Terms of Service.
 
 2. WORKER ELIGIBILITY
-To register as a Worker on SiteLink, you must:
+To register as a Worker on Sitelink, you must:
 • Be at least 18 years of age
 • Possess valid identity documents
 • Have genuine work skills and experience as declared
 
 3. PLATFORM ROLE
-SiteLink acts as an intermediary platform. We do not directly employ workers or vendors. Job assignments are facilitated through our admin team to ensure quality and trust.
+Sitelink acts as an intermediary platform. We do not directly employ workers or vendors. Job assignments are facilitated through our admin team to ensure quality and trust.
 
 4. ADMIN ASSIGNMENT MODEL
-Workers cannot directly contact vendors through SiteLink. All assignments are made by our admin team after verifying both worker and vendor profiles.
+Workers cannot directly contact vendors through Sitelink. All assignments are made by our admin team after verifying both worker and vendor profiles.
 
 5. WORKER RESPONSIBILITIES
 • Maintain accurate and up-to-date profile information
 • Report for assigned jobs on time as agreed
 • Behave professionally at all work sites
-• Report any issues through the SiteLink platform
+• Report any issues through the Sitelink platform
 
 6. PLATFORM FEES
-SiteLink currently offers its platform services free of charge to workers. This may be subject to change with prior notice.
+Sitelink currently offers its platform services free of charge to workers. This may be subject to change with prior notice.
 
 7. TERMINATION
-SiteLink reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.
+Sitelink reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.
 
 8. CONTACT
 For terms-related queries, contact: legal@sitelink.in

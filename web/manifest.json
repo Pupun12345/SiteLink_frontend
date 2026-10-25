@@ -1,6 +1,6 @@
 {
-    "name": "sitelink",
-    "short_name": "sitelink",
+    "name": "Sitelink",
+    "short_name": "Sitelink",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

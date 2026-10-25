@@ -19,7 +19,7 @@ class AppTranslations extends Translations {
 // ── English ────────────────────────────────────────────────────────
 const Map<String, String> _en = {
   // App
-  'site_link': 'SiteLink',
+  'site_link': 'Sitelink',
   'need_work_need_workers': 'Need Work? Need Employees / Workers?',
   'find_work_hire_workers': 'Find Work. Hire Employees / Workers.',
   'powered_by_smartnex': 'Powered by Smartnex technology',
@@ -177,7 +177,7 @@ const Map<String, String> _en = {
   'profile': 'Profile',
   'language': 'Language',
   'help_support': 'Help & Support',
-  'about_site_link': 'About SiteLink',
+  'about_site_link': 'About Sitelink',
   'logout': 'Logout',
 
   // Help
@@ -255,12 +255,12 @@ const Map<String, String> _en = {
   'pending_step_notification_approved':
       "You'll get a notification when approved",
 
-  // Worker Plans (SiteLink Premium)
-  'worker_plans_title': 'SiteLink Plans',
+  // Worker Plans (Sitelink Premium)
+  'worker_plans_title': 'Sitelink Plans',
   'worker_plans_badge': 'WORKER PREMIUM',
   'worker_plans_headline': 'Increase your chances\nof getting hired.',
   'worker_plans_subheadline':
-      'Upgrade to SiteLink Premium to unlock\nverified skill ratings, priority shortlisting,\nand dedicated support.',
+      'Upgrade to Sitelink Premium to unlock\nverified skill ratings, priority shortlisting,\nand dedicated support.',
   'worker_plans_feature1_title': 'Skill Rating & Verification',
   'worker_plans_feature1_desc':
       'Get a verified skill rating based on your actual site experience, leading to prioritized shortlisting by top contractors.',
@@ -270,7 +270,7 @@ const Map<String, String> _en = {
   'worker_plans_family1_label': '₹50,000 Family Support:',
   'worker_plans_family1_text': 'In case of covered accidental, work-related, or health-related death.',
   'worker_plans_family2_label': 'Easy Claim Support:',
-  'worker_plans_family2_text': 'Family can contact SiteLink and submit the required details for verification.',
+  'worker_plans_family2_text': 'Family can contact Sitelink and submit the required details for verification.',
   'worker_plans_family3_label': 'Fast Payment:',
   'worker_plans_family3_text': 'After claim verification and approval, eligible family members receive payment within 48 hours, as per coverage terms.',
   'worker_plans_feature2_title': 'Priority Job Shortlisting',
@@ -294,8 +294,8 @@ const Map<String, String> _en = {
   'rating_not_rated': 'Not rated',
   'rating_not_rated_title': 'No rating yet',
   'rating_not_rated_hint':
-      'The SiteLink team rates workers after reviewing their profile and work.',
-  'rating_given_by_admin': 'Given by the SiteLink team',
+      'The Sitelink team rates workers after reviewing their profile and work.',
+  'rating_given_by_admin': 'Given by the Sitelink team',
   'rating_needs_plan_title': 'Rating shows to contractors only on a plan',
   'rating_needs_plan_body':
       'Your rating builds up either way, but contractors can see it only while you have an active plan. Take a plan so your work speaks for you.',
@@ -344,7 +344,7 @@ const Map<String, String> _en = {
       'Paying now adds to your current expiry date, it does not restart it.',
   'your_plan_fallback_name': 'Your plan',
   'worker_plans_secure_note': 'Secure payment. Instant activation.',
-  'worker_plans_why_title': 'Why Choose SiteLink?',
+  'worker_plans_why_title': 'Why Choose Sitelink?',
   'worker_plans_why1_title': 'Industry Standard',
   'worker_plans_why1_desc':
       'Built for the realities of industrial and construction work environments.',
@@ -353,8 +353,8 @@ const Map<String, String> _en = {
   'worker_plans_why3_title': 'Direct Connections',
   'worker_plans_why3_desc':
       'Cut out middlemen. Connect directly with hiring managers and top firms.',
-  'worker_plans_footer_about': 'SiteLink is an industrial workforce platform by Smartnex Technologies.',
-  'plans_brand_pill': 'SiteLink • A Product of Smartnex Technologies',
+  'worker_plans_footer_about': 'Sitelink is an industrial workforce platform by Smartnex Technologies.',
+  'plans_brand_pill': 'Sitelink • A Product of Smartnex Technologies',
   'plans_copyright': '© 2026 Smartnex Technologies Pvt. Ltd. All rights reserved.',
 
   // Comments Sheet
@@ -384,7 +384,7 @@ const Map<String, String> _en = {
   'edit_profile_tile': 'Edit Profile',
   'change_phone_number': 'Change Phone Number',
   'my_documents': 'My Documents',
-  'sitelink_premium': 'SiteLink Premium',
+  'sitelink_premium': 'Sitelink Premium',
   'premium_upgrade_subtitle': 'Upgrade — ₹299/Year',
   'preferences_section': 'Preferences',
   'push_notifications': 'Push Notifications',
@@ -410,7 +410,7 @@ const Map<String, String> _en = {
   'experience_desc_hint': 'Describe your work',
   'mic_permission_title': 'Microphone permission needed',
   'mic_permission_blocked_message':
-      'To speak instead of typing, turn on the Microphone permission for SiteLink in your phone settings.',
+      'To speak instead of typing, turn on the Microphone permission for Sitelink in your phone settings.',
   'mic_permission_denied_error':
       'Microphone permission is needed to speak.',
   'open_settings_label': 'Open settings',
@@ -577,10 +577,10 @@ const Map<String, String> _en = {
   'like_label': 'Like',
   'comment_label': 'Comment',
   'share_label': 'Share',
-  'shared_on_sitelink': 'shared this on SiteLink',
-  'shared_post_subject': 'A post on SiteLink',
-  'shared_job_subject': 'A job on SiteLink',
-  'shared_job_fallback': 'Check out this job on SiteLink',
+  'shared_on_sitelink': 'shared this on Sitelink',
+  'shared_post_subject': 'A post on Sitelink',
+  'shared_job_subject': 'A job on Sitelink',
+  'shared_job_fallback': 'Check out this job on Sitelink',
   'share_failed_error': 'Could not share this post.',
   'post_label': 'Post',
   'post_not_found': 'This post is no longer available.',
@@ -649,15 +649,15 @@ const Map<String, String> _en = {
       'Call, WhatsApp and email support are available on a paid plan. Subscribe to reach our team.',
   'view_plans_btn': 'View plans',
 
-  // Worker rating — SiteLink admin deta hai
+  // Worker rating — Sitelink admin deta hai
 
   // Force / soft update (Firebase Remote Config)
   'update_required_title': 'Update required',
   'update_required_body':
-      'This version is no longer supported. Please update to continue using SiteLink.',
+      'This version is no longer supported. Please update to continue using Sitelink.',
   'update_available_title': 'Update available',
   'update_available_body':
-      'A new version of SiteLink is available with improvements and fixes.',
+      'A new version of Sitelink is available with improvements and fixes.',
   'update_now_btn': 'Update now',
   'update_later_btn': 'Later',
 
@@ -853,7 +853,7 @@ const Map<String, String> _en = {
   'pan_card_label': 'PAN Card',
   'company_logo_optional_label': 'Company Logo',
   'view_label': 'View',
-  'sitelink_premium_plans_label': 'SiteLink Premium — Plans',
+  'sitelink_premium_plans_label': 'Sitelink Premium — Plans',
   'logout_confirm_title': 'Logout?',
 
   // ── Change Phone Sheet ─────────────────────────────────────────
@@ -1033,7 +1033,7 @@ const Map<String, String> _en = {
 // ── हिंदी (Hindi) ──────────────────────────────────────────────────
 const Map<String, String> _hi = {
   // App
-  'site_link': 'SiteLink',
+  'site_link': 'Sitelink',
   'need_work_need_workers': 'काम चाहिए? कर्मचारी / वर्कर चाहिए?',
   'find_work_hire_workers': 'काम पाएं। कर्मचारी / वर्कर रखें।',
   'powered_by_smartnex': 'Smartnex तकनीक द्वारा संचालित',
@@ -1189,7 +1189,7 @@ const Map<String, String> _hi = {
   'profile': 'प्रोफ़ाइल',
   'language': 'भाषा',
   'help_support': 'सहायता और समर्थन',
-  'about_site_link': 'SiteLink के बारे में',
+  'about_site_link': 'Sitelink के बारे में',
   'logout': 'लॉगआउट',
 
   // Help
@@ -1267,12 +1267,12 @@ const Map<String, String> _hi = {
   'pending_step_notification_approved':
       'मंज़ूरी मिलने पर आपको सूचना मिलेगी',
 
-  // Worker Plans (SiteLink Premium)
-  'worker_plans_title': 'SiteLink प्लान्स',
+  // Worker Plans (Sitelink Premium)
+  'worker_plans_title': 'Sitelink प्लान्स',
   'worker_plans_badge': 'वर्कर प्रीमियम',
   'worker_plans_headline': 'नौकरी मिलने की संभावना\nबढ़ाएं।',
   'worker_plans_subheadline':
-      'सत्यापित कौशल रेटिंग, प्राथमिकता शॉर्टलिस्टिंग, और समर्पित सहायता पाने के लिए\nSiteLink प्रीमियम लें।',
+      'सत्यापित कौशल रेटिंग, प्राथमिकता शॉर्टलिस्टिंग, और समर्पित सहायता पाने के लिए\nSitelink प्रीमियम लें।',
   'worker_plans_feature1_title': 'कौशल रेटिंग और सत्यापन',
   'worker_plans_feature1_desc':
       'अपने असली साइट अनुभव के आधार पर सत्यापित कौशल रेटिंग पाएं, जिससे बड़े ठेकेदार आपको प्राथमिकता से शॉर्टलिस्ट करें।',
@@ -1282,7 +1282,7 @@ const Map<String, String> _hi = {
   'worker_plans_family1_label': '₹50,000 पारिवारिक सहायता:',
   'worker_plans_family1_text': 'कवर की गई दुर्घटना, काम से जुड़ी या स्वास्थ्य संबंधी मृत्यु की स्थिति में।',
   'worker_plans_family2_label': 'आसान क्लेम सहायता:',
-  'worker_plans_family2_text': 'परिवार SiteLink से संपर्क करके सत्यापन के लिए ज़रूरी जानकारी जमा कर सकता है।',
+  'worker_plans_family2_text': 'परिवार Sitelink से संपर्क करके सत्यापन के लिए ज़रूरी जानकारी जमा कर सकता है।',
   'worker_plans_family3_label': 'तेज़ भुगतान:',
   'worker_plans_family3_text': 'क्लेम के सत्यापन और मंज़ूरी के बाद, पात्र परिवार सदस्यों को कवरेज की शर्तों के अनुसार 48 घंटे के भीतर भुगतान मिलता है।',
   'worker_plans_feature2_title': 'प्राथमिकता जॉब शॉर्टलिस्टिंग',
@@ -1306,8 +1306,8 @@ const Map<String, String> _hi = {
   'rating_not_rated': 'रेटिंग नहीं',
   'rating_not_rated_title': 'अभी कोई रेटिंग नहीं',
   'rating_not_rated_hint':
-      'SiteLink टीम आपकी प्रोफ़ाइल और काम देखकर रेटिंग देती है।',
-  'rating_given_by_admin': 'SiteLink टीम द्वारा दी गई',
+      'Sitelink टीम आपकी प्रोफ़ाइल और काम देखकर रेटिंग देती है।',
+  'rating_given_by_admin': 'Sitelink टीम द्वारा दी गई',
   'rating_needs_plan_title': 'रेटिंग ठेकेदारों को प्लान पर ही दिखती है',
   'rating_needs_plan_body':
       'आपकी रेटिंग बनती रहेगी, लेकिन ठेकेदार उसे तभी देख पाएंगे जब आपका प्लान चालू हो। प्लान लें ताकि आपका काम आपकी पहचान बने।',
@@ -1358,7 +1358,7 @@ const Map<String, String> _hi = {
       'अभी भुगतान करने पर समय आपकी मौजूदा समाप्ति तारीख में जुड़ता है, दोबारा शुरू नहीं होता।',
   'your_plan_fallback_name': 'आपका प्लान',
   'worker_plans_secure_note': 'सुरक्षित भुगतान। तुरंत सक्रिय।',
-  'worker_plans_why_title': 'SiteLink क्यों चुनें?',
+  'worker_plans_why_title': 'Sitelink क्यों चुनें?',
   'worker_plans_why1_title': 'इंडस्ट्री स्टैंडर्ड',
   'worker_plans_why1_desc':
       'औद्योगिक और निर्माण कार्य के माहौल के हिसाब से बनाया गया।',
@@ -1367,8 +1367,8 @@ const Map<String, String> _hi = {
   'worker_plans_why3_title': 'सीधा जुड़ाव',
   'worker_plans_why3_desc':
       'बिचौलियों को हटाएं। सीधे हायरिंग मैनेजरों और बड़ी कंपनियों से जुड़ें।',
-  'worker_plans_footer_about': 'SiteLink, Smartnex Technologies का एक औद्योगिक वर्कफ़ोर्स प्लेटफ़ॉर्म है।',
-  'plans_brand_pill': 'SiteLink • Smartnex Technologies का एक प्रोडक्ट',
+  'worker_plans_footer_about': 'Sitelink, Smartnex Technologies का एक औद्योगिक वर्कफ़ोर्स प्लेटफ़ॉर्म है।',
+  'plans_brand_pill': 'Sitelink • Smartnex Technologies का एक प्रोडक्ट',
   'plans_copyright': '© 2026 Smartnex Technologies Pvt. Ltd. सर्वाधिकार सुरक्षित।',
 
   // Comments Sheet
@@ -1398,7 +1398,7 @@ const Map<String, String> _hi = {
   'edit_profile_tile': 'प्रोफ़ाइल बदलें',
   'change_phone_number': 'फ़ोन नंबर बदलें',
   'my_documents': 'मेरे दस्तावेज़',
-  'sitelink_premium': 'SiteLink प्रीमियम',
+  'sitelink_premium': 'Sitelink प्रीमियम',
   'premium_upgrade_subtitle': 'अपग्रेड करें — ₹299/वर्ष',
   'preferences_section': 'प्राथमिकताएं',
   'push_notifications': 'पुश नोटिफिकेशन',
@@ -1424,7 +1424,7 @@ const Map<String, String> _hi = {
   'experience_desc_hint': 'अपने काम के बारे में लिखें',
   'mic_permission_title': 'माइक्रोफ़ोन की अनुमति चाहिए',
   'mic_permission_blocked_message':
-      'लिखने के बजाय बोलने के लिए, फ़ोन की सेटिंग्स में SiteLink के लिए माइक्रोफ़ोन की अनुमति चालू करें।',
+      'लिखने के बजाय बोलने के लिए, फ़ोन की सेटिंग्स में Sitelink के लिए माइक्रोफ़ोन की अनुमति चालू करें।',
   'mic_permission_denied_error': 'बोलने के लिए माइक्रोफ़ोन की अनुमति ज़रूरी है।',
   'open_settings_label': 'सेटिंग्स खोलें',
   'mic_unavailable_error':
@@ -1591,10 +1591,10 @@ const Map<String, String> _hi = {
   'like_label': 'पसंद',
   'comment_label': 'कमेंट',
   'share_label': 'शेयर',
-  'shared_on_sitelink': 'ne SiteLink par ye share kiya',
-  'shared_post_subject': 'SiteLink par ek post',
-  'shared_job_subject': 'SiteLink par ek job',
-  'shared_job_fallback': 'SiteLink par ye job dekhiye',
+  'shared_on_sitelink': 'ne Sitelink par ye share kiya',
+  'shared_post_subject': 'Sitelink par ek post',
+  'shared_job_subject': 'Sitelink par ek job',
+  'shared_job_fallback': 'Sitelink par ye job dekhiye',
   'share_failed_error': 'यह पोस्ट शेयर नहीं हो सकी।',
   'post_label': 'पोस्ट',
   'post_not_found': 'यह पोस्ट अब उपलब्ध नहीं है।',
@@ -1660,15 +1660,15 @@ const Map<String, String> _hi = {
       'कॉल, व्हाट्सएप और ईमेल सपोर्ट पेड प्लान में मिलते हैं। हमारी टीम तक पहुँचने के लिए प्लान लें।',
   'view_plans_btn': 'प्लान देखें',
 
-  // Worker rating — SiteLink admin deta hai
+  // Worker rating — Sitelink admin deta hai
 
   // Force / soft update (Firebase Remote Config)
   'update_required_title': 'अपडेट ज़रूरी है',
   'update_required_body':
-      'यह वर्ज़न अब सपोर्ट नहीं करता। SiteLink चलाने के लिए अपडेट करें।',
+      'यह वर्ज़न अब सपोर्ट नहीं करता। Sitelink चलाने के लिए अपडेट करें।',
   'update_available_title': 'नया अपडेट आया है',
   'update_available_body':
-      'SiteLink का नया वर्ज़न आ गया है — कुछ सुधार और फिक्स के साथ।',
+      'Sitelink का नया वर्ज़न आ गया है — कुछ सुधार और फिक्स के साथ।',
   'update_now_btn': 'अभी अपडेट करें',
   'update_later_btn': 'बाद में',
   'deleted_title': 'हटाया गया',
@@ -1864,7 +1864,7 @@ const Map<String, String> _hi = {
   'pan_card_label': 'पैन कार्ड',
   'company_logo_optional_label': 'कंपनी लोगो',
   'view_label': 'देखें',
-  'sitelink_premium_plans_label': 'SiteLink प्रीमियम — प्लान्स',
+  'sitelink_premium_plans_label': 'Sitelink प्रीमियम — प्लान्स',
   'logout_confirm_title': 'लॉगआउट करें?',
 
   // ── Change Phone Sheet ─────────────────────────────────────────

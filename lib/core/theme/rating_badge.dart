@@ -5,7 +5,7 @@ import '../constants/app_dimens.dart';
 import '../constants/k_text_style.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-//  RATING — SiteLink admin ki di hui worker rating
+//  RATING — Sitelink admin ki di hui worker rating
 // ═══════════════════════════════════════════════════════════════════
 // Rating SIRF admin deta hai (admin panel se), 1–5 ke beech, ek optional
 // comment ke saath.
@@ -181,7 +181,7 @@ class RatingSummaryCard extends StatelessWidget {
                     Text(
                       // Dono case me batao ki rating kahan se aati hai —
                       // warna worker ko lagta hai wo khud kuch kar sakta
-                      // hai, jabki ye SiteLink team deti hai.
+                      // hai, jabki ye Sitelink team deti hai.
                       _hasRating
                           ? 'rating_given_by_admin'.tr
                           : 'rating_not_rated_hint'.tr,

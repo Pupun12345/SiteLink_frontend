@@ -130,9 +130,9 @@ class PaymentService {
       'order_id': orderRes.orderId,
       // Role ke hisaab se: vendor → card+netbanking, worker → upi+card.
       'method': _allowedMethods(),
-      'name': 'SiteLink',
+      'name': 'Sitelink',
       'description': plan.name ?? 'Subscription',
-      // Email nahi maangte — SiteLink ke users phone se login karte hain,
+      // Email nahi maangte — Sitelink ke users phone se login karte hain,
       // aksar unke paas email hota hi nahi. Sirf prefill hatane par
       // Razorpay khud khaali email box dikha deta, isliye `hidden`.
       'prefill': {
@@ -247,7 +247,7 @@ class PaymentService {
       // method par nahi banta — netbanking par e-mandate chahiye hota
       // hai, jo Razorpay account par alag se enable karwana padta hai.
       'method': _allowedMethods(),
-      'name': 'SiteLink',
+      'name': 'Sitelink',
       'description': subRes.planName ?? plan.name ?? 'Subscription',
       // Mandate phone number par register hota hai. Email nahi maangte —
       // upar wale one-time checkout jaisa hi, box bhi chhupa dete hain.

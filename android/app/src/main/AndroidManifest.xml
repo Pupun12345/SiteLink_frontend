@@ -29,7 +29,7 @@
     <!-- Experience description ka mic (speech-to-text) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
-        android:label="sitelink"
+        android:label="Sitelink"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:enableOnBackInvokedCallback="true">
@@ -104,7 +104,7 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="sitelink_default_channel" />
         <!-- App band ho tab FCM khud notification dikhata hai — uska status bar
-             icon (safed SiteLink "S") aur rang. Ye na ho to Android launcher
+             icon (safed Sitelink "S") aur rang. Ye na ho to Android launcher
              icon ka safed dabba ya Flutter ka icon dikhata hai. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

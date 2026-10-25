@@ -242,7 +242,7 @@ class NewRequestController extends GetxController {
     try {
       final res = await _jobsApi.createJob({
         'title': title,
-        'company': _companyName.isEmpty ? 'SiteLink Vendor' : _companyName,
+        'company': _companyName.isEmpty ? 'Sitelink Vendor' : _companyName,
         'location': location,
         // Live server abhi lat/long na milne par 500 deta hai (.trim() crash
         // on undefined) — isliye hamesha strings bhejo; map se pick na kiya
