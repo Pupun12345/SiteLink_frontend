@@ -591,7 +591,7 @@ const Map<String, String> _en = {
   'video_load_retry': 'Failed to load — retry',
   'video_too_long_title': 'Video Too Long',
   'video_too_long_body':
-      'You cannot upload a video longer than 2 minutes.\nPlease select a shorter video.',
+      'You cannot upload a video longer than 30 seconds.\nPlease select a video of 30 seconds or less.',
   'ok_label': 'OK',
   'create_post_title': 'Create Post',
   'share_something_hint': 'Share something with the community...',
@@ -1605,7 +1605,7 @@ const Map<String, String> _hi = {
   'video_load_retry': 'लोड नहीं हुआ — दोबारा कोशिश करें',
   'video_too_long_title': 'वीडियो बहुत लंबा है',
   'video_too_long_body':
-      'आप 2 मिनट से बड़ी वीडियो अपलोड नहीं कर सकते।\nकृपया 2 मिनट से छोटी वीडियो चुनें।',
+      'आप 30 सेकंड से बड़ी वीडियो अपलोड नहीं कर सकते।\nकृपया 30 सेकंड या उससे छोटी वीडियो चुनें।',
   'ok_label': 'ठीक है',
   'create_post_title': 'पोस्ट बनाएं',
   'share_something_hint': 'कम्युनिटी के साथ कुछ शेयर करें...',

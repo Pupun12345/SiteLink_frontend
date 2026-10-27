@@ -30,7 +30,7 @@ class VideoCompressService {
   static const int _maxBytes = maxSizeMB * 1024 * 1024;
 
   /// Max video duration (seconds). Isse badi video allow nahi.
-  static const int maxDurationSec = 120; // 2 minutes
+  static const int maxDurationSec = 30; // 30 seconds
 
   Subscription? _progressSub;
 

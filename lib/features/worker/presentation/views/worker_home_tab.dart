@@ -727,6 +727,16 @@ class _PostVideoThumbState extends State<_PostVideoThumb> {
   bool _initializing = false;
   bool _failed = false;
 
+  // Phone ke video decoder gine-chune hote hain (aksar 4–8). Pehle har
+  // feed video ka controller scroll ke baad bhi zinda rehta tha — 5-6
+  // videos ke baad decoder khatam, aur agli video "kabhi kabhi" load hi
+  // nahi hoti thi. Ab video screen se poori bahar jaate hi controller
+  // chhod dete hain; kahan tak dekhi thi wo yaad rehta hai.
+  Duration _resumeAt = Duration.zero;
+  // Abhi screen par kitni dikh rahi hai (0..1) — load hote-hote user aage
+  // scroll kar gaya ho to video chupke se na chale.
+  double _visible = 0;
+
   // ── Advanced controls state ──
   bool _showControls = true; // overlay dikh raha hai?
   double _speed = 1.0;       // playback speed (1x default)
@@ -747,28 +757,65 @@ class _PostVideoThumbState extends State<_PostVideoThumb> {
       _initializing = true;
       _failed = false;
     });
-    try {
+    // Net ki chhoti gadbad par ek baar apne aap dobara — tab bhi na chale
+    // tab "retry" dikhao.
+    for (var attempt = 0; attempt < 2; attempt++) {
       final c = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      await c.initialize();
-      if (!mounted) {
+      try {
+        await c.initialize();
+        if (!mounted) {
+          c.dispose();
+          return;
+        }
+        if (_resumeAt > Duration.zero) await c.seekTo(_resumeAt);
+        _ctrl = c..addListener(_onTick);
+        // Session mute state apply (first time muted, unmute ke baad sound)
+        await c.setVolume(_feedMuted ? 0 : 1);
+        _showControls = !auto; // autoplay = clean look, manual = controls
+        // Autoplay tabhi jab abhi bhi screen par ho; manual tap = hamesha.
+        if (!auto || _visible >= 0.6) {
+          // Doosri chal rahi video pause karo
+          if (_playingNow != null && _playingNow != this) {
+            _playingNow!._ctrl?.pause();
+          }
+          _playingNow = this;
+          await c.play();
+          _scheduleHide();
+        }
+        // Load hote-hote poori tarah screen se bahar chali gayi — decoder
+        // abhi chhodo (warna agle visibility event tak pakde rehta).
+        if (auto && _visible == 0) {
+          _initializing = false;
+          _release();
+          return;
+        }
+        break;
+      } catch (_) {
+        // Fail hua controller bhi decoder pakde rehta tha — chhodo.
+        if (identical(_ctrl, c)) {
+          c.removeListener(_onTick);
+          _ctrl = null;
+        }
         c.dispose();
-        return;
+        if (attempt == 1) _failed = true;
       }
-      // Doosri chal rahi video pause karo
-      if (_playingNow != null && _playingNow != this) {
-        _playingNow!._ctrl?.pause();
-      }
-      _playingNow = this;
-      _ctrl = c..addListener(_onTick);
-      // Session mute state apply (first time muted, unmute ke baad sound)
-      await c.setVolume(_feedMuted ? 0 : 1);
-      _showControls = !auto; // autoplay = clean look, manual = controls
-      await c.play();
-      _scheduleHide();
-    } catch (_) {
-      _failed = true;
     }
     if (mounted) setState(() => _initializing = false);
+  }
+
+  /// Video screen se poori bahar — decoder chhodo (position yaad rakho).
+  void _release() {
+    final c = _ctrl;
+    if (c == null) return;
+    // Poori dekh li thi to agli baar shuru se.
+    _resumeAt = c.value.position >= c.value.duration
+        ? Duration.zero
+        : c.value.position;
+    if (_playingNow == this) _playingNow = null;
+    c.removeListener(_onTick);
+    _ctrl = null;
+    c.dispose();
+    if (mounted) setState(() {});
   }
 
   // ── Scroll-based autoplay (Facebook jaisa) ────────────────────────
@@ -776,6 +823,14 @@ class _PostVideoThumbState extends State<_PostVideoThumb> {
   void _onVisibility(VisibilityInfo info) {
     if (!mounted) return;
     final f = info.visibleFraction;
+    _visible = f;
+    if (f == 0) {
+      // Poori tarah screen se bahar — decoder doosri videos ke liye khali karo.
+      _release();
+      _userPaused = false;
+      _failed = false; // wapas aane par phir koshish kare
+      return;
+    }
     if (f >= 0.6) {
       if (!_ready) {
         if (!_initializing && !_failed) _start(auto: true);
@@ -1266,24 +1321,28 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   }
 
   Future<void> _pickVideo() async {
-    final picked = await _picker.pickVideo(source: ImageSource.gallery);
+    final picked = await _picker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(seconds: VideoCompressService.maxDurationSec),
+    );
     if (picked == null || _mediaItems.length >= 9) return; // cancel / full
 
-    // 2 min se badi video allow nahi — pick karte hi rok do
+    // 30 sec se badi video allow nahi — pick karte hi rok do
     double durationSec = 0;
     try {
       final info = await VideoCompress.getMediaInfo(picked.path);
       durationSec = (info.duration ?? 0) / 1000.0; // ms → sec
     } catch (_) {/* duration na mile to aage badhne do */}
 
-    if (durationSec > VideoCompressService.maxDurationSec) {
+    // +0.5s chhoot: phone "30 sec" ki video aksar 30.0x sec save karta hai.
+    if (durationSec > VideoCompressService.maxDurationSec + 0.5) {
       _showVideoTooLongDialog();
       return;
     }
     _mediaItems.add({'path': picked.path, 'type': 'video'});
   }
 
-  // ── 2 min se badi video — accha sa popup ──────────────────────────
+  // ── 30 sec se badi video — accha sa popup ──────────────────────────
   void _showVideoTooLongDialog() {
     Get.dialog(
       Dialog(
