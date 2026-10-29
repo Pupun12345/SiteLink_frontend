@@ -217,6 +217,17 @@ class NotificationService {
         Get.offAllNamed(AppRoutes.vendorHome);
         _switchTabAfterFrame(1);
         break;
+      case 'new_job':
+        // Nayi job (skill + jagah match) — seedha us job ki detail, jahan
+        // worker apply kar sake. jobId na ho to Home (jobs list).
+        Get.offAllNamed(AppRoutes.workerHome);
+        final jobId = data['jobId']?.toString() ?? '';
+        if (jobId.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Get.toNamed(AppRoutes.workerJobDetail, arguments: {'apiId': jobId});
+          });
+        }
+        break;
       case 'application_status':
       case 'job_closed':
         // Worker — My Jobs tab (index 1)
