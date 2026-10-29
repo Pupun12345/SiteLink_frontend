@@ -29,8 +29,8 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   //  ALLOWED PAYMENT METHODS — role ke hisaab se
   // ═════════════════════════════════════════════════════════════════
-  // Vendor  → Card + Netbanking
-  // Worker  → UPI  + Card
+  // Vendor  → UPI + Card
+  // Worker  → UPI + Netbanking
   //
   // Razorpay ke `method` block me har method ko EXPLICITLY false karna
   // padta hai. Sirf chahne wale ko true karna kaafi nahi — jo key
@@ -39,9 +39,9 @@ class PaymentService {
   static Map<String, bool> _allowedMethods() {
     final isVendor = SessionService.to.userType == 'vendor';
     return {
-      'card': true, // dono ke liye
-      'upi': !isVendor,
-      'netbanking': isVendor,
+      'upi': true, // dono ke liye
+      'card': isVendor,
+      'netbanking': !isVendor,
       // Baaki sab band — na worker ko chahiye na vendor ko.
       'wallet': false,
       'emi': false,
@@ -165,7 +165,7 @@ class PaymentService {
       'amount': amountPaise,
       'currency': orderRes.currency ?? 'INR',
       'order_id': orderRes.orderId,
-      // Role ke hisaab se: vendor → card+netbanking, worker → upi+card.
+      // Role ke hisaab se: vendor → upi+card, worker → upi+netbanking.
       'method': _allowedMethods(),
       'name': 'Sitelink',
       'description': plan.name ?? 'Subscription',
