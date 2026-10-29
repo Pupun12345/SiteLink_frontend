@@ -53,22 +53,34 @@ class PaymentService {
   // ═════════════════════════════════════════════════════════════════
   //  EMAIL / PHONE — checkout par user se nahi maangte
   // ═════════════════════════════════════════════════════════════════
-  // Email: Sitelink ke users phone se login karte hain, aksar email
-  // hota hi nahi — box hamesha chhupa.
-  //
-  // Phone: Razorpay ko number chahiye hi (UPI / auto-pay mandate isi par
-  // banta hai), isliye login wala number peeche se bhejte hain aur box
-  // chhupa dete hain. Number na ho (sirf Google login) to box dikhana
-  // padta hai — chhupa ke khaali bhejne par checkout fail ho jaata.
-  static Map<String, Object> _contactOptions(String? phone) {
+  // Razorpay ka naya checkout `hidden` tabhi maanta hai jab phone AUR
+  // email dono pehle se bhare hon — ek bhi khaali ho to poora "Contact
+  // details" page dikha deta hai (phone samet). Isliye dono peeche se
+  // bhejte hain:
+  //   • Phone: login wala number (UPI / auto-pay mandate isi par banta hai)
+  //   • Email: user ka ho to wahi, warna RazorpayConfig.fallbackEmail
+  //     (zyada tar users phone se login karte hain, email hota hi nahi).
+  // Number na ho (sirf Google login) tabhi page dikhta hai — chhupa ke
+  // khaali bhejne par checkout fail ho jaata.
+  static Map<String, Object> _contactOptions(String? phone, String? email) {
     final digits = (phone ?? '').replaceAll(RegExp(r'\D'), '');
     final local = digits.length > 10 ? digits.substring(digits.length - 10) : digits;
     final hasPhone = local.length == 10;
+    final userEmail = (email ?? '').trim();
+    final mail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(userEmail)
+        ? userEmail
+        : RazorpayConfig.fallbackEmail;
     return {
       'prefill': {
         if (hasPhone) 'contact': '+91$local',
+        'email': mail,
       },
       'hidden': {
+        'email': true,
+        'contact': hasPhone,
+      },
+      // Bhare hue phone/email badalne ka option bhi nahi.
+      'readonly': {
         'email': true,
         'contact': hasPhone,
       },
@@ -158,7 +170,7 @@ class PaymentService {
       'name': 'Sitelink',
       'description': plan.name ?? 'Subscription',
       // Email aur phone ka box nahi dikhate (_contactOptions dekho).
-      ..._contactOptions(user?.phone),
+      ..._contactOptions(user?.phone, user?.email),
       'theme': {'color': '#F97316'},
     };
 
@@ -271,7 +283,7 @@ class PaymentService {
       'description': subRes.planName ?? plan.name ?? 'Subscription',
       // Mandate phone number par register hota hai — number peeche se
       // jaata hai, box nahi dikhta (_contactOptions dekho).
-      ..._contactOptions(user?.phone),
+      ..._contactOptions(user?.phone, user?.email),
       'theme': {'color': '#F97316'},
     };
 
