@@ -50,6 +50,31 @@ class PaymentService {
     };
   }
 
+  // ═════════════════════════════════════════════════════════════════
+  //  EMAIL / PHONE — checkout par user se nahi maangte
+  // ═════════════════════════════════════════════════════════════════
+  // Email: Sitelink ke users phone se login karte hain, aksar email
+  // hota hi nahi — box hamesha chhupa.
+  //
+  // Phone: Razorpay ko number chahiye hi (UPI / auto-pay mandate isi par
+  // banta hai), isliye login wala number peeche se bhejte hain aur box
+  // chhupa dete hain. Number na ho (sirf Google login) to box dikhana
+  // padta hai — chhupa ke khaali bhejne par checkout fail ho jaata.
+  static Map<String, Object> _contactOptions(String? phone) {
+    final digits = (phone ?? '').replaceAll(RegExp(r'\D'), '');
+    final local = digits.length > 10 ? digits.substring(digits.length - 10) : digits;
+    final hasPhone = local.length == 10;
+    return {
+      'prefill': {
+        if (hasPhone) 'contact': '+91$local',
+      },
+      'hidden': {
+        'email': true,
+        'contact': hasPhone,
+      },
+    };
+  }
+
   static Future<PaymentResult> payForPlan(PlanModel plan) async {
     // Sirf backend se aaye real plan par payment ho sakti hai — order
     // banane ke liye asli planId chahiye. Screens par jo static fallback
@@ -132,13 +157,8 @@ class PaymentService {
       'method': _allowedMethods(),
       'name': 'Sitelink',
       'description': plan.name ?? 'Subscription',
-      // Email nahi maangte — Sitelink ke users phone se login karte hain,
-      // aksar unke paas email hota hi nahi. Sirf prefill hatane par
-      // Razorpay khud khaali email box dikha deta, isliye `hidden`.
-      'prefill': {
-        'contact': user?.phone ?? '',
-      },
-      'hidden': {'email': true},
+      // Email aur phone ka box nahi dikhate (_contactOptions dekho).
+      ..._contactOptions(user?.phone),
       'theme': {'color': '#F97316'},
     };
 
@@ -249,12 +269,9 @@ class PaymentService {
       'method': _allowedMethods(),
       'name': 'Sitelink',
       'description': subRes.planName ?? plan.name ?? 'Subscription',
-      // Mandate phone number par register hota hai. Email nahi maangte —
-      // upar wale one-time checkout jaisa hi, box bhi chhupa dete hain.
-      'prefill': {
-        'contact': user?.phone ?? '',
-      },
-      'hidden': {'email': true},
+      // Mandate phone number par register hota hai — number peeche se
+      // jaata hai, box nahi dikhta (_contactOptions dekho).
+      ..._contactOptions(user?.phone),
       'theme': {'color': '#F97316'},
     };
 
