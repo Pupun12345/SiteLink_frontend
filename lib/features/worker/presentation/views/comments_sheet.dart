@@ -109,6 +109,10 @@ class CommentsSheet extends StatelessWidget {
                 if (ctrl.comments.isEmpty) {
                   return const _EmptyComments();
                 }
+                // Yahin (Obx ke andar) padho — itemBuilder baad me lazily
+                // chalta hai, wahan padha to "replies dekhein/chhupayein"
+                // tap par screen dobara banti hi nahi thi.
+                final opened = ctrl.expanded.toSet();
                 return ListView.separated(
                   shrinkWrap: true,
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -116,7 +120,7 @@ class CommentsSheet extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 2),
                   itemBuilder: (_, i) {
                     final c = ctrl.comments[i];
-                    final open = ctrl.expanded.contains(c.id);
+                    final open = opened.contains(c.id);
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
