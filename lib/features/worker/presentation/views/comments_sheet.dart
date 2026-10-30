@@ -17,8 +17,11 @@ class CommentsSheet extends StatelessWidget {
 
   /// Sheet kholo (controller put + close pe cleanup).
   /// [isJob] = job comments (/jobs/:id/comments) — edit/delete hidden.
-  static Future<void> open(BuildContext context, String postId,
-      {bool isJob = false}) async {
+  static Future<void> open(
+    BuildContext context,
+    String postId, {
+    bool isJob = false,
+  }) async {
     if (postId.isEmpty) return;
     Get.put(CommentsController(postId, isJob: isJob), tag: postId);
     await showModalBottomSheet(
@@ -66,17 +69,23 @@ class CommentsSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 6, 8, 8),
               child: Row(
                 children: [
-                  Obx(() => Text(
-                        ctrl.comments.isEmpty
-                            ? 'comments_title'.tr
-                            : 'comments_title_count'.trParams(
-                                {'count': '${ctrl.comments.length}'}),
-                        style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700),
-                      )),
+                  // Ginti me replies bhi — feed card wali ginti se match kare.
+                  Obx(
+                    () => Text(
+                      ctrl.comments.isEmpty
+                          ? 'comments_title'.tr
+                          : 'comments_title_count'.trParams({
+                              'count': '${ctrl.totalCount}',
+                            }),
+                      style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700),
+                    ),
+                  ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: Get.back,
                   ),
                 ],
@@ -91,8 +100,10 @@ class CommentsSheet extends StatelessWidget {
                   return const SizedBox(
                     height: 160,
                     child: Center(
-                        child: CircularProgressIndicator(
-                            color: AppColors.primary)),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
                   );
                 }
                 if (ctrl.comments.isEmpty) {
@@ -103,13 +114,45 @@ class CommentsSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: ctrl.comments.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 2),
-                  itemBuilder: (_, i) => _CommentTile(
-                    comment: ctrl.comments[i],
-                    // Job comments me edit/delete API nahi — menu hide
-                    isMine: !isJob && ctrl.isMine(ctrl.comments[i]),
-                    onEdit: () => _editDialog(ctrl, ctrl.comments[i]),
-                    onDelete: () => _deleteConfirm(ctrl, ctrl.comments[i]),
-                  ),
+                  itemBuilder: (_, i) {
+                    final c = ctrl.comments[i];
+                    final open = ctrl.expanded.contains(c.id);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _CommentTile(
+                          comment: c,
+                          // Job comments me edit/delete API nahi — menu hide
+                          isMine: !isJob && ctrl.isMine(c),
+                          onEdit: () => _editDialog(ctrl, c),
+                          onDelete: () => _deleteConfirm(ctrl, c),
+                          onReply: ctrl.canReply
+                              ? () => ctrl.startReply(c)
+                              : null,
+                        ),
+                        // ── Replies: "N replies dekhein" → andar khiske hue ──
+                        if (c.replies.isNotEmpty)
+                          _RepliesToggle(
+                            count: c.replies.length,
+                            open: open,
+                            onTap: () => ctrl.toggleReplies(c.id ?? ''),
+                          ),
+                        if (open)
+                          for (final r in c.replies)
+                            _CommentTile(
+                              comment: r,
+                              isReply: true,
+                              isMine: !isJob && ctrl.isMine(r),
+                              onEdit: () => _editDialog(ctrl, r),
+                              onDelete: () => _deleteConfirm(ctrl, r),
+                              // Reply ka reply bhi isi thread me jaata hai
+                              onReply: ctrl.canReply
+                                  ? () => ctrl.startReply(r, thread: c)
+                                  : null,
+                            ),
+                      ],
+                    );
+                  },
                 );
               }),
             ),
@@ -129,8 +172,10 @@ class CommentsSheet extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('edit_comment_title'.tr,
-            style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
+        title: Text(
+          'edit_comment_title'.tr,
+          style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700),
+        ),
         content: TextField(
           controller: editCtrl,
           autofocus: true,
@@ -154,9 +199,14 @@ class CommentsSheet extends StatelessWidget {
               Get.back();
               ctrl.updateComment(c.id!, t);
             },
-            child: Text('save_label'.tr,
-                style: KTextStyle.poppins(
-                    fs: 13, fw: FontWeight.w600, c: AppColors.primary)),
+            child: Text(
+              'save_label'.tr,
+              style: KTextStyle.poppins(
+                fs: 13,
+                fw: FontWeight.w600,
+                c: AppColors.primary,
+              ),
+            ),
           ),
         ],
       ),
@@ -168,10 +218,14 @@ class CommentsSheet extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('delete_comment_title'.tr,
-            style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700)),
-        content: Text('delete_comment_body'.tr,
-            style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary)),
+        title: Text(
+          'delete_comment_title'.tr,
+          style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700),
+        ),
+        content: Text(
+          'delete_comment_body'.tr,
+          style: KTextStyle.poppins(fs: 13, c: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(onPressed: Get.back, child: Text('cancel_label'.tr)),
           TextButton(
@@ -179,9 +233,14 @@ class CommentsSheet extends StatelessWidget {
               Get.back();
               ctrl.deleteComment(c);
             },
-            child: Text('delete_label'.tr,
-                style: KTextStyle.poppins(
-                    fs: 13, fw: FontWeight.w600, c: AppColors.error)),
+            child: Text(
+              'delete_label'.tr,
+              style: KTextStyle.poppins(
+                fs: 13,
+                fw: FontWeight.w600,
+                c: AppColors.error,
+              ),
+            ),
           ),
         ],
       ),
@@ -198,11 +257,19 @@ class _CommentTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
+  /// null = reply ka option nahi (job comments).
+  final VoidCallback? onReply;
+
+  /// Reply hai to andar khiska hua aur chhota dikhta hai.
+  final bool isReply;
+
   const _CommentTile({
     required this.comment,
     required this.isMine,
     required this.onEdit,
     required this.onDelete,
+    this.onReply,
+    this.isReply = false,
   });
 
   @override
@@ -211,54 +278,128 @@ class _CommentTile extends StatelessWidget {
         ? 'default_user_name'.tr
         : comment.userName!.trim();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      padding: EdgeInsets.fromLTRB(
+        isReply ? 62 : 16,
+        isReply ? 4 : 8,
+        8,
+        isReply ? 4 : 8,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AvatarCircle(initials: _initials(name), size: 36, fontSize: 13),
-          const SizedBox(width: 10),
-          // Bubble
+          AvatarCircle(
+            initials: _initials(name),
+            size: isReply ? 28 : 36,
+            fontSize: isReply ? 11 : 13,
+          ),
+          SizedBox(width: isReply ? 8 : 10),
+          // Bubble + "Reply" button
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
-                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.scaffoldBg,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
-                        child: Text(name,
-                            style: KTextStyle.poppins(
-                                fs: 12.5, fw: FontWeight.w600),
-                            overflow: TextOverflow.ellipsis),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              style: KTextStyle.poppins(
+                                fs: 12.5,
+                                fw: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Admin ka comment/reply — saaf pehchaan
+                          if (comment.isAdmin) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'admin_badge_label'.tr,
+                                style: KTextStyle.poppins(
+                                  fs: 9.5,
+                                  fw: FontWeight.w600,
+                                  c: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (comment.createdAt != null) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '· ${_timeAgo(comment.createdAt!)}',
+                              style: KTextStyle.poppins(
+                                fs: 10,
+                                c: AppColors.textHint,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      if (comment.createdAt != null) ...[
-                        const SizedBox(width: 6),
-                        Text('· ${_timeAgo(comment.createdAt!)}',
-                            style: KTextStyle.poppins(
-                                fs: 10, c: AppColors.textHint)),
-                      ],
+                      const SizedBox(height: 3),
+                      Text(
+                        comment.comment ?? '',
+                        style: KTextStyle.poppins(
+                          fs: 13,
+                          c: AppColors.textPrimary,
+                          height: 1.35,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(comment.comment ?? '',
-                      style: KTextStyle.poppins(
-                          fs: 13, c: AppColors.textPrimary, height: 1.35)),
-                ],
-              ),
+                ),
+                if (onReply != null)
+                  GestureDetector(
+                    onTap: onReply,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 5, 12, 2),
+                      child: Text(
+                        'reply_label'.tr,
+                        style: KTextStyle.poppins(
+                          fs: 11.5,
+                          fw: FontWeight.w600,
+                          c: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           // Sirf apne comment pe edit/delete
           if (isMine)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded,
-                  size: 18, color: AppColors.textHint),
+              icon: const Icon(
+                Icons.more_vert_rounded,
+                size: 18,
+                color: AppColors.textHint,
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               onSelected: (v) {
                 if (v == 'edit') onEdit();
                 if (v == 'delete') onDelete();
@@ -266,26 +407,80 @@ class _CommentTile extends StatelessWidget {
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'edit',
-                  child: Row(children: [
-                    const Icon(Icons.edit_outlined,
-                        size: 16, color: AppColors.textSecondary),
-                    const SizedBox(width: 8),
-                    Text('edit_label'.tr, style: KTextStyle.poppins(fs: 13)),
-                  ]),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('edit_label'.tr, style: KTextStyle.poppins(fs: 13)),
+                    ],
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'delete',
-                  child: Row(children: [
-                    Icon(Icons.delete_outline_rounded,
-                        size: 16, color: AppColors.error),
-                    const SizedBox(width: 8),
-                    Text('delete_label'.tr,
-                        style: KTextStyle.poppins(fs: 13, c: AppColors.error)),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline_rounded,
+                        size: 16,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'delete_label'.tr,
+                        style: KTextStyle.poppins(fs: 13, c: AppColors.error),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ── "N replies dekhein" / "Replies chhupayein" ──────────────────────
+class _RepliesToggle extends StatelessWidget {
+  final int count;
+  final bool open;
+  final VoidCallback onTap;
+  const _RepliesToggle({
+    required this.count,
+    required this.open,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = open
+        ? 'hide_replies'.tr
+        : (count == 1
+              ? 'view_one_reply'.tr
+              : 'view_replies'.trParams({'count': '$count'}));
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(62, 2, 16, 6),
+        child: Row(
+          children: [
+            Container(width: 22, height: 1, color: AppColors.divider),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: KTextStyle.poppins(
+                fs: 12,
+                fw: FontWeight.w600,
+                c: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -305,9 +500,20 @@ class _CommentComposer extends StatefulWidget {
 class _CommentComposerState extends State<_CommentComposer> {
   final _textCtrl = TextEditingController();
   final _focus = FocusNode();
+  Worker? _replyWorker;
+
+  @override
+  void initState() {
+    super.initState();
+    // "Reply" dabate hi keyboard khule — user seedha likhe.
+    _replyWorker = ever<CommentModel?>(widget.ctrl.replyingTo, (c) {
+      if (c != null) _focus.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
+    _replyWorker?.dispose();
     _textCtrl.dispose();
     _focus.dispose();
     super.dispose();
@@ -325,64 +531,138 @@ class _CommentComposerState extends State<_CommentComposer> {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _textCtrl,
-                focusNode: _focus,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _send(),
-                minLines: 1,
-                maxLines: 4,
-                style: KTextStyle.poppins(fs: 14, c: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'add_comment_hint'.tr,
-                  hintStyle: KTextStyle.poppins(fs: 13, c: AppColors.textHint),
-                  filled: true,
-                  fillColor: AppColors.scaffoldBg,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusMax),
-                    borderSide: const BorderSide(color: AppColors.border),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── "Replying to X" patti — ✕ se wapas naya comment ──
+          Obx(() {
+            if (widget.ctrl.replyingTo.value == null)
+              return const SizedBox.shrink();
+            final who = (widget.ctrl.replyToName.value ?? '').trim();
+            return Container(
+              width: double.infinity,
+              color: AppColors.scaffoldBg,
+              padding: const EdgeInsets.fromLTRB(16, 6, 4, 6),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.reply_rounded,
+                    size: 16,
+                    color: AppColors.textSecondary,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusMax),
-                    borderSide: const BorderSide(color: AppColors.border),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'replying_to'.trParams({
+                        'name': who.isEmpty ? 'default_user_name'.tr : who,
+                      }),
+                      style: KTextStyle.poppins(
+                        fs: 12,
+                        c: AppColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppDimens.radiusMax),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary, width: 1.4),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: widget.ctrl.cancelReply,
+                  ),
+                ],
+              ),
+            );
+          }),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Obx(
+                    () => TextField(
+                      controller: _textCtrl,
+                      focusNode: _focus,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _send(),
+                      minLines: 1,
+                      maxLines: 4,
+                      style: KTextStyle.poppins(
+                        fs: 14,
+                        c: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: widget.ctrl.replyingTo.value != null
+                            ? 'add_reply_hint'.tr
+                            : 'add_comment_hint'.tr,
+                        hintStyle: KTextStyle.poppins(
+                          fs: 13,
+                          c: AppColors.textHint,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.scaffoldBg,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusMax,
+                          ),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusMax,
+                          ),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusMax,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Obx(() => GestureDetector(
-                  onTap: widget.ctrl.isSending.value ? null : _send,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
+                const SizedBox(width: 8),
+                Obx(
+                  () => GestureDetector(
+                    onTap: widget.ctrl.isSending.value ? null : _send,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: widget.ctrl.isSending.value
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                     ),
-                    child: widget.ctrl.isSending.value
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.send_rounded,
-                            color: Colors.white, size: 20),
                   ),
-                )),
-          ],
-        ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -401,15 +681,25 @@ class _EmptyComments extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline_rounded,
-              size: 38, color: Colors.grey.shade400),
+          Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: 38,
+            color: Colors.grey.shade400,
+          ),
           const SizedBox(height: 10),
-          Text('no_comments_yet'.tr,
-              style: KTextStyle.poppins(
-                  fs: 14, fw: FontWeight.w500, c: AppColors.textSecondary)),
+          Text(
+            'no_comments_yet'.tr,
+            style: KTextStyle.poppins(
+              fs: 14,
+              fw: FontWeight.w500,
+              c: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text('be_first_to_comment'.tr,
-              style: KTextStyle.poppins(fs: 12, c: AppColors.textHint)),
+          Text(
+            'be_first_to_comment'.tr,
+            style: KTextStyle.poppins(fs: 12, c: AppColors.textHint),
+          ),
         ],
       ),
     );

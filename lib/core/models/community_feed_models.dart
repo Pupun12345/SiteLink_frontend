@@ -175,6 +175,13 @@ class CommentModel {
   String? userName;
   String? userImage;
   DateTime? createdAt;
+  /// 'admin' | 'worker' | 'vendor' — admin ke comment/reply par badge.
+  String? userType;
+  /// Is comment par aaye replies (purane se naye). Reply ke apne replies
+  /// hamesha khaali — ek hi level ki threading (Instagram jaisi).
+  List<CommentModel> replies;
+
+  bool get isAdmin => (userType ?? '').toLowerCase() == 'admin';
 
   CommentModel({
     this.id,
@@ -183,7 +190,9 @@ class CommentModel {
     this.userName,
     this.userImage,
     this.createdAt,
-  });
+    this.userType,
+    List<CommentModel>? replies,
+  }) : replies = replies ?? [];
 
   factory CommentModel.fromJson(Map<String, dynamic> json) {
     // author kabhi nested object (user/author/postedBy) me, kabhi flat fields me
@@ -205,6 +214,11 @@ class CommentModel {
           (fromUser('profileImage') ?? json['userImage'])?.toString(),
       createdAt: DateTime.tryParse(
           (json['createdAt'] ?? json['updatedAt'] ?? '').toString()),
+      userType: (fromUser('userType') ?? json['userType'])?.toString(),
+      replies: (json['replies'] as List? ?? const [])
+          .whereType<Map>()
+          .map((e) => CommentModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
     );
   }
 }

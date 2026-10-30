@@ -871,7 +871,10 @@ class CommentsApiService {
 
   Future<CommentsResponse> getComments(String postId) async {
     try {
-      final r = await _api.getApiWithAuth(_listUrl(postId));
+      // Post comments ka backend default 10 hi bhejta tha — baaki dikhte hi
+      // nahi the. Ek baar me 100 (har ek ke saath uske replies).
+      final url = forJob ? _listUrl(postId) : '${_listUrl(postId)}?limit=100';
+      final r = await _api.getApiWithAuth(url);
       if (r.statusCode == 200) {
         return CommentsResponse.fromJson(jsonDecode(r.body));
       }
@@ -883,10 +886,16 @@ class CommentsApiService {
     }
   }
 
-  Future<CommentActionResponse> addComment(String postId, String text) async {
+  /// [parentId] diya ho to ye us comment ka reply hai (sirf post comments).
+  Future<CommentActionResponse> addComment(String postId, String text,
+      {String? parentId}) async {
     try {
       final r = await _api.postApiWithAuth(
-          _listUrl(postId), jsonEncode({"comment": text}));
+          _listUrl(postId),
+          jsonEncode({
+            "comment": text,
+            if (!forJob && parentId != null) "parentComment": parentId,
+          }));
       if (r.statusCode == 200 || r.statusCode == 201) {
         return CommentActionResponse.fromJson(jsonDecode(r.body));
       }
