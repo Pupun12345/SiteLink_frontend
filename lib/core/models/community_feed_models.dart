@@ -57,6 +57,10 @@ class CommunityFeedModel {
   String? posterDesignation;
   String? companyName;
 
+  /// Likhne wale worker ki saari skills (primary + additional) — feed
+  /// search skill se bhi kaam kare. Vendor/admin par khaali.
+  List<String> posterSkills;
+
   /// Worker ki automatic performance rating — feed me naam ke baad
   /// dikhti hai (jaise vendor ke naam ke baad verified badge). Backend
   /// ise live bhejta hai, snapshot nahi. Vendor/admin par null.
@@ -83,6 +87,7 @@ class CommunityFeedModel {
     this.posterType,
     this.posterDesignation,
     this.companyName,
+    List<String>? posterSkills,
     this.posterRating,
     this.posterRatedJobsCount,
     this.verification,
@@ -91,10 +96,14 @@ class CommunityFeedModel {
     this.commentsCount,
     this.createdAt,
     this.likes,
-  });
+  }) : posterSkills = posterSkills ?? [];
 
   factory CommunityFeedModel.fromJson(Map<String, dynamic> json) =>
       CommunityFeedModel(
+        posterSkills: (json["posterSkills"] as List? ?? const [])
+            .map((e) => e.toString())
+            .where((s) => s.trim().isNotEmpty)
+            .toList(),
         id:            json["_id"],
         content:       json["content"],
         images:        json["images"] == null

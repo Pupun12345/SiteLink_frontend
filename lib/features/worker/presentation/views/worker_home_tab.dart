@@ -287,7 +287,11 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
           : feedCtrl.posts.where((p) {
         return (p.content     ?? '').toLowerCase().contains(query) ||
             (p.posterName  ?? '').toLowerCase().contains(query) ||
-            (p.companyName ?? '').toLowerCase().contains(query);
+            (p.companyName ?? '').toLowerCase().contains(query) ||
+            // Skill se bhi — worker ki primary skill (badge wali) aur
+            // uski baaki saari skills ("welder" → welders ki posts).
+            (p.posterDesignation ?? '').toLowerCase().contains(query) ||
+            p.posterSkills.any((s) => s.toLowerCase().contains(query));
       }).toList();
 
       if (filtered.isEmpty) {

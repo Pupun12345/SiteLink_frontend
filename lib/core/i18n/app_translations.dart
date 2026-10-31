@@ -575,7 +575,7 @@ const Map<String, String> _en = {
   'workers_needed_suffix': '@count needed',
 
   // Worker Home Tab (Community Feed)
-  'search_posts_hint': 'Search posts, people, companies',
+  'search_posts_hint': 'Search people, skills, companies',
   'community_feed_label': 'Community Feed',
   'post_button_label': 'Post',
   'unknown_label': 'Unknown',
@@ -1596,7 +1596,7 @@ const Map<String, String> _hi = {
   'workers_needed_suffix': '@count चाहिए',
 
   // Worker Home Tab (Community Feed)
-  'search_posts_hint': 'पोस्ट, लोग या कंपनी खोजें',
+  'search_posts_hint': 'लोग, स्किल या कंपनी खोजें',
   'community_feed_label': 'कम्युनिटी फ़ीड',
   'post_button_label': 'पोस्ट करें',
   'unknown_label': 'अज्ञात',
