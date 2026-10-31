@@ -456,16 +456,14 @@ class FeedPostCard extends StatelessWidget {
                           ),
                         ],
                       ]),
-                      // Vendor → "Vendor", worker → uska primary skill.
-                      // Admin par koi chip nahi — naam hi "Sitelink" + ✓ hai.
-                      if (!isAdmin) ...[
-                        const SizedBox(height: 3),
-                        _PosterBadge(
-                          isVendor: isVendor,
-                          isAdmin: isAdmin,
-                          designation: post.posterDesignation,
-                        ),
-                      ],
+                      const SizedBox(height: 3),
+                      // Vendor → "Vendor", admin → "Admin" (naam upar
+                      // "Sitelink"), worker → uska primary skill.
+                      _PosterBadge(
+                        isVendor: isVendor,
+                        isAdmin: isAdmin,
+                        designation: post.posterDesignation,
+                      ),
                     ],
                   ),
                 ),
