@@ -12,7 +12,7 @@ class RazorpayConfig {
   // bhejta hai (PaymentService wahi prefer karta hai). Ye tabhi use hota
   // hai jab backend keyId na bheje, isliye ise backend ke .env wale
   // RAZORPAY_KEY_ID ke saath sync rakhna zaroori hai.
-  static const String keyId = 'rzp_test_TKLVMznjJpwl5i';
+  static const String keyId = 'rzp_live_TuPK9XfmugRSaB';
 
   // Razorpay account par email "zaroori" set hai, aur naya checkout email /
   // phone ka box tabhi chhupata hai jab dono pehle se bhare hon. Jin users
