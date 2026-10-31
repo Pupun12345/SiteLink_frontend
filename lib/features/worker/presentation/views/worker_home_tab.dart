@@ -179,7 +179,10 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
               controller: _searchCtrl,
               focusNode: _searchFocus,
               style: KTextStyle.poppins(fs: 13, c: AppColors.textPrimary),
-              onChanged: (v) => _searchQuery.value = v,
+              onChanged: (v) {
+                _searchQuery.value = v;
+                feedCtrl.search(v);
+              },
               decoration: InputDecoration(
                 hintText: 'search_posts_hint'.tr,
                 hintStyle:
@@ -196,6 +199,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                   onTap: () {
                     _searchCtrl.clear();
                     _searchQuery.value = '';
+                    feedCtrl.search('');
                     _searchFocus.unfocus();
                   },
                   child: const Icon(Icons.close_rounded,
@@ -282,17 +286,27 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
 
       // Search filter
       final query    = _searchQuery.value.toLowerCase().trim();
-      final filtered = query.isEmpty
+      final searching = query.isNotEmpty;
+      // Server poore feed me dhoondhta hai (text, naam, company, skills).
+      // Jawab aane tak load hui posts me se turant match dikhao.
+      final localMatches = !searching
           ? feedCtrl.posts
           : feedCtrl.posts.where((p) {
         return (p.content     ?? '').toLowerCase().contains(query) ||
             (p.posterName  ?? '').toLowerCase().contains(query) ||
             (p.companyName ?? '').toLowerCase().contains(query) ||
-            // Skill se bhi — worker ki primary skill (badge wali) aur
-            // uski baaki saari skills ("welder" → welders ki posts).
             (p.posterDesignation ?? '').toLowerCase().contains(query) ||
             p.posterSkills.any((s) => s.toLowerCase().contains(query));
       }).toList();
+      final filtered = !searching
+          ? feedCtrl.posts
+          : (feedCtrl.isSearching.value && feedCtrl.searchResults.isEmpty)
+              ? localMatches
+              : feedCtrl.searchResults;
+
+      if (filtered.isEmpty && searching && feedCtrl.isSearching.value) {
+        return const Center(child: CustomCircularIndicator());
+      }
 
       if (filtered.isEmpty) {
         return _EmptyFeed(
@@ -308,7 +322,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
           controller: _scrollCtrl,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
-          itemCount: filtered.length + (feedCtrl.hasMore.value ? 1 : 0),
+          // Search me "aur load karo" nahi — server ek baar me 30 deta hai.
+          itemCount: filtered.length + (!searching && feedCtrl.hasMore.value ? 1 : 0),
           separatorBuilder: (_, __) =>
               Container(height: 6, color: AppColors.scaffoldBg),
           itemBuilder: (context, index) {

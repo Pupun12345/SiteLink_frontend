@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
@@ -117,6 +118,56 @@ class WorkerFeedController extends GetxController {
       isLoading.value     = false;
       isLoadingMore.value = false;
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  SEARCH  ──  GET /api/community/feed?search=...
+  // ═══════════════════════════════════════════════════════════════
+  // Pehle search sirf load hui posts (pehli 10) me hota tha — purani post
+  // milti hi nahi thi. Ab server poore feed me dhoondhta hai: text, naam,
+  // company aur likhne wale ki skills.
+  final searchResults = <CommunityFeedModel>[].obs;
+  final isSearching   = false.obs;
+  Timer? _searchDebounce;
+  int _searchSeq = 0;
+
+  /// Har akshar par nahi — likhna rukne ke 400ms baad.
+  void search(String query) {
+    _searchDebounce?.cancel();
+    final q = query.trim();
+    if (q.isEmpty) {
+      searchResults.clear();
+      isSearching.value = false;
+      return;
+    }
+    isSearching.value = true;
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () => _runSearch(q));
+  }
+
+  Future<void> _runSearch(String q) async {
+    final seq = ++_searchSeq; // purane (dheemi) jawab naye ko overwrite na karein
+    try {
+      final uri = Uri.parse(ApiEndpoints.communityFeed).replace(
+          queryParameters: {'page': '1', 'limit': '30', 'search': q});
+      final res = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 15));
+      if (seq != _searchSeq) return;
+      if (res.statusCode == 200) {
+        searchResults.assignAll(
+            CommunityFeedData.fromJson(jsonDecode(res.body)).data ?? []);
+      }
+    } catch (e) {
+      if (kDebugMode) print("[Feed] search error: $e");
+    } finally {
+      if (seq == _searchSeq) isSearching.value = false;
+    }
+  }
+
+  @override
+  void onClose() {
+    _searchDebounce?.cancel();
+    super.onClose();
   }
 
   Future<void> refreshFeed() async {
