@@ -100,19 +100,14 @@ class SiteLinkApp extends StatelessWidget {
         fallbackLocale: const Locale('en', 'US'),
         defaultTransition: Transition.cupertino,
         transitionDuration: const Duration(milliseconds: 300),
-        // Device ki system font-size (Settings → Display → Font size) badhane/
-        // ghatane se app ka apna designed layout na tute — text scale ko
-        // 0.9x–1.15x ke andar clamp karte hain (thoda accessibility ke liye
-        // flex rakha hai, lekin extreme scale se overflow crash nahi hoga).
+        // Har phone par text ek hi size — phone ki system font-size
+        // (Settings → Display → Font size) app par asar nahi karti. Pehle
+        // 0.9x–1.15x tak badalne dete the, isliye alag phones par text
+        // chhota/bada dikhta tha aur kai jagah design tootta tha.
         builder: (context, child) {
           final mq = MediaQuery.of(context);
           return MediaQuery(
-            data: mq.copyWith(
-              textScaler: mq.textScaler.clamp(
-                minScaleFactor: 0.9,
-                maxScaleFactor: 1.15,
-              ),
-            ),
+            data: mq.copyWith(textScaler: TextScaler.noScaling),
             child: child!,
           );
         },
