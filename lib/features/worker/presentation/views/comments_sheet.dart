@@ -278,9 +278,12 @@ class _CommentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = (comment.userName ?? '').trim().isEmpty
-        ? 'default_user_name'.tr
-        : comment.userName!.trim();
+    // Admin ka comment/reply brand ke naam se — "Admin" user ko nahi dikhana.
+    final name = comment.isAdmin
+        ? 'site_link'.tr
+        : (comment.userName ?? '').trim().isEmpty
+            ? 'default_user_name'.tr
+            : comment.userName!.trim();
     return Padding(
       padding: EdgeInsets.fromLTRB(
         isReply ? 62 : 16,
@@ -326,29 +329,10 @@ class _CommentTile extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          // Admin ka comment/reply — saaf pehchaan
+                          // Sitelink (admin) ka comment/reply — official ✓
                           if (comment.isAdmin) ...[
-                            const SizedBox(width: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.12,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'admin_badge_label'.tr,
-                                style: KTextStyle.poppins(
-                                  fs: 9.5,
-                                  fw: FontWeight.w600,
-                                  c: AppColors.primary,
-                                ),
-                              ),
-                            ),
+                            const SizedBox(width: 4),
+                            const VerifiedBadge(size: 13),
                           ],
                           if (comment.createdAt != null) ...[
                             const SizedBox(width: 6),

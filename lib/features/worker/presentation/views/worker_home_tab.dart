@@ -380,9 +380,12 @@ class FeedPostCard extends StatelessWidget {
     // na ho (profile adhoora / purani post) to naam par fallback, warna
     // heading khaali reh jaati.
     final company = post.companyName?.trim() ?? '';
-    final headingName = (isVendor && company.isNotEmpty)
-        ? company
-        : (post.posterName ?? 'unknown_label'.tr);
+    // Admin ki post brand ke naam se — "Admin" user ko nahi dikhana.
+    final headingName = isAdmin
+        ? 'site_link'.tr
+        : (isVendor && company.isNotEmpty)
+            ? company
+            : (post.posterName ?? 'unknown_label'.tr);
 
     return Container(
       color: AppColors.surface,
@@ -418,7 +421,8 @@ class FeedPostCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (isVerified) ...[
+                        // Admin (Sitelink) ki post hamesha official ✓
+                        if (isVerified || isAdmin) ...[
                           const SizedBox(width: 4),
                           const VerifiedBadge(size: 14),
                         ],
@@ -433,14 +437,16 @@ class FeedPostCard extends StatelessWidget {
                           ),
                         ],
                       ]),
-                      const SizedBox(height: 3),
-                      // Vendor → "Vendor", admin → "Admin",
-                      // worker → uska primary skill.
-                      _PosterBadge(
-                        isVendor: isVendor,
-                        isAdmin: isAdmin,
-                        designation: post.posterDesignation,
-                      ),
+                      // Vendor → "Vendor", worker → uska primary skill.
+                      // Admin par koi chip nahi — naam hi "Sitelink" + ✓ hai.
+                      if (!isAdmin) ...[
+                        const SizedBox(height: 3),
+                        _PosterBadge(
+                          isVendor: isVendor,
+                          isAdmin: isAdmin,
+                          designation: post.posterDesignation,
+                        ),
+                      ],
                     ],
                   ),
                 ),
