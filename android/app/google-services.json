@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "162479249381-u06sub3108sdpg5dvm4eq3vqcjtep2ge.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sitelink.sitelink",
+            "certificate_hash": "105ea94b1c236d4be25623a129ac7166b9e839cf"
+          }
+        },
+        {
           "client_id": "162479249381-hfo46jvgq4c65dju78s8q2obgjitscgr.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -294,11 +294,21 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AvatarCircle(
-            initials: _initials(name),
-            size: isReply ? 28 : 36,
-            fontSize: isReply ? 11 : 13,
-          ),
+          // Admin ka avatar Sitelink logo, baaki sab ke initials.
+          if (comment.isAdmin)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(isReply ? 14 : 18),
+              child: Image.asset('assets/images/app_logo_icon.png',
+                  width: isReply ? 28 : 36,
+                  height: isReply ? 28 : 36,
+                  fit: BoxFit.cover),
+            )
+          else
+            AvatarCircle(
+              initials: _initials(name),
+              size: isReply ? 28 : 36,
+              fontSize: isReply ? 11 : 13,
+            ),
           SizedBox(width: isReply ? 8 : 10),
           // Bubble + "Reply" button
           Expanded(

@@ -424,6 +424,8 @@ class FeedPostCard extends StatelessWidget {
                   // saath "YS" dikhta tha).
                   name: headingName,
                   size: 42,
+                  // Admin ki koi profile photo nahi hoti — brand ka logo.
+                  useBrandLogo: isAdmin,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -595,11 +597,13 @@ class _PostAvatar extends StatelessWidget {
   final String imageUrl;
   final String name;
   final double size;
+  final bool useBrandLogo;
 
   const _PostAvatar({
     required this.imageUrl,
     required this.name,
     this.size = 42,
+    this.useBrandLogo = false,
   });
 
   String get _initials {
@@ -614,6 +618,13 @@ class _PostAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (useBrandLogo) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size / 2),
+        child: Image.asset('assets/images/app_logo_icon.png',
+            width: size, height: size, fit: BoxFit.cover),
+      );
+    }
     if (imageUrl.isEmpty) {
       return AvatarCircle(initials: _initials, size: size);
     }
