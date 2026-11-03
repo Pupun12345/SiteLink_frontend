@@ -4,47 +4,17 @@ import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart' show MediaType;
+import 'dart:io';
 
 import '../../../../app/config/app_config.dart';
 import '../../../../core/models/community_feed_models.dart'; // apna path adjust karo
 import '../../../../core/services/api_client.dart';
+import '../../../../core/services/direct_upload_service.dart';
 import '../../../../core/services/session_service.dart';
 import '../../../../core/services/video_compress_service.dart';
 import '../../../../core/theme/app_snackbar.dart';
 import '../../../shared/presentation/controllers/app_refresh.dart';
 import '../../../../core/services/review_service.dart';
-
-/// File extension se sahi MIME type (multipart Content-Type ke liye).
-MediaType _mediaTypeFor(String path) {
-  final ext = path.split('.').last.toLowerCase();
-  switch (ext) {
-    case 'jpg':
-    case 'jpeg':
-      return MediaType('image', 'jpeg');
-    case 'png':
-      return MediaType('image', 'png');
-    case 'gif':
-      return MediaType('image', 'gif');
-    case 'webp':
-      return MediaType('image', 'webp');
-    case 'heic':
-      return MediaType('image', 'heic');
-    case 'mp4':
-      return MediaType('video', 'mp4');
-    case 'mov':
-      return MediaType('video', 'quicktime');
-    case 'avi':
-      return MediaType('video', 'x-msvideo');
-    case 'mkv':
-      return MediaType('video', 'x-matroska');
-    default:
-      return MediaType('application', 'octet-stream');
-  }
-}
-
-/// Path se file ka naam (multipart filename ke liye).
-String _basename(String path) => path.split(RegExp(r'[/\\]')).last;
 
 // ═══════════════════════════════════════════════════════════════════
 //  WORKER FEED CONTROLLER
@@ -218,61 +188,41 @@ class WorkerFeedController extends GetxController {
         uploadVideoPath = result.path; // sirf compressed upload hoga
       }
 
-      // ── Multipart via dio (Postman jaisa) ──
-      // camelCaseContentDisposition: true → part header "Content-Disposition"
-      // (Capital) jaata hai, jaise browser/Postman bhejte hain. Backend ka
-      // case-sensitive parser lowercase "content-disposition" reject karta tha
-      // → "File upload failed". Isse wo fix ho jaata hai.
-      final form = dio.FormData(camelCaseContentDisposition: true);
-      if (description.trim().isNotEmpty) {
-        form.fields.add(MapEntry('content', description.trim()));
-      }
-      if (feeling != null && feeling.isNotEmpty) {
-        form.fields.add(MapEntry('feeling', feeling));
-      }
-
-      // Images (same key = "images"). filename + contentType zaroori —
-      // warna backend (multer) reject karta hai → "File upload failed".
-      for (final path in imagePaths) {
-        form.files.add(MapEntry(
-          'images',
-          dio.MultipartFile.fromFileSync(
-            path,
-            filename: _basename(path),
-            contentType: _mediaTypeFor(path),
-          ),
-        ));
+      // ── Photos/video pehle seedha Cloudinary par ──
+      // Backend ab files nahi leta — sirf Cloudinary URLs (JSON reqBody).
+      final reqBody = <String, dynamic>{};
+      if (description.trim().isNotEmpty) reqBody['content'] = description.trim();
+      if (feeling != null && feeling.isNotEmpty) reqBody['feeling'] = feeling;
+      try {
+        if (imagePaths.isNotEmpty) {
+          reqBody['images'] = await DirectUploadService.uploadAll(
+              imagePaths.map((p) => File(p)).toList(), 'postImage');
+        }
+        final vPath = uploadVideoPath;
+        if (vPath != null) {
+          reqBody['video'] =
+              await DirectUploadService.upload(File(vPath), 'postVideo');
+        }
+      } on UploadException catch (e) {
+        AppSnackbar.error(message: e.message);
+        return null;
       }
 
-      // Video (compressed)
-      final vPath = uploadVideoPath;
-      if (vPath != null) {
-        form.files.add(MapEntry(
-          'video',
-          dio.MultipartFile.fromFileSync(
-            vPath,
-            filename: _basename(vPath),
-            contentType: _mediaTypeFor(vPath),
-          ),
-        ));
-      }
-
-      if (kDebugMode) {
-        print("[Feed] POST ${ApiEndpoints.communityPosts}");
-        print("[Feed] fields: ${form.fields}");
-        print("[Feed] files:  ${form.files.map((f) => f.value.filename)}");
-      }
+      if (kDebugMode) print("[Feed] POST ${ApiEndpoints.communityPosts} $reqBody");
 
       final client = dio.Dio(dio.BaseOptions(
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 60),
-        sendTimeout:    const Duration(seconds: 120),
+        sendTimeout:    const Duration(seconds: 60),
         validateStatus: (_) => true, // 400 ko throw mat karo, hum handle karenge
       ));
       final resp = await client.post(
         ApiEndpoints.communityPosts,
-        data: form,
-        options: dio.Options(headers: {'Authorization': 'Bearer $_token'}),
+        data: reqBody,
+        options: dio.Options(
+          headers: {'Authorization': 'Bearer $_token'},
+          contentType: 'application/json',
+        ),
       );
 
       final status = resp.statusCode ?? 0;

@@ -1344,11 +1344,17 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
     '🙏 Grateful', '😎 Proud', '✨ Blessed', '😤 Determined',
   ];
 
+  // Server ek post me max 5 photo aur 1 video leta hai.
+  static const _maxImages = 5;
+  int get _imageCount =>
+      _mediaItems.where((m) => m['type'] == 'image').length;
+  bool get _hasVideo => _mediaItems.any((m) => m['type'] == 'video');
+
   Future<void> _pickImages() async {
     final picked = await _picker.pickMultiImage(
         imageQuality: 80, maxWidth: 1600, maxHeight: 1600);
     for (final img in picked) {
-      if (_mediaItems.length < 9) {
+      if (_imageCount < _maxImages) {
         _mediaItems.add({'path': img.path, 'type': 'image'});
       }
     }
@@ -1359,7 +1365,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
       source: ImageSource.gallery,
       maxDuration: const Duration(seconds: VideoCompressService.maxDurationSec),
     );
-    if (picked == null || _mediaItems.length >= 9) return; // cancel / full
+    if (picked == null || _hasVideo) return; // cancel / ek video pehle se
 
     // 30 sec se badi video allow nahi — pick karte hi rok do
     double durationSec = 0;
@@ -1422,7 +1428,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
         imageQuality: 80,
         maxWidth: 1600,
         maxHeight: 1600);
-    if (picked != null && _mediaItems.length < 9) {
+    if (picked != null && _imageCount < _maxImages) {
       _mediaItems.add({'path': picked.path, 'type': 'image'});
     }
   }

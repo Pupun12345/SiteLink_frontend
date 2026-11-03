@@ -5,7 +5,6 @@ import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart' show MediaType;
 import '../../app/config/app_config.dart';
 import '../utils/mask_secret.dart';
 import '../models/auth_models.dart';
@@ -20,6 +19,7 @@ import '../models/payment_models.dart';
 import '../models/notification_models.dart';
 import '../models/app_config_models.dart';
 import 'api_services.dart';
+import 'direct_upload_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  API ENDPOINTS
@@ -312,41 +312,37 @@ class WorkerApiService {
         print(request.toJson());
       }
 
-      final httpRequest = http.MultipartRequest(
-        'POST',
-        Uri.parse(ApiEndpoints.createWorker),
-      );
-
-      final token = _api.storage.read("token") ?? '';
-      httpRequest.headers['Authorization'] = "Bearer $token";
-
-      final data = request.toJson();
-      data.forEach((key, value) {
+      // Fields pehle jaise hi strings (lists JSON-encoded) — backend ka
+      // parsing waisa hi rehta hai, bas ab body JSON hai, multipart nahi.
+      final body = <String, dynamic>{};
+      request.toJson().forEach((key, value) {
         if (value != null) {
-          httpRequest.fields[key] =
-          value is List ? jsonEncode(value) : value.toString();
-          if (kDebugMode) print("FIELD => $key : ${httpRequest.fields[key]}");
+          body[key] = value is List ? jsonEncode(value) : value.toString();
         }
       });
 
-      void addFile(File file, String fieldName) {
-        httpRequest.files.add(http.MultipartFile(
-          fieldName,
-          file.readAsBytes().asStream(),
-          file.lengthSync(),
-          filename: file.path.split('/').last,
-        ));
+      // Files pehle seedha Cloudinary par — backend ko sirf URLs.
+      try {
+        if (profileImage != null) {
+          body['profileImage'] =
+              await DirectUploadService.upload(profileImage, 'profileImage');
+        }
+        if (experienceCertificates != null && experienceCertificates.isNotEmpty) {
+          body['experienceCertificate'] = await DirectUploadService.uploadAll(
+              experienceCertificates, 'experienceCertificate');
+        }
+        if (governmentID != null) {
+          body['governmentID'] =
+              await DirectUploadService.upload(governmentID, 'governmentID');
+        }
+      } on UploadException catch (e) {
+        return CreateWorkerResponse(success: false, message: e.message);
       }
 
-      if (profileImage         != null) addFile(profileImage,         'profileImage');
-      if (experienceCertificates != null) {
-        for (final c in experienceCertificates) addFile(c, 'experienceCertificate');
-      }
-      if (governmentID         != null) addFile(governmentID,         'governmentID');
-
-      final streamed = await httpRequest.send()
+      if (kDebugMode) print("CREATE WORKER BODY: $body");
+      final response = await _api
+          .postApiWithAuth(ApiEndpoints.createWorker, jsonEncode(body))
           .timeout(const Duration(seconds: 60));
-      final response = await http.Response.fromStream(streamed);
 
       if (kDebugMode) {
         print("STATUS: ${response.statusCode}");
@@ -391,92 +387,51 @@ class WorkerApiService {
     File? governmentID,
   }) async {
     try {
-      // camelCaseContentDisposition — backend ka multipart parser Capital
-      // "Content-Disposition" hi accept karta hai (community posts wala fix).
-      final form = dio.FormData(camelCaseContentDisposition: true);
-
+      // Fields pehle jaise strings (lists JSON-encoded); body ab JSON hai.
+      final body = <String, dynamic>{};
       fields.forEach((key, value) {
         if (value == null) return;
-        form.fields.add(MapEntry(
-            key, value is List ? jsonEncode(value) : value.toString()));
+        body[key] = value is List ? jsonEncode(value) : value.toString();
       });
 
-      MediaType mimeFor(String path) {
-        final ext = path.split('.').last.toLowerCase();
-        switch (ext) {
-          case 'jpg':
-          case 'jpeg':
-            return MediaType('image', 'jpeg');
-          case 'png':
-            return MediaType('image', 'png');
-          case 'webp':
-            return MediaType('image', 'webp');
-          case 'heic':
-            return MediaType('image', 'heic');
-          case 'pdf':
-            return MediaType('application', 'pdf');
-          default:
-            return MediaType('application', 'octet-stream');
+      // Files pehle seedha Cloudinary par — backend ko sirf URLs.
+      try {
+        if (profileImage != null) {
+          body['profileImage'] =
+              await DirectUploadService.upload(profileImage, 'profileImage');
         }
-      }
-
-      void addFile(File file, String fieldName) {
-        form.files.add(MapEntry(
-          fieldName,
-          dio.MultipartFile.fromFileSync(
-            file.path,
-            filename: file.path.split(RegExp(r'[/\\]')).last,
-            contentType: mimeFor(file.path),
-          ),
-        ));
-      }
-
-      if (profileImage          != null) addFile(profileImage,          'profileImage');
-      if (experienceCertificates != null) {
-        for (final c in experienceCertificates) addFile(c, 'experienceCertificate');
+        if (experienceCertificates != null && experienceCertificates.isNotEmpty) {
+          body['experienceCertificate'] = await DirectUploadService.uploadAll(
+              experienceCertificates, 'experienceCertificate');
+        }
+        if (governmentID != null) {
+          body['governmentID'] =
+              await DirectUploadService.upload(governmentID, 'governmentID');
+        }
+      } on UploadException catch (e) {
+        return CreateWorkerResponse(success: false, message: e.message);
       }
       // Kaunse purane certificates rakhne hain — backend final list
-      // = ye + naye files banata hai. Ye na bhejo to purane waise hi
-      // rehte hain (naye sirf add ho jaate hain).
+      // = ye + naye banata hai. Ye na bhejo to purane waise hi rehte hain.
       if (keepExperienceCertificates != null) {
-        form.fields.add(MapEntry(
-            'keepExperienceCertificate', jsonEncode(keepExperienceCertificates)));
-      }
-      if (governmentID          != null) addFile(governmentID,          'governmentID');
-
-      if (kDebugMode) {
-        print("========== EDIT WORKER REQUEST ==========");
-        print("fields: ${form.fields}");
-        print("files:  ${form.files.map((f) => '${f.key}:${f.value.filename}')}");
+        body['keepExperienceCertificate'] = jsonEncode(keepExperienceCertificates);
       }
 
-      final token = _api.storage.read("token") ?? '';
-      final client = dio.Dio(dio.BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 60),
-        sendTimeout:    const Duration(seconds: 120),
-        validateStatus: (_) => true, // error body ko khud handle karenge
-      ));
-      final resp = await client.put(
-        ApiEndpoints.editWorker,
-        data: form,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
-      );
+      if (kDebugMode) print("EDIT WORKER BODY: $body");
+      final resp =
+          await _api.putApiWithAuth(ApiEndpoints.editWorker, jsonEncode(body));
 
-      final status = resp.statusCode ?? 0;
-      if (kDebugMode) print("EDIT WORKER $status: ${resp.data}");
+      final status = resp.statusCode;
+      if (kDebugMode) print("EDIT WORKER $status: ${resp.body}");
 
-      final data = resp.data;
-      final proxyError = proxyErrorMessage(status, data?.toString() ?? '');
+      final proxyError = proxyErrorMessage(status, resp.body);
       if (proxyError != null) {
         return CreateWorkerResponse(success: false, message: proxyError);
       }
 
-      final Map<String, dynamic> json = data is Map
-          ? Map<String, dynamic>.from(data)
-          : (data is String && data.isNotEmpty
-              ? Map<String, dynamic>.from(jsonDecode(data))
-              : {});
+      final decoded = jsonDecode(resp.body);
+      final Map<String, dynamic> json =
+          decoded is Map ? Map<String, dynamic>.from(decoded) : {};
 
       if (status == 200) return CreateWorkerResponse.fromJson(json);
       return CreateWorkerResponse(
@@ -953,42 +908,54 @@ class CommentsApiService {
 class VendorApiService {
   final RestApi _api = Get.find<RestApi>();
 
-  MediaType _mimeFor(String path) {
-    final ext = path.split('.').last.toLowerCase();
-    switch (ext) {
-      case 'jpg':
-      case 'jpeg':
-        return MediaType('image', 'jpeg');
-      case 'png':
-        return MediaType('image', 'png');
-      case 'webp':
-        return MediaType('image', 'webp');
-      case 'pdf':
-        return MediaType('application', 'pdf');
-      default:
-        return MediaType('application', 'octet-stream');
+  /// Fields pehle jaise strings — backend parsing waisa hi rehta hai.
+  Map<String, dynamic> _stringFields(Map<String, dynamic> fields) => {
+        for (final e in fields.entries)
+          if (e.value != null) e.key: e.value.toString(),
+      };
+
+  /// Files seedha Cloudinary par, URLs [body] me. Error ho to message.
+  Future<String?> _uploadVendorFiles(
+    Map<String, dynamic> body, {
+    File? panCardImage,
+    File? gstCertificate,
+    File? companyLogo,
+    File? profileImage,
+  }) async {
+    try {
+      final files = {
+        'panCardImage': panCardImage,
+        'gstCertificate': gstCertificate,
+        'companyLogo': companyLogo,
+        'profileImage': profileImage,
+      };
+      for (final e in files.entries) {
+        final f = e.value;
+        if (f != null) body[e.key] = await DirectUploadService.upload(f, e.key);
+      }
+      return null;
+    } on UploadException catch (e) {
+      return e.message;
     }
   }
 
-  dio.MultipartFile _part(File f) => dio.MultipartFile.fromFileSync(
-        f.path,
-        filename: f.path.split(RegExp(r'[/\\]')).last,
-        contentType: _mimeFor(f.path),
-      );
-
-  Future<dio.Response> _sendMultipart(
-      String method, String url, dio.FormData form) async {
+  // Backend ab JSON leta hai (files ke URLs) — multipart nahi.
+  Future<dio.Response> _sendJson(
+      String method, String url, Map<String, dynamic> body) async {
     final token = _api.storage.read("token") ?? '';
     final client = dio.Dio(dio.BaseOptions(
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 60),
-      sendTimeout: const Duration(seconds: 120),
+      sendTimeout: const Duration(seconds: 60),
       validateStatus: (_) => true,
     ));
-    final opts = dio.Options(headers: {'Authorization': 'Bearer $token'});
+    final opts = dio.Options(
+      headers: {'Authorization': 'Bearer $token'},
+      contentType: 'application/json',
+    );
     return method == 'PUT'
-        ? client.put(url, data: form, options: opts)
-        : client.post(url, data: form, options: opts);
+        ? client.put(url, data: body, options: opts)
+        : client.post(url, data: body, options: opts);
   }
 
   Map<String, dynamic> _asJson(dio.Response resp) {
@@ -1014,24 +981,18 @@ class VendorApiService {
     File? profileImage,
   }) async {
     try {
-      final form = dio.FormData(camelCaseContentDisposition: true);
-      fields.forEach((k, v) {
-        if (v != null) form.fields.add(MapEntry(k, v.toString()));
-      });
-      if (panCardImage != null) {
-        form.files.add(MapEntry('panCardImage', _part(panCardImage)));
-      }
-      form.files.add(MapEntry('gstCertificate', _part(gstCertificate)));
-      if (companyLogo != null) {
-        form.files.add(MapEntry('companyLogo', _part(companyLogo)));
-      }
-      if (profileImage != null) {
-        form.files.add(MapEntry('profileImage', _part(profileImage)));
+      final body = _stringFields(fields);
+      final uploadError = await _uploadVendorFiles(body,
+          panCardImage: panCardImage,
+          gstCertificate: gstCertificate,
+          companyLogo: companyLogo,
+          profileImage: profileImage);
+      if (uploadError != null) {
+        return CreateWorkerResponse(success: false, message: uploadError);
       }
 
-      if (kDebugMode) print("[VendorAPI] CREATE fields: ${form.fields}");
-      final resp =
-          await _sendMultipart('POST', ApiEndpoints.createVendor, form);
+      if (kDebugMode) print("[VendorAPI] CREATE body: $body");
+      final resp = await _sendJson('POST', ApiEndpoints.createVendor, body);
       final proxyError = proxyErrorMessage(
           resp.statusCode ?? 0, resp.data?.toString() ?? '');
       if (proxyError != null) {
@@ -1062,24 +1023,17 @@ class VendorApiService {
     File? profileImage,
   }) async {
     try {
-      final form = dio.FormData(camelCaseContentDisposition: true);
-      fields.forEach((k, v) {
-        if (v != null) form.fields.add(MapEntry(k, v.toString()));
-      });
-      if (panCardImage != null) {
-        form.files.add(MapEntry('panCardImage', _part(panCardImage)));
-      }
-      if (gstCertificate != null) {
-        form.files.add(MapEntry('gstCertificate', _part(gstCertificate)));
-      }
-      if (companyLogo != null) {
-        form.files.add(MapEntry('companyLogo', _part(companyLogo)));
-      }
-      if (profileImage != null) {
-        form.files.add(MapEntry('profileImage', _part(profileImage)));
+      final body = _stringFields(fields);
+      final uploadError = await _uploadVendorFiles(body,
+          panCardImage: panCardImage,
+          gstCertificate: gstCertificate,
+          companyLogo: companyLogo,
+          profileImage: profileImage);
+      if (uploadError != null) {
+        return CreateWorkerResponse(success: false, message: uploadError);
       }
 
-      final resp = await _sendMultipart('PUT', ApiEndpoints.editVendor, form);
+      final resp = await _sendJson('PUT', ApiEndpoints.editVendor, body);
       final proxyError = proxyErrorMessage(
           resp.statusCode ?? 0, resp.data?.toString() ?? '');
       if (proxyError != null) {

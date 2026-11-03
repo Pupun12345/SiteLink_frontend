@@ -392,7 +392,7 @@ const Map<String, String> _en = {
   'change_phone_number': 'Change Phone Number',
   'my_documents': 'My Documents',
   'sitelink_premium': 'Sitelink Premium',
-  'premium_upgrade_subtitle': 'Upgrade — ₹299/Year',
+  'premium_upgrade_subtitle': 'Upgrade to Premium',
   'preferences_section': 'Preferences',
   'push_notifications': 'Push Notifications',
   'support_section': 'Support',
@@ -620,6 +620,7 @@ const Map<String, String> _en = {
   'video_process_failed': 'Failed to process video',
   'post_create_failed': 'Failed to create post',
   'network_error_retry': 'Network error — try again',
+  'upload_failed_error': 'Upload failed. Please check your internet and try again.',
   'upload_too_large_error':
       'Files are too large to upload. Please use fewer or smaller photos and try again.',
   'server_unavailable_error':
@@ -1413,7 +1414,7 @@ const Map<String, String> _hi = {
   'change_phone_number': 'फ़ोन नंबर बदलें',
   'my_documents': 'मेरे दस्तावेज़',
   'sitelink_premium': 'Sitelink प्रीमियम',
-  'premium_upgrade_subtitle': 'अपग्रेड करें — ₹299/वर्ष',
+  'premium_upgrade_subtitle': 'प्रीमियम में अपग्रेड करें',
   'preferences_section': 'प्राथमिकताएं',
   'push_notifications': 'पुश नोटिफिकेशन',
   'support_section': 'सहायता',
@@ -1641,6 +1642,7 @@ const Map<String, String> _hi = {
   'video_process_failed': 'वीडियो प्रोसेस नहीं हो पाई',
   'post_create_failed': 'पोस्ट नहीं बन पाई',
   'network_error_retry': 'नेटवर्क त्रुटि — दोबारा कोशिश करें',
+  'upload_failed_error': 'अपलोड नहीं हो पाया। इंटरनेट जांचकर दोबारा कोशिश करें।',
   'upload_too_large_error':
       'फ़ाइलें बहुत बड़ी हैं। कम या छोटी फ़ोटो चुनकर दोबारा कोशिश करें।',
   'server_unavailable_error':
