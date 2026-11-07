@@ -88,6 +88,7 @@ class PlansCopyright extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════
 //  PLAN PRICE — "₹2999 /Month", ya offer ho to
 //  "₹5 for the first month" + "then ₹2999/Month · auto-renews"
+// Offer hamesha sirf pehle MAHINE ka hai — plan yearly ho tab bhi.
 // ═══════════════════════════════════════════════════════════════════
 // Offer (introAmount) admin panel se set hota hai aur har user ko sirf
 // ek baar milta hai — backend `introOfferAvailable` batata hai.
@@ -129,9 +130,7 @@ class PlanPrice extends StatelessWidget {
         Flexible(
           child: Text(
             offer
-                ? (duration == 'Year'
-                    ? 'intro_first_year'.tr
-                    : 'intro_first_month'.tr)
+                ? 'intro_first_month'.tr
                 : '/$duration',
             style: KTextStyle.poppins(fs: 13, c: grey),
           ),
