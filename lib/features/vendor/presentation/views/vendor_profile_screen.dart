@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/legal_content.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
@@ -49,42 +50,6 @@ You have the right to access, update, or delete your personal and business infor
 
 7. CONTACT US
 For privacy-related queries, contact: privacy@sitelink.in
-''';
-
-const _kVendorTermsOfService = '''
-Last updated: March 2026
-
-1. ACCEPTANCE OF TERMS
-By using the Sitelink platform, you agree to be bound by these Terms of Service.
-
-2. VENDOR ELIGIBILITY
-To register as a Vendor on Sitelink, you must:
-• Represent a genuine, registered business or hiring entity
-• Provide valid PAN and (where applicable) GST documentation
-• Have a genuine requirement to hire workers through the platform
-
-3. PLATFORM ROLE
-Sitelink acts as an intermediary platform. We do not directly employ workers or guarantee hiring outcomes. Job postings and applications are facilitated through our platform, with admin oversight to ensure quality and trust.
-
-4. JOB POSTING RULES
-• Job postings must accurately describe the role, pay, and requirements
-• Fraudulent, misleading, or discriminatory job postings are not allowed
-• Sitelink reserves the right to remove any job posting that violates these terms
-
-5. VENDOR RESPONSIBILITIES
-• Maintain accurate and up-to-date company information
-• Review applicants fairly and respond within a reasonable time
-• Honor the pay and terms stated in your job posting
-• Behave professionally with workers at all times
-
-6. PLATFORM FEES
-Sitelink currently offers its platform services free of charge to vendors. This may be subject to change with prior notice. Optional premium plans may be introduced for additional visibility.
-
-7. TERMINATION
-Sitelink reserves the right to suspend or terminate accounts that violate these terms, post fraudulent jobs, or engage in unfair hiring practices.
-
-8. CONTACT
-For terms-related queries, contact: legal@sitelink.in
 ''';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -465,7 +430,7 @@ class VendorProfileScreen extends StatelessWidget {
           label: 'terms_of_service'.tr,
           onTap: () => Get.to(() => PolicyView(
                 title: 'terms_of_service'.tr,
-                content: _kVendorTermsOfService,
+                content: kTermsAndConditions,
                 policyType: 'TERMS_AND_CONDITIONS',
               )),
         ),

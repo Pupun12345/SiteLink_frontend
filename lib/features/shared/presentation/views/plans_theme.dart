@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/models/plan_models.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  PLANS THEME — "Sitelink Plans" sub-brand palette (worker + vendor)
@@ -80,6 +81,78 @@ class PlansCopyright extends StatelessWidget {
       textAlign: align,
       style: KTextStyle.poppins(
           fs: 10.5, fw: FontWeight.w600, c: PlansTheme.ink, height: 1.4),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PLAN PRICE — "₹2999 /Month", ya offer ho to
+//  "₹5 for the first month" + "then ₹2999/Month · auto-renews"
+// ═══════════════════════════════════════════════════════════════════
+// Offer (introAmount) admin panel se set hota hai aur har user ko sirf
+// ek baar milta hai — backend `introOfferAvailable` batata hai.
+class PlanPrice extends StatelessWidget {
+  final PlanModel plan;
+  final num fallbackPrice;
+  final String fallbackDuration;
+  final Color ink;
+  final Color grey;
+  final double size;
+  final bool center;
+
+  const PlanPrice({
+    super.key,
+    required this.plan,
+    required this.fallbackPrice,
+    required this.fallbackDuration,
+    required this.ink,
+    required this.grey,
+    this.size = 28,
+    this.center = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final price = plan.price ?? fallbackPrice;
+    final duration = plan.duration ?? fallbackDuration;
+    final offer = plan.hasIntroOffer;
+
+    final row = Row(
+      mainAxisAlignment:
+          center ? MainAxisAlignment.center : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text('₹${offer ? plan.introPrice : price}',
+            style: KTextStyle.poppins(fs: size, fw: FontWeight.w800, c: ink)),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            offer
+                ? (duration == 'Year'
+                    ? 'intro_first_year'.tr
+                    : 'intro_first_month'.tr)
+                : '/$duration',
+            style: KTextStyle.poppins(fs: 13, c: grey),
+          ),
+        ),
+      ],
+    );
+    if (!offer) return row;
+
+    return Column(
+      crossAxisAlignment:
+          center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        row,
+        const SizedBox(height: 2),
+        Text(
+          'intro_then_price'
+              .trParams({'price': '$price', 'period': duration}),
+          textAlign: center ? TextAlign.center : TextAlign.start,
+          style: KTextStyle.poppins(fs: 12, c: grey, height: 1.4),
+        ),
+      ],
     );
   }
 }

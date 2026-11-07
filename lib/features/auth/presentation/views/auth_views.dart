@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/legal_content.dart';
 import '../../../../app/config/app_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
@@ -190,7 +191,7 @@ class PhoneView extends StatelessWidget {
                 ..onTap = () => Get.to(
                   () => PolicyView(
                     title: AppStrings.Terms,
-                    content: '',
+                    content: kTermsAndConditions,
                     policyType: 'TERMS_AND_CONDITIONS',
                   ),
                 ),

@@ -118,17 +118,12 @@ class VendorPlansView extends StatelessWidget {
             if (isActive) const ActivePlanBadge(),
           ]),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text('₹${plan.price ?? 2999}',
-                  style: KTextStyle.poppins(
-                      fs: 28, fw: FontWeight.w800, c: PlansTheme.ink)),
-              const SizedBox(width: 4),
-              Text('/${plan.duration ?? 'Month'}',
-                  style: KTextStyle.poppins(fs: 13, c: PlansTheme.grey)),
-            ],
+          PlanPrice(
+            plan: plan,
+            fallbackPrice: 2999,
+            fallbackDuration: 'Month',
+            ink: PlansTheme.ink,
+            grey: PlansTheme.grey,
           ),
           const SizedBox(height: 8),
           Text(
@@ -232,17 +227,12 @@ class VendorPlansView extends StatelessWidget {
               ),
           ]),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text('₹${plan.price ?? 4999}',
-                  style: KTextStyle.poppins(
-                      fs: 28, fw: FontWeight.w800, c: Colors.white)),
-              const SizedBox(width: 4),
-              Text('/${plan.duration ?? 'Month'}',
-                  style: KTextStyle.poppins(fs: 13, c: Colors.white60)),
-            ],
+          PlanPrice(
+            plan: plan,
+            fallbackPrice: 4999,
+            fallbackDuration: 'Month',
+            ink: Colors.white,
+            grey: Colors.white60,
           ),
           const SizedBox(height: 8),
           Text(

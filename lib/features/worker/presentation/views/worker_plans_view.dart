@@ -202,18 +202,14 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
               const SizedBox(height: 18),
 
               // ── Price ───────────────────────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text('₹$_price',
-                      style: KTextStyle.poppins(
-                          fs: 34, fw: FontWeight.w800, c: _ink)),
-                  const SizedBox(width: 6),
-                  Text('/ $_duration',
-                      style: KTextStyle.poppins(fs: 13, c: _grey)),
-                ],
+              PlanPrice(
+                plan: _plan ?? PlanModel(price: _price, duration: _duration),
+                fallbackPrice: 299,
+                fallbackDuration: 'Year',
+                ink: _ink,
+                grey: _grey,
+                size: 34,
+                center: true,
               ),
               const SizedBox(height: 24),
 
@@ -321,8 +317,11 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
                                         _sub.active
                                             ? 'plan_renew_btn'.trParams(
                                                 {'price': '$_price'})
-                                            : 'worker_plans_upgrade_btn'
-                                                .trParams({'price': '$_price'}),
+                                            : _plan?.hasIntroOffer == true
+                                                ? 'intro_start_btn'.trParams(
+                                                    {'price': '${_plan!.introPrice}'})
+                                                : 'worker_plans_upgrade_btn'
+                                                    .trParams({'price': '$_price'}),
                                         style: KTextStyle.poppins(
                                             fs: 14,
                                             fw: FontWeight.w700,

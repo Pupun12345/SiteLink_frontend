@@ -23,6 +23,16 @@ class PlanModel {
   /// `planId` se match karke) — app ko naam/price se guess nahi karna padta.
   final bool isCurrentPlan;
 
+  /// Pehle mahine/saal ki offer price (jaise ₹5). 0 = koi offer nahi.
+  final num introPrice;
+
+  /// Ye offer is user ko abhi milega? (har user ko sirf ek baar)
+  final bool introOfferAvailable;
+
+  /// Abhi offer price lagegi — phir har cycle poori [price].
+  bool get hasIntroOffer =>
+      introOfferAvailable && introPrice > 0 && introPrice < (price ?? 0);
+
   /// Real backend plan hai? Sirf inhi par payment ho sakta hai — order
   /// banane ke liye backend ko asli `planId` chahiye. Static/fallback
   /// PlanModel (sirf display price ke liye) me id nahi hoti.
@@ -39,6 +49,8 @@ class PlanModel {
     this.planType,
     this.maxWorkers = 0,
     this.isCurrentPlan = false,
+    this.introPrice = 0,
+    this.introOfferAvailable = false,
   });
 
   factory PlanModel.fromJson(Map<String, dynamic> json) {
@@ -58,14 +70,23 @@ class PlanModel {
       id: (json['_id'] ?? json['id'])?.toString(),
       name: (json['name'] ?? json['title'] ?? json['planName'])?.toString(),
       price: parsePrice(json['price'] ?? json['amount']),
-      duration:
-          (json['duration'] ?? json['validity'] ?? json['period'])?.toString(),
+      // Backend `frequency` (monthly/yearly) bhejta hai — pehle ye padha
+      // hi nahi jaata tha, har plan par fallback "/Year" ya "/Month" dikhta.
+      duration: (json['duration'] ?? json['validity'] ?? json['period'])
+              ?.toString() ??
+          switch (json['frequency']?.toString()) {
+            'monthly' => 'Month',
+            'yearly' => 'Year',
+            _ => null,
+          },
       description: json['description']?.toString(),
       features: parseFeatures(json['features'] ?? json['benefits']),
       userType: json['userType']?.toString(),
       planType: json['planType']?.toString(),
       maxWorkers: int.tryParse(json['maxWorkers']?.toString() ?? '') ?? 0,
       isCurrentPlan: json['isCurrentPlan'] == true,
+      introPrice: parsePrice(json['introAmount']) ?? 0,
+      introOfferAvailable: json['introOfferAvailable'] == true,
     );
   }
 }

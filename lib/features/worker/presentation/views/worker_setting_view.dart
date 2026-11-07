@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/constants/legal_content.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -198,7 +199,7 @@ class WorkerSettingsView extends StatelessWidget {
                     title: 'terms_of_service'.tr,
                     onTap: () => Get.to(() => PolicyView(
                       title: 'terms_of_service'.tr,
-                      content: _kTermsOfService,
+                      content: kTermsAndConditions,
                       policyType: 'TERMS_AND_CONDITIONS',
                     )),
                   ),
@@ -462,38 +463,4 @@ You have the right to access, update, or delete your personal information. Conta
 
 7. CONTACT US
 For privacy-related queries, contact: privacy@sitelink.in
-''';
-
-const _kTermsOfService = '''
-Last updated: March 2026
-
-1. ACCEPTANCE OF TERMS
-By using the Sitelink platform, you agree to be bound by these Terms of Service.
-
-2. WORKER ELIGIBILITY
-To register as a Worker on Sitelink, you must:
-• Be at least 18 years of age
-• Possess valid identity documents
-• Have genuine work skills and experience as declared
-
-3. PLATFORM ROLE
-Sitelink acts as an intermediary platform. We do not directly employ workers or vendors. Job assignments are facilitated through our admin team to ensure quality and trust.
-
-4. ADMIN ASSIGNMENT MODEL
-Workers cannot directly contact vendors through Sitelink. All assignments are made by our admin team after verifying both worker and vendor profiles.
-
-5. WORKER RESPONSIBILITIES
-• Maintain accurate and up-to-date profile information
-• Report for assigned jobs on time as agreed
-• Behave professionally at all work sites
-• Report any issues through the Sitelink platform
-
-6. PLATFORM FEES
-Sitelink currently offers its platform services free of charge to workers. This may be subject to change with prior notice.
-
-7. TERMINATION
-Sitelink reserves the right to suspend or terminate accounts that violate these terms or engage in fraudulent activity.
-
-8. CONTACT
-For terms-related queries, contact: legal@sitelink.in
 ''';

@@ -284,6 +284,10 @@ const Map<String, String> _en = {
       'Direct line to our support team for any queries, application help, or immediate assistance via Call or WhatsApp.',
   'worker_plans_cta_headline': 'Ready to stand\nout?',
   'worker_plans_upgrade_btn': 'Upgrade Now - ₹@price/Yr',
+  'intro_start_btn': 'Start now for ₹@price',
+  'intro_first_month': 'for the first month',
+  'intro_first_year': 'for the first year',
+  'intro_then_price': 'then ₹@price/@period · auto-renews, cancel anytime',
 
   // ── Active plan status (Plans screens ka top banner + badges) ──────
   'plan_active_title': 'ACTIVE PLAN',
@@ -1304,6 +1308,10 @@ const Map<String, String> _hi = {
       'किसी भी सवाल, आवेदन में मदद, या तुरंत सहायता के लिए कॉल या व्हाट्सएप पर सीधे हमारी टीम से जुड़ें।',
   'worker_plans_cta_headline': 'सबसे अलग\nदिखने के लिए तैयार?',
   'worker_plans_upgrade_btn': 'अभी अपग्रेड करें - ₹@price/वर्ष',
+  'intro_start_btn': 'सिर्फ ₹@price में शुरू करें',
+  'intro_first_month': 'पहले महीने के लिए',
+  'intro_first_year': 'पहले साल के लिए',
+  'intro_then_price': 'फिर ₹@price/@period · अपने-आप रिन्यू, कभी भी बंद करें',
 
   // ── Active plan status (Plans screens ka top banner + badges) ──────
   'plan_active_title': 'सक्रिय प्लान',
