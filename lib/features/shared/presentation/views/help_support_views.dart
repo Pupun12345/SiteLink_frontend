@@ -362,11 +362,61 @@ class _InfoBannerCard extends StatelessWidget {
 //  aur naya (clean) dono content sahi render ho.
 // ═══════════════════════════════════════════════════════════════════
 String _sanitizeContent(String raw) {
-  return raw
+  final clean = raw
       .replaceAll(r'\r\n', '\n')
       .replaceAll(r'\n', '\n')
       .replaceAll(r'\"', '"')
-      .replaceAll(r"\'", "'");
+      .replaceAll(r"\'", "'")
+      .replaceAll('\r\n', '\n');
+  return _autoFormatPlainText(clean);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PLAIN TEXT → MARKDOWN — admin poora document seedha paste karta hai
+//  (Word/WhatsApp se), markdown nahi likhta. Tab headings pehchaan ke
+//  bold kar dete hain:
+//    "1. Introduction"        → ## (section heading)
+//    "7.1 Benefit Provided…"  → ### (sub heading)
+//    "A. Death While…"        → **bold**
+//    "…Clarification:" (chhoti line, ':' par khatam) → **bold**
+//  Baaki har line apna paragraph. Content me pehle se markdown heading
+//  (#) ho to kuch nahi badalte.
+// ═══════════════════════════════════════════════════════════════════
+String _autoFormatPlainText(String text) {
+  final lines = text.split('\n');
+  if (lines.any((l) => l.trimLeft().startsWith('#'))) return text;
+
+  final section = RegExp(r'^\d{1,2}\.\s+\S');
+  final subSection = RegExp(r'^\d{1,2}\.\d{1,2}\.?\s+\S');
+  final lettered = RegExp(r'^[A-Z]\.\s+\S');
+
+  final out = <String>[];
+  var first = true;
+  for (final raw in lines) {
+    // WhatsApp ka *bold* — stars hata do, heading hum khud banate hain.
+    var line = raw.trim();
+    if (line.isEmpty) continue;
+    final starred = line.startsWith('*');
+    line = line.replaceAll(RegExp(r'^\*+|\*+$'), '').trim();
+    if (line.isEmpty) continue;
+
+    final short = line.length <= 90 && !line.endsWith('.');
+    if (first && (starred || short)) {
+      out.add('# $line');
+    } else if (subSection.hasMatch(line) && short) {
+      out.add('### $line');
+    } else if (section.hasMatch(line) && short) {
+      out.add('## $line');
+    } else if ((lettered.hasMatch(line) && short) ||
+        (line.endsWith(':') && line.length <= 60)) {
+      out.add('**$line**');
+    } else {
+      out.add(line);
+    }
+    first = false;
+  }
+  // Blank line beech me — warna markdown saari lines ek paragraph me jod deta.
+  return out.join('\n\n');
 }
 
 // ── Policy view (Privacy Policy / Terms of Service / Help & FAQ) ─────
@@ -435,6 +485,19 @@ class _PolicyViewState extends State<PolicyView> {
                         textStyle: KTextStyle.poppins(
                             fs: 13, c: AppColors.textSecondary, height: 1.5),
                       ),
+                      // Headings bold + gehre rang me, body se saaf alag.
+                      H1Config(
+                          style: KTextStyle.poppins(
+                              fs: 18, fw: FontWeight.w800,
+                              c: AppColors.textPrimary, height: 1.35)),
+                      H2Config(
+                          style: KTextStyle.poppins(
+                              fs: 15, fw: FontWeight.w700,
+                              c: AppColors.textPrimary, height: 1.4)),
+                      H3Config(
+                          style: KTextStyle.poppins(
+                              fs: 14, fw: FontWeight.w700,
+                              c: AppColors.textPrimary, height: 1.4)),
                     ]),
                   ),
                 ),
