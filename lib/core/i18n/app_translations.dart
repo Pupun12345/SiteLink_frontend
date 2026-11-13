@@ -287,7 +287,7 @@ const Map<String, String> _en = {
   'intro_start_btn': 'Start now for ₹@price',
   'intro_first_month': 'for the first month',
   'intro_first_year': 'for the first year',
-  'intro_then_price': 'then ₹@price/@period · auto-renews, cancel anytime',
+  'intro_then_price': 'then ₹@price/@period · auto-renews',
 
   // ── Active plan status (Plans screens ka top banner + badges) ──────
   'plan_active_title': 'ACTIVE PLAN',
@@ -327,7 +327,7 @@ const Map<String, String> _en = {
   'plan_renew_btn': 'Renew Now - ₹@price/Yr',
   // ── Auto-payment (recurring subscription) ────────────────────────
   'autopay_setup_btn': 'Set up auto-payment',
-  'autopay_cancel_anytime': 'Renews automatically • Cancel anytime',
+  'autopay_cancel_anytime': 'Renews automatically every cycle',
   'autopay_on_note': 'Auto-payment is on — your plan renews by itself.',
   'autopay_cancel_btn': 'Cancel',
   'autopay_cancel_title': 'Cancel auto-payment?',
@@ -464,6 +464,8 @@ const Map<String, String> _en = {
   'verification_pending_title': 'Verification Pending',
   'verification_pending_body':
       'Your account is not verified yet.\nOur team will verify your profile within 24–48 hours.',
+  'verify_before_plan_body':
+      'Your profile is not verified yet. You can buy a plan and apply to jobs after our team verifies your Government ID.',
   'verification_pending_note':
       'Once verified, you will be able to apply for jobs.',
   'got_it_label': 'Got it',
@@ -1311,7 +1313,7 @@ const Map<String, String> _hi = {
   'intro_start_btn': 'सिर्फ ₹@price में शुरू करें',
   'intro_first_month': 'पहले महीने के लिए',
   'intro_first_year': 'पहले साल के लिए',
-  'intro_then_price': 'फिर ₹@price/@period · अपने-आप रिन्यू, कभी भी बंद करें',
+  'intro_then_price': 'फिर ₹@price/@period · अपने-आप रिन्यू',
 
   // ── Active plan status (Plans screens ka top banner + badges) ──────
   'plan_active_title': 'सक्रिय प्लान',
@@ -1352,7 +1354,7 @@ const Map<String, String> _hi = {
   // ── Auto-payment (recurring subscription) ────────────────────────
   'autopay_setup_btn': 'ऑटो-पेमेंट लगाएँ',
   'autopay_cancel_anytime':
-      'अपने आप रिन्यू • जब चाहें बंद करें',
+      'हर cycle पर अपने आप रिन्यू',
   'autopay_on_note':
       'ऑटो-पेमेंट चालू है — आपका प्लान अपने आप रिन्यू होगा।',
   'autopay_cancel_btn': 'बंद करें',
@@ -1490,6 +1492,8 @@ const Map<String, String> _hi = {
   'verification_pending_title': 'सत्यापन लंबित',
   'verification_pending_body':
       'आपका खाता अभी सत्यापित नहीं हुआ है।\nहमारी टीम 24–48 घंटों में आपकी प्रोफ़ाइल सत्यापित कर देगी।',
+  'verify_before_plan_body':
+      'आपकी प्रोफ़ाइल अभी सत्यापित नहीं हुई है। हमारी टीम आपकी सरकारी ID सत्यापित कर देगी, उसके बाद आप प्लान ले सकेंगे और जॉब के लिए आवेदन कर सकेंगे।',
   'verification_pending_note':
       'सत्यापित होने के बाद आप जॉब्स पर आवेदन कर सकेंगे।',
   'got_it_label': 'समझ गया',

@@ -157,11 +157,8 @@ class WorkerProfileTab extends StatelessWidget {
               ),
             ]),
           ),
+          // Worker ID (database id) yahan nahi dikhate — user ke kaam ka nahi.
           const SizedBox(height: 6),
-          Text(ctrl.workerId.value,
-              style: KTextStyle.poppins(
-                  fs: 11, c: Colors.white60)),
-          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

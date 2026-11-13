@@ -35,10 +35,6 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
   PlanModel? _plan;
   bool _subscribing = false;
 
-  /// Cancel ka apna flag — `_subscribing` share karne se spinner galat
-  /// button par dikhta hai.
-  bool _cancellingAutoPay = false;
-
   /// Usi call se aati hai — plan active hai ya nahi aur kab tak.
   ActiveSubscription _sub = const ActiveSubscription();
 
@@ -54,6 +50,29 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
   Future<void> _upgrade() async {
     if (_subscribing) return;
     setState(() => _subscribing = true);
+
+    // Bina verification ke plan nahi — Government ID verify hone ke baad hi.
+    // Backend bhi rokta hai; yahan pehle hi saaf message, payment page
+    // khulne se pehle.
+    final me = await ProfileApiService().getMe();
+    if (!mounted) return;
+    if (me.user != null && me.user!.isVerified != true) {
+      setState(() => _subscribing = false);
+      Get.dialog(AlertDialog(
+        title: Text('verification_pending_title'.tr,
+            style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700, c: _ink)),
+        content: Text('verify_before_plan_body'.tr,
+            style: KTextStyle.poppins(fs: 13, c: _grey, height: 1.45)),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: Text('ok_label'.tr,
+                style: KTextStyle.poppins(fs: 13, fw: FontWeight.w700, c: _ink)),
+          ),
+        ],
+      ));
+      return;
+    }
     final plan = _plan ??
         PlanModel(price: _price, duration: _duration, name: 'Worker Premium');
     // Pehli baar plan lete hi auto-payment khud lag jaata hai. Auto-renew
@@ -77,45 +96,6 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
     }
   }
 
-  /// Auto-payment band karo. Confirm poochte hain kyunki ye paisa-related
-  /// action hai aur galti se tap ho jaana easy hai.
-  Future<void> _cancelAutoPay() async {
-    if (_cancellingAutoPay) return;
-
-    final ok = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('autopay_cancel_title'.tr,
-            style: KTextStyle.poppins(fs: 16, fw: FontWeight.w700, c: _ink)),
-        content: Text('autopay_cancel_confirm'.tr,
-            style: KTextStyle.poppins(fs: 13, c: _grey, height: 1.45)),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('autopay_keep_btn'.tr,
-                style: KTextStyle.poppins(fs: 13, fw: FontWeight.w600, c: _grey)),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('autopay_cancel_btn'.tr,
-                style: KTextStyle.poppins(
-                    fs: 13, fw: FontWeight.w700, c: const Color(0xFFB91C1C))),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-
-    setState(() => _cancellingAutoPay = true);
-    final result = await PaymentService.cancelAutoPay();
-    if (!mounted) return;
-    setState(() => _cancellingAutoPay = false);
-    if (result.success) {
-      AppSnackbar.success(message: result.message);
-      _loadPlan();
-    } else {
-      AppSnackbar.error(message: result.message);
-    }
-  }
 
   Future<void> _loadPlan() async {
     final res = await MiscApiService().getPlans();
@@ -153,8 +133,6 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
               PlanStatusBanner(
                 sub: _sub,
                 fallbackPlanName: _plan?.name ?? 'Worker Premium',
-                onCancelAutoPay: _cancelAutoPay,
-                cancelling: _cancellingAutoPay,
               ),
               if (_sub.active || _sub.isExpired) const SizedBox(height: 20),
 

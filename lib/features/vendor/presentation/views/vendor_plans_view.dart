@@ -50,8 +50,6 @@ class VendorPlansView extends StatelessWidget {
                 // ── Active/expired plan status (kuch na ho to hidden) ─
                 PlanStatusBanner(
                   sub: sub,
-                  onCancelAutoPay: ctrl.cancelAutoPay,
-                  cancelling: ctrl.cancellingAutoPay.value,
                 ),
                 if (sub.active || sub.isExpired) const SizedBox(height: 20),
 
