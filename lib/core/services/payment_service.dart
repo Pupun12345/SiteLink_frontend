@@ -57,10 +57,11 @@ class PaymentService {
   // email dono pehle se bhare hon — ek bhi khaali ho to poora "Contact
   // details" page dikha deta hai (phone samet). Isliye dono peeche se
   // bhejte hain:
-  //   • Phone: login wala number (UPI / auto-pay mandate isi par banta hai)
+  //   • Phone: login wala number, warna profile ka phone, warna WhatsApp
+  //     number (_resolveContact). UPI / auto-pay mandate isi par banta hai.
   //   • Email: user ka ho to wahi, warna RazorpayConfig.fallbackEmail
   //     (zyada tar users phone se login karte hain, email hota hi nahi).
-  // Number na ho (sirf Google login) tabhi page dikhta hai — chhupa ke
+  // Inme se koi number na mile tabhi page dikhta hai — chhupa ke
   // khaali bhejne par checkout fail ho jaata.
   static Map<String, Object> _contactOptions(String? phone, String? email) {
     final digits = (phone ?? '').replaceAll(RegExp(r'\D'), '');
@@ -85,6 +86,35 @@ class PaymentService {
         'contact': hasPhone,
       },
     };
+  }
+
+  static String? _tenDigits(String? raw) {
+    final d = (raw ?? '').replaceAll(RegExp(r'\D'), '');
+    final local = d.length > 10 ? d.substring(d.length - 10) : d;
+    // Indian mobile: 10 digit, 6-9 se shuru.
+    return RegExp(r'^[6-9]\d{9}$').hasMatch(local) ? local : null;
+  }
+
+  /// Razorpay ko dene ke liye user ka number + email — taaki "Contact
+  /// details" page na dikhe. Number is kram me dhoondhte hain:
+  ///   1. login wala phone (session)
+  ///   2. profile ka phone (server se taaza — session purana ho sakta hai)
+  ///   3. profile ka WhatsApp number
+  /// Kuch na mile tabhi Razorpay khud number poochta hai.
+  static Future<({String? phone, String? email})> _resolveContact() async {
+    final user = SessionService.to.user;
+    String? phone = _tenDigits(user?.phone);
+    String? email = user?.email;
+    if (phone == null || (email ?? '').isEmpty) {
+      try {
+        final me = (await ProfileApiService().getMe()).user;
+        phone ??= _tenDigits(me?.phone) ?? _tenDigits(me?.whatsappNumber);
+        if ((email ?? '').isEmpty) email = me?.email;
+      } catch (e) {
+        if (kDebugMode) print('[PaymentService] contact lookup failed: $e');
+      }
+    }
+    return (phone: phone, email: email);
   }
 
   static Future<PaymentResult> payForPlan(PlanModel plan) async {
@@ -156,7 +186,7 @@ class PaymentService {
       ));
     });
 
-    final user = SessionService.to.user;
+    final contact = await _resolveContact();
     final amountPaise =
         (orderRes.amount ?? ((plan.price ?? 0) * 100)).toInt();
 
@@ -170,7 +200,7 @@ class PaymentService {
       'name': 'Sitelink',
       'description': plan.name ?? 'Subscription',
       // Email aur phone ka box nahi dikhate (_contactOptions dekho).
-      ..._contactOptions(user?.phone, user?.email),
+      ..._contactOptions(contact.phone, contact.email),
       'theme': {'color': '#F97316'},
     };
 
@@ -266,7 +296,7 @@ class PaymentService {
       finish(PaymentResult(success: false, message: 'wallet_not_supported'.tr));
     });
 
-    final user = SessionService.to.user;
+    final contact = await _resolveContact();
 
     final options = {
       'key': subRes.keyId ?? RazorpayConfig.keyId,
@@ -283,7 +313,7 @@ class PaymentService {
       'description': subRes.planName ?? plan.name ?? 'Subscription',
       // Mandate phone number par register hota hai — number peeche se
       // jaata hai, box nahi dikhta (_contactOptions dekho).
-      ..._contactOptions(user?.phone, user?.email),
+      ..._contactOptions(contact.phone, contact.email),
       'theme': {'color': '#F97316'},
     };
 
