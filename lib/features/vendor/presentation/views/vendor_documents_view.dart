@@ -113,6 +113,15 @@ class _VendorDocumentsViewState extends State<VendorDocumentsView> {
     }
   }
 
+  // Admin ne kaunsa document reject kiya. Koi document-wise reject na ho
+  // (sirf general reason) to dono badalne do.
+  DocumentReview? get _panReview => widget.profile?.reviewFor(widget.profile?.panCardImage);
+  DocumentReview? get _gstReview => widget.profile?.reviewFor(widget.profile?.gstCertificate);
+  bool get _anyDocRejected =>
+      (_panReview?.isRejected ?? false) || (_gstReview?.isRejected ?? false);
+  bool get _panEditable => !_anyDocRejected || (_panReview?.isRejected ?? false);
+  bool get _gstEditable => !_anyDocRejected || (_gstReview?.isRejected ?? false);
+
   @override
   Widget build(BuildContext context) {
     final p = widget.profile;
@@ -123,22 +132,31 @@ class _VendorDocumentsViewState extends State<VendorDocumentsView> {
         child: ListView(
           padding: const EdgeInsets.all(AppDimens.lg),
           children: [
-            if (p?.isRejected == true) _rejectedBanner(p?.rejectionReason),
-            _numberField(_panCtrl, 'pan_number_label'.tr, TaxIdFormats.panLength),
+            // Document-wise reject ho to reasons har tile par — upar sirf
+            // general banner (bina duplicate reason).
+            if (p?.isRejected == true)
+              _rejectedBanner(_anyDocRejected ? null : p?.rejectionReason),
+            _numberField(_panCtrl, 'pan_number_label'.tr, TaxIdFormats.panLength,
+                enabled: _panEditable),
             const SizedBox(height: 12),
             _docTile(
               label: 'pan_card_label'.tr,
               newFile: _panImage,
               currentUrl: p?.panCardImage,
+              review: _panReview,
+              editable: _panEditable,
               onPick: () => _pick((f) => _panImage = f),
             ),
             const SizedBox(height: 20),
-            _numberField(_gstCtrl, 'gst_number'.tr, TaxIdFormats.gstLength),
+            _numberField(_gstCtrl, 'gst_number'.tr, TaxIdFormats.gstLength,
+                enabled: _gstEditable),
             const SizedBox(height: 12),
             _docTile(
               label: 'gst_certificate_label'.tr,
               newFile: _gstImage,
               currentUrl: p?.gstCertificate,
+              review: _gstReview,
+              editable: _gstEditable,
               onPick: () => _pick((f) => _gstImage = f),
             ),
             const SizedBox(height: 28),
@@ -192,9 +210,11 @@ class _VendorDocumentsViewState extends State<VendorDocumentsView> {
         ]),
       );
 
-  Widget _numberField(TextEditingController c, String label, int max) =>
+  Widget _numberField(TextEditingController c, String label, int max,
+          {bool enabled = true}) =>
       TextField(
         controller: c,
+        enabled: enabled,
         maxLength: max,
         textCapitalization: TextCapitalization.characters,
         decoration: InputDecoration(labelText: label, counterText: ''),
@@ -205,7 +225,11 @@ class _VendorDocumentsViewState extends State<VendorDocumentsView> {
     required File? newFile,
     required String? currentUrl,
     required VoidCallback onPick,
+    DocumentReview? review,
+    bool editable = true,
   }) {
+    final rejected = newFile == null && (review?.isRejected ?? false);
+    final approved = newFile == null && (review?.isApproved ?? false);
     final url = WorkerFeedController.fullUrl(currentUrl);
     Widget preview;
     if (newFile != null) {
@@ -223,7 +247,9 @@ class _VendorDocumentsViewState extends State<VendorDocumentsView> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+            color: rejected ? const Color(0xFFFECACA) : AppColors.border,
+            width: rejected ? 1.4 : 1),
       ),
       child: Row(children: [
         ClipRRect(
@@ -237,18 +263,38 @@ class _VendorDocumentsViewState extends State<VendorDocumentsView> {
                 style: KTextStyle.poppins(fs: 13.5, fw: FontWeight.w600)),
             const SizedBox(height: 2),
             Text(
-              newFile != null ? 'vendor_docs_new_selected'.tr : 'vendor_docs_current'.tr,
+              newFile != null
+                  ? 'vendor_docs_new_selected'.tr
+                  : rejected
+                      ? 'vendor_doc_rejected'.tr
+                      : approved
+                          ? 'vendor_doc_approved'.tr
+                          : 'vendor_docs_current'.tr,
               style: KTextStyle.poppins(
                   fs: 11.5,
-                  c: newFile != null ? AppColors.success : AppColors.textSecondary),
+                  fw: rejected ? FontWeight.w700 : FontWeight.normal,
+                  c: newFile != null || approved
+                      ? AppColors.success
+                      : rejected
+                          ? AppColors.error
+                          : AppColors.textSecondary),
             ),
+            // Admin ne is document ka kya reason diya.
+            if (rejected && (review?.reason ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(review!.reason!.trim(),
+                  style: KTextStyle.poppins(
+                      fs: 11.5, c: AppColors.textPrimary, height: 1.35)),
+            ],
           ]),
         ),
-        TextButton.icon(
-          onPressed: onPick,
-          icon: const Icon(Icons.upload_rounded, size: 18),
-          label: Text('reupload_label'.tr),
-        ),
+        // Sirf rejected (ya general reject par sab) document dobara.
+        if (editable)
+          TextButton.icon(
+            onPressed: onPick,
+            icon: const Icon(Icons.upload_rounded, size: 18),
+            label: Text('reupload_label'.tr),
+          ),
       ]),
     );
   }
