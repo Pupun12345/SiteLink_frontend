@@ -273,6 +273,8 @@ const Map<String, String> _en = {
   'worker_plans_family2_text': 'Family can contact Sitelink and submit the required details for verification.',
   'worker_plans_family3_label': 'Fast Payment:',
   'worker_plans_family3_text': 'After claim verification and approval, eligible family members receive payment within 48 hours, as per coverage terms.',
+  'worker_plans_family4_label': '45-Day Eligibility:',
+  'worker_plans_family4_text': "A claim can be made only after 45 days are completed from the start of the worker's first subscription.",
   'worker_plans_feature2_title': 'Priority Job Shortlisting',
   'worker_plans_feature2_desc':
       'Your profile appears higher in search results, giving you significantly higher visibility to actively hiring companies.',
@@ -1299,6 +1301,8 @@ const Map<String, String> _hi = {
   'worker_plans_family2_text': 'परिवार Sitelink से संपर्क करके सत्यापन के लिए ज़रूरी जानकारी जमा कर सकता है।',
   'worker_plans_family3_label': 'तेज़ भुगतान:',
   'worker_plans_family3_text': 'क्लेम के सत्यापन और मंज़ूरी के बाद, पात्र परिवार सदस्यों को कवरेज की शर्तों के अनुसार 48 घंटे के भीतर भुगतान मिलता है।',
+  'worker_plans_family4_label': '45 दिन की शर्त:',
+  'worker_plans_family4_text': 'क्लेम तभी किया जा सकता है जब वर्कर के पहले सब्सक्रिप्शन को शुरू हुए 45 दिन पूरे हो चुके हों।',
   'worker_plans_feature2_title': 'प्राथमिकता जॉब शॉर्टलिस्टिंग',
   'worker_plans_feature2_desc':
       'आपकी प्रोफ़ाइल सर्च रिजल्ट में ऊपर दिखती है, जिससे नौकरी दे रही कंपनियों को आप ज़्यादा दिखते हैं।',

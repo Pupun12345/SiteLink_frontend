@@ -37,7 +37,7 @@ Workers using Sitelink may access features depending on their selected subscript
 - Emergency job support.
 - Call and WhatsApp support.
 - Access to the professional community.
-- Eligible ₹50,000 Family Protection Benefit provided directly by Smartnex Technologies Private Limited, subject to Section 7.
+- Eligible ₹50,000 Family Protection Benefit provided directly by Smartnex Technologies Private Limited, claimable after 45 days of the first subscription, subject to Section 7.
 
 Workers are responsible for providing genuine information about their skills, experience, qualifications and employment history.
 
@@ -74,7 +74,7 @@ Worker subscription benefits may include:
 - Priority job shortlisting.
 - Emergency job support.
 - Call and WhatsApp support.
-- ₹50,000 Family Protection Benefit, provided directly by Smartnex Technologies Private Limited, subject to Section 7.
+- ₹50,000 Family Protection Benefit, provided directly by Smartnex Technologies Private Limited, claimable after 45 days of the first subscription, subject to Section 7.
 
 ### 6.2 Company and Vendor Subscription
 Company and vendor subscription benefits may include:
@@ -108,6 +108,7 @@ No additional subscription payment is required for this benefit when it is inclu
 - Workers above 60 years are not eligible for this benefit.
 - The worker must have an active and valid Sitelink subscription at the relevant time.
 - The worker must provide genuine registration and subscription information.
+- **45-day waiting period:** A claim can be made only after 45 days are completed from the start of the worker's first Sitelink subscription.
 - All claims are subject to the eligibility conditions and verification process described in this section.
 
 ### 7.3 Eligible Situations
@@ -136,6 +137,7 @@ The following situations are not eligible for the benefit:
 - Death occurring when the worker does not meet the applicable age, subscription or other eligibility requirements.
 - Cases involving false information, fraudulent claims or deliberately misleading documents.
 - Claims that do not satisfy the qualifying circumstances described in Section 7.3.
+- Claims made before 45 days are completed from the start of the worker's first Sitelink subscription.
 
 A previous Sitelink subscription alone does not automatically qualify a person for the benefit. All applicable eligibility conditions must be satisfied.
 
@@ -171,6 +173,7 @@ The payment timeline does not begin from the time of the incident or initial con
 
 ### 7.7 Important Conditions
 - The benefit is available only under eligible worker subscription plans.
+- No claim can be made before 45 days are completed from the start of the worker's first Sitelink subscription.
 - A subscription does not automatically guarantee payment for every death.
 - All claims are subject to the eligibility conditions and verification process.
 - Providing false information or submitting fraudulent documents may result in claim rejection.
