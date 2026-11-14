@@ -14,6 +14,7 @@ import '../controllers/vendor_profile_controller.dart';
 import '../../../../core/services/logout_service.dart';
 import '../../../shared/presentation/views/plan_status_banner.dart';
 import 'edit_vendor_profile_view.dart';
+import 'vendor_documents_view.dart';
 import 'vendor_plans_view.dart';
 
 const _kVendorHelpFaq = '''
@@ -152,6 +153,7 @@ class VendorProfileScreen extends StatelessWidget {
         ? p!.companyName!
         : (p?.name ?? 'Company');
     final verified = p?.isVerified ?? false;
+    final rejected = !verified && (p?.isRejected ?? false);
     final location = [p?.workCity, p?.workState]
         .where((e) => (e ?? '').isNotEmpty)
         .join(', ');
@@ -196,17 +198,31 @@ class VendorProfileScreen extends StatelessWidget {
               Icon(
                 verified
                     ? Icons.verified_rounded
-                    : Icons.hourglass_top_rounded,
+                    : rejected
+                        ? Icons.error_outline_rounded
+                        : Icons.hourglass_top_rounded,
                 size: 14,
-                color: verified ? AppColors.success : AppColors.warning,
+                color: verified
+                    ? AppColors.success
+                    : rejected
+                        ? AppColors.error
+                        : AppColors.warning,
               ),
               const SizedBox(width: 6),
               Text(
-                verified ? 'verified_vendor_label'.tr : 'verification_pending_title'.tr,
+                verified
+                    ? 'verified_vendor_label'.tr
+                    : rejected
+                        ? 'vendor_rejected_title'.tr
+                        : 'verification_pending_title'.tr,
                 style: KTextStyle.poppins(
                     fs: 12,
                     fw: FontWeight.w600,
-                    c: verified ? AppColors.success : AppColors.warning),
+                    c: verified
+                        ? AppColors.success
+                        : rejected
+                            ? AppColors.error
+                            : AppColors.warning),
               ),
             ]),
           ),
@@ -304,11 +320,48 @@ class VendorProfileScreen extends StatelessWidget {
       ('gst_certificate_label'.tr, p?.gstCertificate),
       ('company_logo_label'.tr, p?.companyLogo),
     ];
+    final rejected = !(p?.isVerified ?? false) && (p?.isRejected ?? false);
     return _Card(
       title: 'documents_label'.tr,
       icon: Icons.folder_outlined,
       child: Column(
         children: [
+          // Admin ne reject kiya → reason + PAN/GST dobara bhejne ka rasta.
+          if (rejected) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('vendor_rejected_title'.tr,
+                      style: KTextStyle.poppins(
+                          fs: 13.5, fw: FontWeight.w700, c: AppColors.error)),
+                  if ((p?.rejectionReason ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(p!.rejectionReason!.trim(),
+                        style: KTextStyle.poppins(
+                            fs: 12.5, c: AppColors.textPrimary, height: 1.4)),
+                  ],
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openDocuments(p),
+                      icon: const Icon(Icons.upload_rounded, size: 18),
+                      label: Text('vendor_docs_reupload_btn'.tr),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           for (int i = 0; i < docs.length; i++) ...[
             if (i > 0) const SizedBox(height: 10),
             _DocRow(
@@ -320,6 +373,15 @@ class VendorProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// PAN / GST dobara bhejne ki screen. Wapas aane par profile taaza —
+  /// status "Verification pending" ho jaata hai.
+  Future<void> _openDocuments(MyProfile? p) async {
+    final done = await Get.to<bool>(() => VendorDocumentsView(profile: p));
+    if (done == true && Get.isRegistered<VendorProfileController>()) {
+      Get.find<VendorProfileController>().fetchProfile();
+    }
   }
 
   void _viewImage(BuildContext context, String url) {
