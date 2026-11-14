@@ -519,29 +519,8 @@ class FeedPostCard extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // ── Likes + comments count ─────────────────────────────
-          if ((post.likesCount ?? 0) > 0 ||
-              (post.commentsCount ?? 0) > 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              child: Row(children: [
-                if ((post.likesCount ?? 0) > 0) ...[
-                  const Icon(Icons.favorite_rounded,
-                      size: 12, color: AppColors.primary),
-                  const SizedBox(width: 3),
-                  Text('${post.likesCount}',
-                      style: KTextStyle.poppins(
-                          fs: 11, c: AppColors.textHint)),
-                  const SizedBox(width: 8),
-                ],
-                if ((post.commentsCount ?? 0) > 0)
-                  Text('comments_count_suffix'
-                      .trParams({'count': '${post.commentsCount}'}),
-                      style: KTextStyle.poppins(
-                          fs: 11, c: AppColors.textHint)),
-              ]),
-            ),
-
+          // Likes / comments ki ginti alag line me nahi — seedha Like aur
+          // Comment button ke saath (neeche Action Row).
           Container(height: 0.5, color: AppColors.divider),
 
           // ── Action Row ─────────────────────────────────────────
@@ -553,6 +532,7 @@ class FeedPostCard extends StatelessWidget {
                     ? Icons.favorite_rounded
                     : Icons.favorite_border_rounded,
                 label: isLikedByMe ? 'liked_label'.tr : 'like_label'.tr,
+                count: post.likesCount ?? 0,
                 color: isLikedByMe
                     ? AppColors.primary
                     : AppColors.textHint,
@@ -561,6 +541,7 @@ class FeedPostCard extends StatelessWidget {
               _ActionButton(
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'comment_label'.tr,
+                count: post.commentsCount ?? 0,
                 color: AppColors.textHint,
                 onTap: () => CommentsSheet.open(context, post.id ?? ''),
               ),
@@ -1288,12 +1269,22 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
+  /// Like / comment ki ginti — label ke saath dikhti hai. 0 par nahi.
+  final int count;
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
+    this.count = 0,
   });
+
+  /// 1200 → 1.2K, 15000 → 15K — chhote button me lambi ginti na toote.
+  static String _compact(int n) {
+    if (n < 1000) return '$n';
+    final k = n / 1000;
+    return '${k >= 10 ? k.toStringAsFixed(0) : k.toStringAsFixed(1).replaceAll('.0', '')}K';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1308,9 +1299,18 @@ class _ActionButton extends StatelessWidget {
             children: [
               Icon(icon, size: 17, color: color),
               const SizedBox(width: 5),
-              Text(label,
-                  style: KTextStyle.poppins(
-                      fs: 12, fw: FontWeight.w500, c: color)),
+              if (count > 0) ...[
+                Text(_compact(count),
+                    style: KTextStyle.poppins(
+                        fs: 12.5, fw: FontWeight.w700, c: color)),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: KTextStyle.poppins(
+                        fs: 12, fw: FontWeight.w500, c: color)),
+              ),
             ],
           ),
         ),
