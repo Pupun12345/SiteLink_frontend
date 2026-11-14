@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../app/config/app_config.dart';
 
@@ -35,26 +37,61 @@ class AuthService {
   Future<GoogleAuthResult> signInWithGoogle() async {
     await init(); // safety — agar main me init miss ho jaye
 
-    final account = await GoogleSignIn.instance.authenticate();
+    try {
+      debugPrint('[GOOGLE_DEBUG] Starting authentication');
 
-    // v7 me authentication se sirf idToken milta hai
-    final idToken = account.authentication.idToken;
-    if (idToken == null) {
-      throw const AuthException('Google sign-in se token nahi mila.');
+      final account = await GoogleSignIn.instance.authenticate();
+
+      debugPrint('[GOOGLE_DEBUG] Account selected');
+      debugPrint('[GOOGLE_DEBUG] Email: ${account.email}');
+
+      final googleAuth = account.authentication;
+      debugPrint(
+        '[GOOGLE_DEBUG] ID token received: ${googleAuth.idToken != null}',
+      );
+
+      if (googleAuth.idToken == null) {
+        throw const AuthException('Google sign-in se token nahi mila.');
+      }
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      debugPrint('[GOOGLE_DEBUG] Calling Firebase');
+
+      final userCred = await _auth.signInWithCredential(credential);
+      debugPrint(
+        '[GOOGLE_DEBUG] Firebase success: ${userCred.user?.uid}',
+      );
+
+      final firebaseToken = await userCred.user?.getIdToken();
+      if (firebaseToken == null) {
+        throw const AuthException('Firebase authentication fail ho gaya.');
+      }
+
+      debugPrint('[GOOGLE_DEBUG] Firebase ID token generated: ${firebaseToken.isNotEmpty}');
+
+      return GoogleAuthResult(
+        firebaseIdToken: firebaseToken,
+        displayName: account.displayName,
+        email: account.email,
+      );
+    } on GoogleSignInException catch (e, st) {
+      debugPrint('[GOOGLE_DEBUG] Error code: ${e.code}');
+      debugPrint('[GOOGLE_DEBUG] Description: ${e.description}');
+      debugPrintStack(stackTrace: st);
+      throw AuthException('Google sign-in failed: ${e.description ?? e.code}');
+    } on FirebaseAuthException catch (e, st) {
+      debugPrint('[FIREBASE_DEBUG] Code: ${e.code}');
+      debugPrint('[FIREBASE_DEBUG] Message: ${e.message}');
+      debugPrintStack(stackTrace: st);
+      throw AuthException('Firebase authentication failed: ${e.message ?? e.code}');
+    } catch (e, st) {
+      debugPrint('[OTHER_DEBUG] $e');
+      debugPrintStack(stackTrace: st);
+      throw AuthException('Google sign-in failed. Please try again.');
     }
-
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
-    final userCred = await _auth.signInWithCredential(credential);
-    final firebaseToken = await userCred.user?.getIdToken();
-    if (firebaseToken == null) {
-      throw const AuthException('Firebase authentication fail ho gaya.');
-    }
-
-    return GoogleAuthResult(
-      firebaseIdToken: firebaseToken,
-      displayName: account.displayName,
-      email: account.email,
-    );
   }
 
   /// Firebase + Google dono se sign out.
