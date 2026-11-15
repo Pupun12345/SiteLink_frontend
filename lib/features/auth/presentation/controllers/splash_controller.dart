@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/services/api_client.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/session_service.dart';
@@ -34,6 +35,8 @@ class SplashController extends GetxController {
     // taaki rotate/stale token backend me pura rahe. Fire-and-forget.
     NotificationService.instance.syncTokenIfLoggedIn(label: 'app-start');
 
+    await _syncUserTypeFromServer(session);
+
     switch (session.userType) {
       case 'worker':
         Get.offAllNamed(AppRoutes.workerHome);
@@ -47,6 +50,27 @@ class SplashController extends GetxController {
         Get.offAllNamed(AppRoutes.role);
         await _resumeWorkerRegistration();
     }
+  }
+
+  /// Phone par yaad role (worker / vendor) server se milao. Account kabhi
+  /// worker se shuru hua aur baad me vendor ban gaya (ya ulta) to session
+  /// purana role yaad rakhta tha — vendor ko worker ki screens dikhti thi
+  /// (khaali skill, galat profile). Server jaldi jawab na de / net na ho
+  /// to jo yaad hai wahi chalne do — app ka khulna nahi rukna chahiye.
+  Future<void> _syncUserTypeFromServer(SessionService session) async {
+    final local = session.userType;
+    if (local != 'worker' && local != 'vendor') return;
+    try {
+      final me = await ProfileApiService()
+          .getMe()
+          .timeout(const Duration(seconds: 4));
+      final server = (me.user?.userType ?? '').toLowerCase();
+      if (me.success &&
+          (server == 'worker' || server == 'vendor') &&
+          server != local) {
+        await session.setUserType(server);
+      }
+    } catch (_) {/* offline / slow — local role se hi chalo */}
   }
 
   /// Registration adhoora tha (aksar gallery khulte waqt Android ne app

@@ -110,21 +110,24 @@ class WorkerProfileTab extends StatelessWidget {
                 style: KTextStyle.poppins(fs: 12, c: Colors.white70)),
           ],
           const SizedBox(height: 6),
-          // Skill chip — apni alag row
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppDimens.radiusMax),
+          // Skill chip — apni alag row. Skill na ho to chip hi nahi (pehle
+          // khaali safed pill dikhti thi).
+          if (ctrl.primarySkill.value.trim().isNotEmpty) ...[
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppDimens.radiusMax),
+              ),
+              child: Text(
+                ctrl.primarySkill.value,
+                style: KTextStyle.poppins(
+                    fs: 12, fw: FontWeight.w600, c: AppColors.primary),
+              ),
             ),
-            child: Text(
-              ctrl.primarySkill.value,
-              style: KTextStyle.poppins(
-                  fs: 12, fw: FontWeight.w600, c: AppColors.primary),
-            ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
           // Verified / Pending chip — apni alag row (vendor profile jaisa)
           Container(
             padding:
