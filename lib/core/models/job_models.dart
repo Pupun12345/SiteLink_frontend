@@ -208,7 +208,8 @@ class JobModel {
       startDate: DateTime.tryParse(json['startDate']?.toString() ?? '')?.toLocal(),
       description: json['description']?.toString(),
       experience: json['experience']?.toString(),
-      postedAt: DateTime.tryParse(json['postedAt']?.toString() ?? ''),
+      // List me `postedAt`, detail me `createdAt` aata hai.
+      postedAt: DateTime.tryParse((json['postedAt'] ?? json['createdAt'])?.toString() ?? ''),
       postedBy: (postedByRaw is Map && postedByRaw.isNotEmpty)
           ? JobPostedBy.fromJson(Map<String, dynamic>.from(postedByRaw))
           : null,

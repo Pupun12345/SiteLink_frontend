@@ -106,6 +106,10 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
         if (detail.startDate != null) {
           job['startDate'] = DateFormat('d MMM yyyy').format(detail.startDate!);
         }
+        // Job kab post hui — start date na ho to calendar line me yahi.
+        if ((job['postedAt'] ?? '').toString().isEmpty && detail.postedAt != null) {
+          job['postedAt'] = DateFormat('d MMM yyyy').format(detail.postedAt!.toLocal());
+        }
         // Backend sirf tabhi bhejta hai jab application confirm/hire ho
         // chuki ho — warna null aata hai (contact locked dikhta hai).
         // Vendor ka `phone` worker tak aata hi nahi, isliye yahan sirf
@@ -330,6 +334,17 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
         ? 'permanent_employment_label'.tr
         : job['duration'] ?? '';
     final startDate = job['startDate'] ?? job['dates'] ?? '';
+    // Calendar line: start date ho to "Starts: …", warna job kab post hui
+    // ("Posted: …"). Dono na hon to line hi nahi — pehle khaali line dikhti
+    // thi (admin / purani jobs me start date nahi hoti).
+    final postedAt = (job['postedAt'] ?? '').toString();
+    final String dateLine = (job['startDate'] ?? '').toString().isNotEmpty
+        ? 'job_starts_on'.trParams({'date': '${job['startDate']}'})
+        : (job['dates'] ?? '').toString().isNotEmpty
+            ? '${job['dates']}'
+            : postedAt.isNotEmpty
+                ? 'job_posted_on'.trParams({'date': postedAt})
+                : '';
     final workers = job['workers'] != null
         ? 'workers_count_suffix'.trParams({'count': '${job['workers']}'})
         : '';
@@ -423,8 +438,10 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                     _InfoRow(icon: Icons.location_on_outlined, text: location),
                     const SizedBox(height: 8),
                     _InfoRow(icon: Icons.people_outline_rounded, text: workers),
-                    const SizedBox(height: 8),
-                    _InfoRow(icon: Icons.calendar_today_rounded, text: startDate),
+                    if (dateLine.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _InfoRow(icon: Icons.calendar_today_rounded, text: dateLine),
+                    ],
                   ],
                 ),
               ),
