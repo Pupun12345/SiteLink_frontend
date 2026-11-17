@@ -88,6 +88,12 @@ class PaymentService {
     };
   }
 
+  /// Razorpay checkout par plan ke naam ke saath "incl. 18% GST" — user ko
+  /// pata rahe ki dikhi hui keemat me GST shamil hai. Server ne pehle se
+  /// jod diya ho to dobara nahi.
+  static String _withGst(String name) =>
+      name.toUpperCase().contains('GST') ? name : '$name · ${'gst_inclusive_short'.tr}';
+
   static String? _tenDigits(String? raw) {
     final d = (raw ?? '').replaceAll(RegExp(r'\D'), '');
     final local = d.length > 10 ? d.substring(d.length - 10) : d;
@@ -198,7 +204,7 @@ class PaymentService {
       // Role ke hisaab se: vendor → upi+card, worker → upi+netbanking.
       'method': _allowedMethods(),
       'name': 'Sitelink',
-      'description': plan.name ?? 'Subscription',
+      'description': _withGst(plan.name ?? 'Subscription'),
       // Email aur phone ka box nahi dikhate (_contactOptions dekho).
       ..._contactOptions(contact.phone, contact.email),
       'theme': {'color': '#F97316'},
@@ -310,7 +316,7 @@ class PaymentService {
       // hai, jo Razorpay account par alag se enable karwana padta hai.
       'method': _allowedMethods(),
       'name': 'Sitelink',
-      'description': subRes.planName ?? plan.name ?? 'Subscription',
+      'description': _withGst(subRes.planName ?? plan.name ?? 'Subscription'),
       // Mandate phone number par register hota hai — number peeche se
       // jaata hai, box nahi dikhta (_contactOptions dekho).
       ..._contactOptions(contact.phone, contact.email),

@@ -137,20 +137,30 @@ class PlanPrice extends StatelessWidget {
         ),
       ],
     );
-    if (!offer) return row;
+    // Har dikhi keemat me 18% GST shamil hai — payment se pehle saaf likha.
+    final gst = Text(
+      'gst_inclusive_note'.tr,
+      textAlign: center ? TextAlign.center : TextAlign.start,
+      style: KTextStyle.poppins(
+          fs: 11.5, fw: FontWeight.w600, c: grey, height: 1.4),
+    );
 
     return Column(
       crossAxisAlignment:
           center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         row,
+        if (offer) ...[
+          const SizedBox(height: 2),
+          Text(
+            'intro_then_price'
+                .trParams({'price': '$price', 'period': duration}),
+            textAlign: center ? TextAlign.center : TextAlign.start,
+            style: KTextStyle.poppins(fs: 12, c: grey, height: 1.4),
+          ),
+        ],
         const SizedBox(height: 2),
-        Text(
-          'intro_then_price'
-              .trParams({'price': '$price', 'period': duration}),
-          textAlign: center ? TextAlign.center : TextAlign.start,
-          style: KTextStyle.poppins(fs: 12, c: grey, height: 1.4),
-        ),
+        gst,
       ],
     );
   }
