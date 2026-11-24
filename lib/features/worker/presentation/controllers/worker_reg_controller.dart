@@ -292,6 +292,17 @@ class WorkerRegController extends GetxController {
   final skillSearch      = ''.obs;
   final experienceYears  = 3.obs;
   final expDescCtrl      = TextEditingController();
+
+  /// Fresher (0 saal) ya Experienced. Fresher par pichhle kaam ka
+  /// description bhi khaali — use bharne ki zaroorat nahi.
+  void setFresher(bool fresher) {
+    if (fresher) {
+      experienceYears.value = 0;
+      expDescCtrl.clear();
+    } else if (experienceYears.value < 1) {
+      experienceYears.value = 1;
+    }
+  }
   final otherSkillCtrl   = TextEditingController();
 
   void onSkillSearchChanged(String val) => skillSearch.value = val;
@@ -505,7 +516,7 @@ class WorkerRegController extends GetxController {
         primarySkillId: selectedPrimarySkillId.value,
         secondarySkillId: selectedSecondarySkillIds.toList(),
         totalExperience: experienceYears.value,
-        experienceDescription: expDescCtrl.text,
+        experienceDescription: experienceYears.value == 0 ? null : expDescCtrl.text,
         willingtoRelocate: willRelocate.value,
         salaryType: salaryType.value,
         salary: salaryCtrl.text,

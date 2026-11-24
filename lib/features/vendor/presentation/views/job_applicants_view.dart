@@ -12,6 +12,7 @@ import '../../../worker/presentation/controllers/worker_feed_controller.dart';
 import '../controllers/job_applicants_controller.dart';
 import '../controllers/vendor_jobs_controller.dart';
 import 'applicant_profile_view.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  JOB APPLICANTS — vendor ke liye, workers jinhone apply kiya + Confirm/Reject
@@ -272,9 +273,7 @@ class _ApplicantCard extends StatelessWidget {
                     child: _infoItem(
                         Icons.work_history_outlined,
                         'experience_label'.tr,
-                        a.totalExperience != null
-                            ? '${a.totalExperience} ${'yr_plural'.tr}'
-                            : '—'),
+                        experienceText(a.totalExperience)),
                   ),
                   Expanded(
                     child: _infoItem(Icons.location_on_outlined,

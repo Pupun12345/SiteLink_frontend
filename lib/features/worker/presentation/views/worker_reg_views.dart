@@ -12,6 +12,7 @@ import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/worker_reg_controller.dart';
 import '../../../../core/models/skill_models.dart';
 import '../../../../core/theme/experience_cert_list.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 import 'dart:io';
 import 'dart:async';
 
@@ -468,7 +469,16 @@ class WorkerReg2View extends StatelessWidget {
                             c: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
-                      Obx(() => Container(
+                      // Fresher ya Experienced — fresher ko saal / pichhla
+                      // kaam bharne ki zaroorat nahi (experience = 0).
+                      Obx(() => ExperienceLevelToggle(
+                            isFresher: ctrl.experienceYears.value == 0,
+                            onChanged: ctrl.setFresher,
+                          )),
+                      const SizedBox(height: 12),
+                      Obx(() => ctrl.experienceYears.value == 0
+                          ? const SizedBox.shrink()
+                          : Container(
                         padding: const EdgeInsets.symmetric(
                             vertical: AppDimens.md,
                             horizontal: AppDimens.md),
@@ -509,7 +519,9 @@ class WorkerReg2View extends StatelessWidget {
                             Slider(
                               value: ctrl.experienceYears.value
                                   .toDouble(),
-                              min: 0,
+                              // Experienced me kam se kam 1 saal; 0 = Fresher
+                              // (upar wala button).
+                              min: 1,
                               max: 20,
                               activeColor: AppColors.primary,
                               inactiveColor: AppColors.divider,
@@ -521,7 +533,7 @@ class WorkerReg2View extends StatelessWidget {
                               mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('zero_yrs'.tr,
+                                Text('one_yr_label'.tr,
                                     style: KTextStyle.poppins(
                                         fs: 11,
                                         c: AppColors.textHint)),
@@ -534,9 +546,13 @@ class WorkerReg2View extends StatelessWidget {
                           ],
                         ),
                       )),
+                      // ── Experience Description (sirf experienced) ──
+                      Obx(() => ctrl.experienceYears.value == 0
+                          ? const SizedBox.shrink()
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                       const SizedBox(height: AppDimens.lg),
-
-                      // ── Experience Description ─────────────────────
                       Text(
                         AppStrings.ExperienceDescription,
                         style: KTextStyle.poppins(
@@ -588,6 +604,8 @@ class WorkerReg2View extends StatelessWidget {
                           ),
                         ],
                       ),
+                              ],
+                            )),
                       const SizedBox(height: AppDimens.xl),
 
                       CustomButton(

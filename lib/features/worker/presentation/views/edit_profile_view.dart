@@ -11,6 +11,7 @@ import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/edit_profile_controller.dart';
 import '../controllers/worker_feed_controller.dart';
 import '../../../../core/theme/experience_cert_list.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  EDIT PROFILE VIEW — Settings → Edit Profile
@@ -375,29 +376,49 @@ class EditProfileView extends StatelessWidget {
         children: [
           _sectionTitle(Icons.work_outline_rounded, AppStrings.WorkPreferences),
           const SizedBox(height: 14),
-          Row(children: [
-            Expanded(
-              child: Text('total_experience_years_label'.tr,
-                  style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
-            ),
-            Obx(() => CounterWidget(
-                  value: ctrl.experienceYears.value ?? 0,
-                  min: 0,
-                  max: 60,
-                  onIncrement: () => ctrl.experienceYears.value =
-                      (ctrl.experienceYears.value ?? 0) + 1,
-                  onDecrement: () => ctrl.experienceYears.value =
-                      ((ctrl.experienceYears.value ?? 0) - 1).clamp(0, 60),
-                )),
-          ]),
-          const SizedBox(height: 12),
-          SitelinkTextField(
-            label: AppStrings.ExperienceDescription,
-            controller: ctrl.expDescCtrl,
-            hint: 'experience_desc_hint'.tr,
-            maxLines: 3,
-          ),
-          const SizedBox(height: 12),
+          Text(AppStrings.TotalExperience,
+              style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
+          const SizedBox(height: 8),
+          // Fresher (0 saal) ya Experienced — fresher par saal / description nahi.
+          Obx(() => ExperienceLevelToggle(
+                isFresher: (ctrl.experienceYears.value ?? 0) == 0,
+                onChanged: (fresher) {
+                  if (fresher) {
+                    ctrl.experienceYears.value = 0;
+                    ctrl.expDescCtrl.clear();
+                  } else if ((ctrl.experienceYears.value ?? 0) < 1) {
+                    ctrl.experienceYears.value = 1;
+                  }
+                },
+              )),
+          Obx(() => (ctrl.experienceYears.value ?? 0) == 0
+              ? const SizedBox(height: 12)
+              : Column(children: [
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: Text('total_experience_years_label'.tr,
+                          style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
+                    ),
+                    CounterWidget(
+                      value: ctrl.experienceYears.value ?? 1,
+                      min: 1,
+                      max: 60,
+                      onIncrement: () => ctrl.experienceYears.value =
+                          ((ctrl.experienceYears.value ?? 0) + 1).clamp(1, 60),
+                      onDecrement: () => ctrl.experienceYears.value =
+                          ((ctrl.experienceYears.value ?? 1) - 1).clamp(1, 60),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  SitelinkTextField(
+                    label: AppStrings.ExperienceDescription,
+                    controller: ctrl.expDescCtrl,
+                    hint: 'experience_desc_hint'.tr,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 12),
+                ])),
           Text(AppStrings.SalaryType,
               style: KTextStyle.poppins(fs: 12, fw: FontWeight.w600)),
           const SizedBox(height: 8),

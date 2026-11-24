@@ -17,6 +17,7 @@ import '../../../../core/utils/amenity_category_label.dart';
 import '../controllers/worker_myjob_controller.dart';
 import '../../../../core/services/review_service.dart';
 import 'job_applied_success_view.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  WORKER JOB DETAIL VIEW
@@ -488,7 +489,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
                     ],
                     if (experience.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _DetailPill(label: 'experience_label'.tr, value: '$experience ${'yr_plural'.tr}'),
+                      _DetailPill(label: 'experience_label'.tr, value: experienceText(experience, plus: true)),
                     ],
                     // Purani jobs me start date nahi hoti — pill hi na dikhao,
                     // khaali value dikhane se lagta hai data gayab hai.

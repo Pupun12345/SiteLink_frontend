@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../../../core/models/community_feed_models.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/locale_service.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  WORKER PROFILE CONTROLLER
@@ -67,10 +68,8 @@ class WorkerProfileController extends GetxController {
         }
         if ((u.primarySkill ?? '').isNotEmpty) primarySkill.value = u.primarySkill!;
         if (u.totalExperience != null) {
-          final yrs = u.totalExperience!;
-          final isWhole = yrs == yrs.roundToDouble();
-          experience.value =
-              '${isWhole ? yrs.toInt() : yrs} ${yrs == 1 ? 'yr_singular'.tr : 'yr_plural'.tr}';
+          // 0 saal = Fresher
+          experience.value = experienceText(u.totalExperience);
         }
         if (u.locationLabel.isNotEmpty) location.value = u.locationLabel;
         if (u.skills.isNotEmpty) skills.assignAll(u.skills);

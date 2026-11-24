@@ -9,6 +9,7 @@ import '../../../../core/theme/shared_widgets.dart';
 import '../../../../core/utils/amenity_category_label.dart';
 import '../controllers/new_request_controller.dart';
 import 'location_picker_view.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  NEW REQUEST VIEW
@@ -495,12 +496,31 @@ class NewRequestView extends StatelessWidget {
                                 }).toList(),
                               )),
                           const SizedBox(height: AppDimens.md),
-                          SitelinkTextField(
-                            label: 'experience_required_years_label'.tr,
-                            hint: 'experience_hint_example'.tr,
-                            controller: ctrl.experienceCtrl,
-                            keyboardType: TextInputType.number,
-                          ),
+                          // Fresher chalega ya Experienced chahiye (kitne saal)
+                          Text('experience_needed_label'.tr,
+                              style: KTextStyle.poppins(
+                                  fs: 12, fw: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          Obx(() => ExperienceLevelToggle(
+                                isFresher: ctrl.freshersOk.value,
+                                fresherLabel: 'freshers_ok_label'.tr,
+                                experiencedLabel: 'experienced_needed_label'.tr,
+                                onChanged: (v) {
+                                  ctrl.freshersOk.value = v;
+                                  if (v) ctrl.experienceCtrl.clear();
+                                },
+                              )),
+                          Obx(() => ctrl.freshersOk.value
+                              ? const SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: SitelinkTextField(
+                                    label: 'min_experience_years_label'.tr,
+                                    hint: 'experience_hint_example'.tr,
+                                    controller: ctrl.experienceCtrl,
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                )),
                           const SizedBox(height: AppDimens.md),
                           Obx(() => Row(children: [
                                 Expanded(

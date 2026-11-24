@@ -10,6 +10,7 @@ import '../controllers/vendor_jobs_controller.dart';
 import 'job_applicants_view.dart';
 import 'vendor_job_detail_view.dart';
 import 'vendor_plans_view.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  MY REQUESTS (POSTED JOBS) — real GET /api/jobs (own filter)
@@ -371,7 +372,7 @@ class _JobCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                       child: _detailItem(Icons.work_history_outlined,
-                          'experience_label'.tr, '${job.experience ?? '—'} yrs')),
+                          'experience_label'.tr, experienceText(job.experience, plus: true))),
                   Expanded(
                       child: _detailItem(Icons.timelapse_rounded,
                           'duration'.tr, job.duration ?? '—')),

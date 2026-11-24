@@ -49,6 +49,8 @@ class NewRequestController extends GetxController {
   final salaryCtrl     = TextEditingController();
   final salaryType     = 'daily'.obs; // daily | weekly | monthly
   final experienceCtrl = TextEditingController();
+  /// Fresher chalega (experience "0") ya Experienced (kam se kam N saal).
+  final freshersOk     = false.obs;
   final isUrgent       = false.obs;
 
   // ── Amenities (grouped, multi-select) ────────────────────────
@@ -197,11 +199,12 @@ class NewRequestController extends GetxController {
       AppSnackbar.error(message: 'enter_valid_salary_error'.tr);
       return;
     }
-    final exp = num.tryParse(experienceCtrl.text.trim().isEmpty
-        ? '0'
-        : experienceCtrl.text.trim());
-    if (exp == null || exp < 0 || exp > 60) {
-      AppSnackbar.error(message: 'experience_range_error'.tr);
+    // Fresher = 0. Experienced chuna to saal (1–60) bharna zaroori.
+    final num? exp = freshersOk.value
+        ? 0
+        : num.tryParse(experienceCtrl.text.trim());
+    if (exp == null || exp > 60 || (!freshersOk.value && exp < 1)) {
+      AppSnackbar.error(message: 'experience_required_min_error'.tr);
       return;
     }
     if (duration.value == 'Custom' && customDurationCtrl.text.trim().isEmpty) {

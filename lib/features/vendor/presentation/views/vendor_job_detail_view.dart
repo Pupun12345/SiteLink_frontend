@@ -10,6 +10,7 @@ import '../../../../core/theme/job_roles_view.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../controllers/vendor_jobs_controller.dart';
 import 'job_applicants_view.dart';
+import '../../../../core/theme/experience_level_toggle.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  VENDOR JOB DETAIL — apna posted job (full detailing, flat cards)
@@ -233,9 +234,7 @@ class VendorJobDetailView extends StatelessWidget {
                           child: _detailTile(
                               Icons.work_history_outlined,
                               'experience_label'.tr,
-                              (job.experience ?? '').isNotEmpty
-                                  ? '${job.experience} yrs'
-                                  : '—')),
+                              experienceText(job.experience, plus: true))),
                       const SizedBox(width: 10),
                       Expanded(
                           child: _detailTile(Icons.timelapse_rounded,
