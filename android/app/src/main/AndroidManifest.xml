@@ -28,6 +28,15 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Experience description ka mic (speech-to-text) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+    <!-- ── Portrait screen "zaroori" NAHI ───────────────────────────────
+         MainActivity par screenOrientation="portrait" hai — uski wajah se
+         Android ye feature apne aap ZAROORI maan leta tha, aur Play Console
+         kehta tha ki tablet / desktop / Android XR par app install nahi
+         hoga ("Required hardware feature declarations are restricting your
+         app's availability"). App ab bhi portrait me hi chalta hai; bas
+         install karne ke liye ye shart nahi rahi. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>
     <application
         android:label="Sitelink"
         android:name="${applicationName}"
