@@ -708,12 +708,29 @@ class _DocImage extends StatelessWidget {
           ),
         );
       },
+      // File server par nahi mili (purani files storage se hat gayi thi) —
+      // khaali toota icon ki jagah saaf batao ki dobara upload karna hai.
       errorBuilder: (_, __, ___) => Container(
         height: height,
         width: double.infinity,
-        color: AppColors.scaffoldBg,
-        child: const Icon(Icons.broken_image_outlined,
-            color: AppColors.textHint, size: 28),
+        color: const Color(0xFFFFF7ED),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off_rounded,
+                color: AppColors.warning, size: 30),
+            const SizedBox(height: 6),
+            Text('doc_file_missing'.tr,
+                textAlign: TextAlign.center,
+                style: KTextStyle.poppins(
+                    fs: 12.5, fw: FontWeight.w600, c: AppColors.textPrimary)),
+            const SizedBox(height: 2),
+            Text('doc_file_missing_hint'.tr,
+                textAlign: TextAlign.center,
+                style: KTextStyle.poppins(fs: 11.5, c: AppColors.textSecondary)),
+          ],
+        ),
       ),
     );
   }
