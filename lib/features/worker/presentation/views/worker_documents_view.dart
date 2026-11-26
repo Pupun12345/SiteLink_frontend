@@ -15,6 +15,7 @@ import '../../../../core/theme/shared_widgets.dart';
 import '../../../../core/utils/image_pick.dart';
 import '../controllers/worker_feed_controller.dart';
 import '../controllers/worker_profile_controller.dart';
+import '../../../../core/utils/doc_preview.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  WORKER DOCUMENTS VIEW — Settings → My Documents
@@ -233,13 +234,15 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
     );
   }
 
-  /// Fullscreen image viewer (zoom + close). PDF bahar ke app me khulta hai.
+  /// Fullscreen image viewer (zoom + close). PDF (resume) ka pehla page
+  /// photo ki tarah — Cloudinary par PDF ka seedha link band hota hai.
   void _view(String url) {
     if (url.isEmpty) return;
-    if (_isPdf(url)) {
+    if (_isPdf(url) && !url.contains('res.cloudinary.com')) {
       launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       return;
     }
+    url = docPreviewUrl(url);
     Get.dialog(
       Scaffold(
         backgroundColor: Colors.black,
@@ -601,9 +604,10 @@ class _DocCard extends StatelessWidget {
               onTap: () => onView(url),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                child: _isPdf(url)
+                // PDF → pehle page ki photo (Cloudinary); dusri PDF → icon
+                child: _isPdf(url) && !url.contains('res.cloudinary.com')
                     ? const _PdfTile(height: 110)
-                    : _DocImage(url: url, height: 170),
+                    : _DocImage(url: docPreviewUrl(url), height: 170),
               ),
             )
           else

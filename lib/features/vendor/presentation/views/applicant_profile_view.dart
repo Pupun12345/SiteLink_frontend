@@ -12,6 +12,7 @@ import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
 import '../../../worker/presentation/controllers/worker_feed_controller.dart';
 import '../../../worker/presentation/views/comments_sheet.dart';
+import '../../../../core/utils/doc_preview.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  APPLICANT PROFILE — vendor applicant ko poora parakh sake
@@ -210,9 +211,12 @@ class _ApplicantProfileViewState extends State<ApplicantProfileView> {
     required String label,
     required String url,
   }) {
-    final isPdf = url.toLowerCase().endsWith('.pdf');
+    final isPdf = isPdfUrl(url);
+    // PDF resume / certificate bhi khule — Cloudinary uska pehla page photo
+    // ki tarah deta hai (seedha PDF link free account par band hai).
+    final canOpen = !isPdf || url.contains('res.cloudinary.com');
     return InkWell(
-      onTap: isPdf ? null : () => openImageGallery([url], 0),
+      onTap: canOpen ? () => openImageGallery([docPreviewUrl(url)], 0) : null,
       borderRadius: BorderRadius.circular(AppDimens.radiusMd),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),

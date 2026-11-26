@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_dimens.dart';
 import '../constants/k_text_style.dart';
+import '../utils/doc_preview.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  EXPERIENCE CERTIFICATES — multiple files ki list
@@ -64,8 +65,9 @@ class ExperienceCertList extends StatelessWidget {
       children: [
         for (int i = 0; i < urls.length; i++)
           _Thumb(
-            url: urls[i],
-            isPdfFile: urls[i].toLowerCase().endsWith('.pdf'),
+            // Cloudinary PDF (resume) → pehle page ki photo; baaki PDF → icon
+            url: docPreviewUrl(urls[i]),
+            isPdfFile: isPdfUrl(urls[i]) && !urls[i].contains('res.cloudinary.com'),
             onRemove: onRemoveUrl == null ? null : () => onRemoveUrl!(i),
           ),
         for (int i = 0; i < files.length; i++)
