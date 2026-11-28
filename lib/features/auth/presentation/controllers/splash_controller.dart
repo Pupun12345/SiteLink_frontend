@@ -5,6 +5,7 @@ import '../../../../core/services/api_client.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/session_service.dart';
+import '../../../../core/services/logout_service.dart';
 import '../../../worker/presentation/controllers/worker_reg_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -36,6 +37,13 @@ class SplashController extends GetxController {
     NotificationService.instance.syncTokenIfLoggedIn(label: 'app-start');
 
     await _syncUserTypeFromServer(session);
+
+    // Token expire nikla (401) → logout_service session saaf karke login
+    // khol raha hai. Uske poora hone tak ruko aur home mat kholo.
+    while (isLoggingOut) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    if (!session.isLoggedIn) return;
 
     switch (session.userType) {
       case 'worker':

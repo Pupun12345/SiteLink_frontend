@@ -11,6 +11,7 @@ import '../../../../core/models/community_feed_models.dart'; // apna path adjust
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/direct_upload_service.dart';
 import '../../../../core/services/session_service.dart';
+import '../../../../core/services/logout_service.dart';
 import '../../../../core/services/video_compress_service.dart';
 import '../../../../core/theme/app_snackbar.dart';
 import '../../../shared/presentation/controllers/app_refresh.dart';
@@ -66,6 +67,7 @@ class WorkerFeedController extends GetxController {
       final res = await http
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 15));
+      handleAuthStatus(res.statusCode);
 
       if (kDebugMode) print("[Feed] ${res.statusCode} | ${res.body}");
 
@@ -122,6 +124,7 @@ class WorkerFeedController extends GetxController {
       final res = await http
           .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 15));
+      handleAuthStatus(res.statusCode);
       if (seq != _searchSeq) return;
       if (res.statusCode == 200) {
         searchResults.assignAll(
@@ -225,6 +228,7 @@ class WorkerFeedController extends GetxController {
         ),
       );
 
+      handleAuthStatus(resp.statusCode);
       final status = resp.statusCode ?? 0;
       if (kDebugMode) print("[Feed] createPost $status: ${resp.data}");
 
@@ -312,6 +316,7 @@ class WorkerFeedController extends GetxController {
           .put(Uri.parse(ApiEndpoints.communityPostLike(postId)), headers: _headers)
           .timeout(const Duration(seconds: 10));
 
+      handleAuthStatus(res.statusCode);
       if (kDebugMode) print("[Feed] like ${res.statusCode}: ${res.body}");
 
       if (res.statusCode == 200) {
@@ -359,6 +364,7 @@ class WorkerFeedController extends GetxController {
           .delete(Uri.parse(ApiEndpoints.communityPostDelete(postId)), headers: _headers)
           .timeout(const Duration(seconds: 10));
 
+      handleAuthStatus(res.statusCode);
       if (kDebugMode) print("[Feed] delete ${res.statusCode}: ${res.body}");
 
       if (res.statusCode == 200 || res.statusCode == 201) {

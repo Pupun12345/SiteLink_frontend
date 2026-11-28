@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../utils/mask_secret.dart';
+import 'logout_service.dart';
 
 class RestApi {
   final GetStorage storage = GetStorage();
@@ -35,9 +36,9 @@ class RestApi {
   Future<http.Response> putApiWithAuth(String url, String request) async {
     try {
       _logAuth("PUT", url);
-      return await http
+      return _guard(await http
           .put(Uri.parse(url), body: request, headers: _authHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 15)));
     } on SocketException {
       return _errorResponse("No Internet connection.");
     } on TimeoutException {
@@ -83,9 +84,9 @@ class RestApi {
   Future<http.Response> postApiWithAuth(String url, String request) async {
     try {
       _logAuth("POST", url);
-      return await http
+      return _guard(await http
           .post(Uri.parse(url), body: request, headers: _authHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 15)));
     } on SocketException {
       return _errorResponse("No Internet connection.");
     } on TimeoutException {
@@ -115,9 +116,9 @@ class RestApi {
   Future<http.Response> getApiWithAuth(String url) async {
     try {
       _logAuth("GET", url);
-      return await http
+      return _guard(await http
           .get(Uri.parse(url), headers: _authHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 15)));
     } on SocketException {
       return _errorResponse("No Internet connection.");
     } on TimeoutException {
@@ -131,9 +132,9 @@ class RestApi {
   Future<http.Response> deleteApiWithAuth(String url, String request) async {
     try {
       _logAuth("DELETE", url);
-      return await http
+      return _guard(await http
           .delete(Uri.parse(url), body: request, headers: _authHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 15)));
     } on SocketException {
       return _errorResponse("No Internet connection.");
     } on TimeoutException {
@@ -141,6 +142,12 @@ class RestApi {
     } catch (e) {
       return _errorResponse("Something went wrong: $e");
     }
+  }
+
+  /// Token wali call par 401 = session khatam → seedha login (logout_service).
+  http.Response _guard(http.Response r) {
+    handleAuthStatus(r.statusCode);
+    return r;
   }
 
   // ---------- 🔹 Private Helpers ----------

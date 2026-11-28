@@ -20,6 +20,7 @@ import '../models/notification_models.dart';
 import '../models/app_config_models.dart';
 import 'api_services.dart';
 import 'direct_upload_service.dart';
+import 'logout_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  API ENDPOINTS
@@ -953,9 +954,11 @@ class VendorApiService {
       headers: {'Authorization': 'Bearer $token'},
       contentType: 'application/json',
     );
-    return method == 'PUT'
-        ? client.put(url, data: body, options: opts)
-        : client.post(url, data: body, options: opts);
+    final resp = method == 'PUT'
+        ? await client.put(url, data: body, options: opts)
+        : await client.post(url, data: body, options: opts);
+    handleAuthStatus(resp.statusCode);
+    return resp;
   }
 
   Map<String, dynamic> _asJson(dio.Response resp) {

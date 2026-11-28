@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:http_parser/http_parser.dart' show MediaType;
 import '../../app/config/app_config.dart';
 import 'api_services.dart';
+import 'logout_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  DIRECT UPLOAD — phone → Cloudinary (seedha), backend ko sirf URL
@@ -96,6 +97,7 @@ class DirectUploadService {
       data: {'context': context},
       options: dio.Options(headers: auth, contentType: 'application/json'),
     );
+    handleAuthStatus(sigResp.statusCode);
     final sigJson = _json(sigResp.data);
     if (sigResp.statusCode != 200 || sigJson['data'] is! Map) {
       if (kDebugMode) print('[Upload] signature ${sigResp.statusCode}: ${sigResp.data}');

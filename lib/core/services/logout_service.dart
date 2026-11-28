@@ -29,6 +29,51 @@ bool _loggingOut = false;
 /// Abhi logout chal raha hai — UI isse button disable kar sakta hai.
 bool get isLoggingOut => _loggingOut;
 
+// ═══════════════════════════════════════════════════════════════════
+//  SESSION EXPIRED — token khatam / logout / user hata → seedha login
+// ═══════════════════════════════════════════════════════════════════
+// Login ke baad wali kisi bhi API par backend 401 deta hai jab token
+// expire ho jaaye (JWT_EXPIRE), blacklist ho, ya user hi na rahe. Pehle
+// app isko pakadta nahi tha — screens khaali / "Failed" dikhti thi aur
+// user khud logout kare tab tak atka rehta. Ab pehla 401 aate hi session
+// saaf karke login screen; ek saath kai API 401 dein to bhi ek hi baar.
+//
+// [status] — response ka HTTP code; sirf token wali (auth) calls se bulao.
+void handleAuthStatus(int? status) {
+  if (status != 401) return;
+  if (_loggingOut) return;
+  if (!SessionService.to.isLoggedIn) return;
+  _expireSession();
+}
+
+Future<void> _expireSession() async {
+  _loggingOut = true;
+  if (kDebugMode) print('[Session] 401 — token expired/invalid, logging out');
+  // Token pehle hi bekaar hai — backend logout call ka fayda nahi.
+  try {
+    await AuthService.instance.signOut();
+  } catch (_) {/* Google/Firebase sign-out fail ho to bhi aage */}
+  try {
+    await SessionService.to.clear();
+  } catch (_) {}
+  if (Get.isDialogOpen ?? false) Get.back();
+  if (Get.isBottomSheetOpen ?? false) Get.back();
+  _loggingOut = false;
+  Get.offAllNamed(AppRoutes.phone);
+  // Navigation ke baad, taaki naye screen par dikhe.
+  Future.delayed(const Duration(milliseconds: 400), () {
+    Get.snackbar(
+      'session_expired_title'.tr,
+      'session_expired_body'.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: AppColors.textPrimary.withValues(alpha: 0.92),
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(AppDimens.md),
+      duration: const Duration(seconds: 4),
+    );
+  });
+}
+
 /// Poora logout: backend token blacklist → Firebase/Google sign-out →
 /// local session clear → language screen.
 ///
