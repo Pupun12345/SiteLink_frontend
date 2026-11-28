@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/app_config_models.dart';
@@ -88,8 +89,7 @@ class _ContactSupportViewState extends State<ContactSupportView> {
       body: SafeArea(
         top: false,
         child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary))
+            ? const SkeletonPage(header: false, cards: 3)
             // Paid feature — plan na ho to contact ki jagah locked state.
             : _res.needsSubscription
                 ? _SupportLocked(
@@ -442,7 +442,7 @@ class PolicyView extends StatefulWidget {
 
 class _PolicyViewState extends State<PolicyView> {
   late String _content = widget.content;
-  bool _loading = false;
+  late bool _loading = widget.policyType != null;
 
   @override
   void initState() {
@@ -470,9 +470,11 @@ class _PolicyViewState extends State<PolicyView> {
         top: false,
         child: Column(
           children: [
+            // Server ka content aane tak shimmer — pehle static text dikhta
+            // tha jo achanak badal jaata.
             if (_loading)
-              const LinearProgressIndicator(
-                  minHeight: 2, color: AppColors.primary),
+              const Expanded(child: _PolicySkeleton()),
+            if (!_loading)
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppDimens.lg),
@@ -505,6 +507,28 @@ class _PolicyViewState extends State<PolicyView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PolicySkeleton extends StatelessWidget {
+  const _PolicySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeleton(
+      child: ListView(
+        padding: const EdgeInsets.all(AppDimens.lg),
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          const SkLine(width: 180, height: 18),
+          const SizedBox(height: 16),
+          for (int i = 0; i < 14; i++) ...[
+            SkLine(width: i % 4 == 3 ? 200 : double.infinity, height: 11),
+            const SizedBox(height: 10),
+          ],
+        ],
       ),
     );
   }

@@ -6,6 +6,8 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/skeleton.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../shared/presentation/views/my_posts_view.dart';
 import '../controllers/worker_feed_controller.dart';
 import '../controllers/worker_profile_controller.dart';
@@ -27,20 +29,32 @@ class WorkerProfileTab extends StatelessWidget {
         color: AppColors.primary,
         // Spinner pinned app bar ke neeche dikhe
         edgeOffset: MediaQuery.of(context).padding.top + kToolbarHeight,
-        child: CustomScrollView(
+        child: Obx(() => CustomScrollView(
           // Content chhota ho tab bhi pull-to-refresh chale
           physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics()),
           slivers: [
             _buildAppBar(),
-            _buildHeader(ctrl),
-            _buildStats(feedCtrl, ctrl),
-            _buildRatingCard(ctrl),
-            _buildMyPostsTile(feedCtrl, ctrl),
-            _buildSkillsSection(ctrl),
-            _buildDocumentsSection(ctrl),
+            // Profile aane tak shimmer — pehle "Verification pending",
+            // "Not rated", "0 posts" jaise galat default dikhte the.
+            if (!ctrl.loaded.value)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: ctrl.loadFailed.value
+                    ? LoadErrorView(onRetry: ctrl.refreshAll)
+                    : const _ProfileSkeleton(),
+              )
+            else ...[
+              _buildHeader(ctrl),
+              _buildStats(feedCtrl, ctrl),
+              _buildRatingCard(ctrl),
+              _buildMyPostsTile(feedCtrl, ctrl),
+              _buildSkillsSection(ctrl),
+              _buildDocumentsSection(ctrl),
+              const SliverToBoxAdapter(child: SizedBox(height: AppDimens.xl)),
+            ],
           ],
-        ),
+        )),
       ),
     );
   }
@@ -218,7 +232,7 @@ class WorkerProfileTab extends StatelessWidget {
         child: Row(children: [
           _StatCell(
               label: 'posts_label'.tr,
-              value: '${ctrl.postsCount.value}',
+              value: ctrl.postsLoaded.value ? '${ctrl.postsCount.value}' : '…',
               onTap: () => _openMyPosts(feedCtrl, ctrl)),
           _Divider(),
           _StatCell(
@@ -258,7 +272,8 @@ class WorkerProfileTab extends StatelessWidget {
                 child: Text('view_my_posts'.tr,
                     style: KTextStyle.poppins(fs: 13)),
               ),
-              Obx(() => Text('${ctrl.postsCount.value}',
+              Obx(() => Text(
+                  ctrl.postsLoaded.value ? '${ctrl.postsCount.value}' : '…',
                   style: KTextStyle.poppins(
                       fs: 12.5, fw: FontWeight.w600, c: AppColors.textHint))),
               const SizedBox(width: 6),
@@ -302,11 +317,18 @@ class WorkerProfileTab extends StatelessWidget {
         child: _ProfileCard(
           title: 'documents_label'.tr,
           icon: Icons.folder_outlined,
-          child: Column(
-            children: ctrl.documents
-                .map((d) => _DocumentRow(doc: d))
-                .toList(),
-          ),
+          child: Obx(() => ctrl.documents.isEmpty
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('no_documents_uploaded'.tr,
+                      style: KTextStyle.poppins(
+                          fs: 12.5, c: AppColors.textHint)),
+                )
+              : Column(
+                  children: ctrl.documents
+                      .map((d) => _DocumentRow(doc: d))
+                      .toList(),
+                )),
         ),
       ),
     );
@@ -324,6 +346,61 @@ class WorkerProfileTab extends StatelessWidget {
             ctrl.removePostLocally(postId);
           },
         ));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PROFILE SKELETON — asli layout jaisa (gradient header + stats + cards)
+// ═══════════════════════════════════════════════════════════════════
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [
+      // Header gradient asli jaisa rehta hai, andar ka content chamakta hai
+      Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(gradient: AppColors.appBarGradient),
+        padding: const EdgeInsets.fromLTRB(
+            AppDimens.lg, 0, AppDimens.lg, AppDimens.xl),
+        child: Shimmer.fromColors(
+          baseColor: Colors.white24,
+          highlightColor: Colors.white54,
+          child: const Column(children: [
+            SkCircle(size: 80),
+            SizedBox(height: 14),
+            SkLine(width: 150, height: 18),
+            SizedBox(height: 10),
+            SkBox(width: 110, height: 30, radius: 20),
+            SizedBox(height: 8),
+            SkBox(width: 150, height: 30, radius: 20),
+            SizedBox(height: 10),
+            SkLine(width: 120, height: 11),
+          ]),
+        ),
+      ),
+      Skeleton(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimens.lg),
+          child: Column(children: const [
+            Row(children: [
+              Expanded(child: SkBox(height: 48)),
+              SizedBox(width: 10),
+              Expanded(child: SkBox(height: 48)),
+              SizedBox(width: 10),
+              Expanded(child: SkBox(height: 48)),
+            ]),
+            SizedBox(height: 16),
+            SkBox(height: 96, radius: 14),
+            SizedBox(height: 14),
+            SkBox(height: 70, radius: 14),
+            SizedBox(height: 14),
+            SkBox(height: 110, radius: 14),
+          ]),
+        ),
+      ),
+    ]);
   }
 }
 

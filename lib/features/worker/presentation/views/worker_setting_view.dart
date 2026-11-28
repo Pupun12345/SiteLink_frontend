@@ -39,6 +39,9 @@ class WorkerSettingsController extends GetxController {
   /// Paid features (Contact Support) ka lock isse decide hota hai.
   /// Backend `hasActivePlan` live compute karke bhejta hai.
   final hasActivePlan = false.obs;
+  /// Plan status aa gaya? Tab tak lock chip ki jagah chhota loader
+  /// (pehle har kisi ko lock dikhta, phir hat jaata).
+  final planChecked = false.obs;
 
   @override
   void onInit() {
@@ -53,6 +56,7 @@ class WorkerSettingsController extends GetxController {
       final res = await ProfileApiService().getMe();
       hasActivePlan.value = res.user?.hasActivePlan ?? false;
     } catch (_) {/* fail par locked hi rehta hai — backend bhi enforce karta hai */}
+    planChecked.value = true;
   }
 }
 
@@ -168,8 +172,18 @@ class WorkerSettingsView extends StatelessWidget {
                     return _SettingsTile(
                       icon: Icons.support_agent_outlined,
                       title: 'contact_support'.tr,
-                      trailing: locked ? const PlanLockChip() : null,
-                      onTap: () => locked
+                      trailing: !ctrl.planChecked.value
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: AppColors.textHint))
+                          : locked
+                              ? const PlanLockChip()
+                              : null,
+                      onTap: !ctrl.planChecked.value
+                          ? null
+                          : () => locked
                           ? Get.to(() => const WorkerPlansView())
                           : Get.to(() => const ContactSupportView()),
                     );

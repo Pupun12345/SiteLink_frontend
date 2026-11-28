@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/community_feed_models.dart';
@@ -38,8 +39,7 @@ class MyPostsView extends StatelessWidget {
         top: false,
         child: Obx(() {
           if (isLoading.value && posts.isEmpty) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary));
+            return const SkeletonList(count: 3, media: true);
           }
           if (posts.isEmpty) {
             return RefreshIndicator(

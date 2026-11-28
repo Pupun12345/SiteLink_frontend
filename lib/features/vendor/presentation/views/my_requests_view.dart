@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/job_models.dart';
@@ -41,8 +42,7 @@ class MyRequestsView extends StatelessWidget {
         top: false,
         child: Obx(() {
           if (ctrl.isLoading.value && ctrl.jobs.isEmpty) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary));
+            return const SkeletonList(count: 4, avatar: false);
           }
           if (ctrl.jobs.isEmpty) return _EmptyState(onRefresh: ctrl.fetchMyJobs);
           final quota = ctrl.quota.value;

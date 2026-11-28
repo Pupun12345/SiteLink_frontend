@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/community_feed_models.dart';
@@ -29,9 +30,8 @@ class PostDetailView extends StatelessWidget {
       backgroundColor: AppColors.scaffoldBg,
       appBar: GradientAppBar(title: 'post_label'.tr),
       body: Obx(() {
-        if (ctrl.isLoading.value) {
-          return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+        if (ctrl.isLoading.value && ctrl.post.value == null) {
+          return const SkeletonList(count: 2, media: true);
         }
 
         final post = ctrl.post.value;

@@ -36,7 +36,13 @@ class NotificationsController extends GetxController {
     super.onClose();
   }
 
-  Future<void> fetchNotifications() async {
+  /// Ek fetch chal raha ho to doosra mat chalao (screen ka build baar-baar
+  /// bulata tha — har rebuild par nayi API call).
+  Future<void>? _inFlight;
+
+  Future<void> fetchNotifications() => _inFlight ??= _fetch().whenComplete(() => _inFlight = null);
+
+  Future<void> _fetch() async {
     isLoading.value = true;
     try {
       final res = await _api.getMyNotifications();

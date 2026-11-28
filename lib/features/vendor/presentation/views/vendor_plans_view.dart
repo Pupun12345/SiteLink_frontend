@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/k_text_style.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../shared/presentation/views/plan_status_banner.dart';
 import '../../../shared/presentation/views/plans_theme.dart';
 import '../controllers/vendor_plans_controller.dart';
@@ -37,7 +38,17 @@ class VendorPlansView extends StatelessWidget {
                 KTextStyle.poppins(fs: 17, fw: FontWeight.w700, c: PlansTheme.ink)),
         centerTitle: false,
       ),
-      body: SafeArea(
+      // Plan aane tak shimmer; na aaye to retry (fallback price nahi).
+      body: Obx(() => !ctrl.plansLoaded && ctrl.isLoading.value
+          ? const PlansSkeleton(cards: 2)
+          : !ctrl.plansLoaded
+              ? LoadErrorView(onRetry: ctrl.reload)
+              : _body(ctrl)),
+    );
+  }
+
+  Widget _body(VendorPlansController ctrl) {
+    return SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -78,8 +89,7 @@ class VendorPlansView extends StatelessWidget {
             );
           }),
         ),
-      ),
-    );
+      );
   }
 
   // ── Standard Plan card ────────────────────────────────────────────

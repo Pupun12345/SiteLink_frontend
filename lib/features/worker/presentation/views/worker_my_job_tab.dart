@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
@@ -347,12 +348,10 @@ class _WorkerMyJobsTabState extends State<WorkerMyJobsTab>
         controller: _tabCtrl,
         children: [
           _ctrl.isLoading.value && _ctrl.availableJobs.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary))
+              ? const SkeletonList(count: 4, avatar: false)
               : _AvailableJobsList(jobs: available, onRefresh: _ctrl.fetchJobs),
           _ctrl.isLoadingApplied.value && _ctrl.appliedJobs.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary))
+              ? const SkeletonList(count: 4, avatar: false)
               : _AppliedJobsList(
                   jobs: applied, onRefresh: _ctrl.fetchAppliedJobs),
         ],

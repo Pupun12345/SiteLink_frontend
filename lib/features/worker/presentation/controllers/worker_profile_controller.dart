@@ -14,7 +14,15 @@ class WorkerProfileController extends GetxController {
   final _profileApi   = ProfileApiService();
   final _communityApi = CommunityApiService();
   final isLoading = false.obs;
+  /// Profile ek baar aa chuka? Tab tak tab par shimmer (default / galat
+  /// values nahi — "0 posts", "Not rated", "Verification pending").
+  final loaded = false.obs;
+  /// Pehli baar profile laana fail hua (net / server) — shimmer ki jagah
+  /// "dobara koshish" dikhao, warna shimmer hamesha chalta rehta.
+  final loadFailed = false.obs;
   final isLoadingPosts = false.obs;
+  /// Posts ki ginti aa chuki? Tab tak "0" ki jagah shimmer.
+  final postsLoaded = false.obs;
 
   // ── From API ────────────────────────────────────────────────────
   final name         = ''.obs;
@@ -27,13 +35,9 @@ class WorkerProfileController extends GetxController {
   final posts        = <CommunityFeedModel>[].obs; // user ke apne posts
   final postsCount   = 0.obs;
 
-  // ── Mock / default (API me abhi available nahi) ──────────────────
-  final workerId     = 'SL-WRK-2024-004'.obs;
-  final phone        = '+91 98765 43210'.obs;
+  // ── Baaki profile fields ──────────────────────────────────────────
   final experience   = '—'.obs; // ✅ ab API se aata hai (totalExperience)
   final isVerified   = false.obs; // ✅ ab API se aata hai (mock true nahi)
-  final totalJobs     = 12.obs;
-  final completedJobs = 11.obs;
   /// Admin ki di hui rating (1–5). null = admin ne abhi rating nahi di.
   /// Automatic rating (job outcomes se) ka system hata diya gaya hai.
   final rating = Rxn<num>();
@@ -44,10 +48,9 @@ class WorkerProfileController extends GetxController {
   /// ko dikhegi ya nahi ("Skill Rating & Verification" plan ka feature
   /// hai). Backend live compute karke bhejta hai.
   final hasActivePlan = false.obs;
-  List<Map<String, dynamic>> get documents => [
-    {'label': 'doc_aadhaar_card'.tr,           'verified': true},
-    {'label': 'doc_work_experience_letter'.tr, 'verified': true},
-  ];
+  /// Asli documents (pehle yahan hardcoded "Aadhaar ✓, Experience letter ✓"
+  /// har worker ko dikhta tha). label + verified (✓) / pending.
+  final documents = <Map<String, dynamic>>[].obs;
 
   @override
   void onInit() {
@@ -58,6 +61,7 @@ class WorkerProfileController extends GetxController {
 
   Future<void> fetchProfile() async {
     isLoading.value = true;
+    loadFailed.value = false;
     try {
       final res = await _profileApi.getMe();
       final u = res.user;
@@ -79,11 +83,27 @@ class WorkerProfileController extends GetxController {
         rating.value = u.rating;
         ratingComment.value = u.ratingComment ?? '';
         hasActivePlan.value = u.hasActivePlan;
+        final certs = u.experienceCertificate.length;
+        documents.assignAll([
+          if ((u.governmentID ?? '').isNotEmpty)
+            {'label': 'doc_government_id'.tr, 'verified': u.isVerified == true},
+          if (certs > 0)
+            {
+              'label': certs > 1
+                  ? '${'experience_certificate_label'.tr} ($certs)'
+                  : 'experience_certificate_label'.tr,
+              'verified': true,
+            },
+        ]);
+        loaded.value = true;
         // Server-side language preference restore (cross-device).
         LocaleService.to.applyFromProfile(u.language);
       }
+    } catch (_) {
+      // neeche loadFailed se "retry" dikhega
     } finally {
       isLoading.value = false;
+      if (!loaded.value) loadFailed.value = true;
     }
   }
 
@@ -98,8 +118,10 @@ class WorkerProfileController extends GetxController {
         posts.assignAll(res.data ?? const []);
         postsCount.value = posts.length;
       }
+    } catch (_) {
     } finally {
       isLoadingPosts.value = false;
+      postsLoaded.value = true;
     }
   }
 

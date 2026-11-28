@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/community_feed_models.dart';
@@ -98,12 +99,8 @@ class CommentsSheet extends StatelessWidget {
               child: Obx(() {
                 if (ctrl.isLoading.value && ctrl.comments.isEmpty) {
                   return const SizedBox(
-                    height: 160,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    height: 260,
+                    child: SkeletonList(count: 3),
                   );
                 }
                 if (ctrl.comments.isEmpty) {

@@ -5,6 +5,7 @@ import '../../../../core/models/plan_models.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/payment_service.dart';
 import '../../../../core/theme/app_snackbar.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../shared/presentation/views/plan_status_banner.dart';
 import '../../../shared/presentation/views/plans_theme.dart';
 import '../../../shared/presentation/controllers/app_refresh.dart';
@@ -34,6 +35,9 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
   // Backend plan (GET /plans/plans) — na mile to static ₹299/Year fallback
   PlanModel? _plan;
   bool _subscribing = false;
+  /// Plan server se aa raha hai — tab tak shimmer (pehle ₹299 fallback
+  /// dikhta tha jo baad me badal jaata, aur bina id ke Subscribe dabta tha).
+  bool _loading = true;
 
   /// Usi call se aati hai — plan active hai ya nahi aur kab tak.
   ActiveSubscription _sub = const ActiveSubscription();
@@ -98,9 +102,17 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
 
 
   Future<void> _loadPlan() async {
-    final res = await MiscApiService().getPlans();
-    if (!mounted || !res.success) return;
+    final PlansResponse res;
+    try {
+      res = await MiscApiService().getPlans();
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _loading = false;
+      if (!res.success) return; // purana _plan (agar hai) rehne do
       if (res.data.isNotEmpty) _plan = res.data.first;
       _sub = res.subscription;
     });
@@ -122,7 +134,14 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
             style: KTextStyle.poppins(fs: 17, fw: FontWeight.w700, c: _ink)),
         centerTitle: false,
       ),
-      body: SafeArea(
+      body: _loading
+          ? const PlansSkeleton()
+          : _plan == null
+              ? LoadErrorView(onRetry: () {
+                  setState(() => _loading = true);
+                  _loadPlan();
+                })
+              : SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),

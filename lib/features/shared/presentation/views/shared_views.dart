@@ -5,6 +5,7 @@ import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/models/notification_models.dart';
 import '../controllers/notifications_controller.dart';
@@ -21,7 +22,9 @@ class NotificationsView extends StatelessWidget {
     // Shared singleton (Home badge isi instance ka unreadCount dikhata hai)
     // — tab khulte hi latest list refresh ho jaaye.
     final ctrl = NotificationsController.to;
-    ctrl.fetchNotifications();
+    // Build ke beech observable badalna galat hai — frame ke baad fetch.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => ctrl.fetchNotifications());
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
@@ -40,9 +43,10 @@ class NotificationsView extends StatelessWidget {
       body: SafeArea(
         top: false,
         child: Obx(() {
-          if (ctrl.isLoading.value) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary));
+          // Shimmer sirf tab jab dikhane ko kuch nahi — refresh par list
+          // gayab hokar spinner nahi aata.
+          if (ctrl.isLoading.value && ctrl.notifications.isEmpty) {
+            return const SkeletonList(count: 6);
           }
           if (ctrl.notifications.isEmpty) {
             return const _EmptyNotifications();

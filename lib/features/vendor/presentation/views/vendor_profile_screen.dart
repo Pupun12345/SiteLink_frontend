@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/legal_content.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/profile_models.dart';
@@ -67,8 +68,7 @@ class VendorProfileScreen extends StatelessWidget {
       backgroundColor: AppColors.scaffoldBg,
       body: Obx(() {
         if (ctrl.isLoading.value && ctrl.profile.value == null) {
-          return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+          return const SafeArea(child: SkeletonPage(cards: 3));
         }
         final p = ctrl.profile.value;
         return RefreshIndicator(

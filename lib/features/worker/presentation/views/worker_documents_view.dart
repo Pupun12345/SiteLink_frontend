@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/k_text_style.dart';
@@ -289,8 +290,7 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
         child: Stack(children: [
           // Upload ke baad reload par list wahi rehti hai (poora spinner nahi).
           _loading && _profile == null
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary))
+              ? const SkeletonPage(header: false, cards: 3)
               : _error
                   ? _ErrorState(onRetry: _load)
                   : _content(),

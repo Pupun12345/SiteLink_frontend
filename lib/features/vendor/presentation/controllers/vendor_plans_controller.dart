@@ -40,6 +40,13 @@ class VendorPlansController extends GetxController {
   PlanModel get standardPlan => _standardFromApi ?? _fallbackStandard;
   PlanModel get premiumPlan => _premiumFromApi ?? _fallbackPremium;
 
+  /// Server se kam se kam ek asli plan aa gaya? Tab tak screen par shimmer
+  /// (pehle ₹2,999 / ₹4,999 fallback dikhta aur bina id ke Subscribe dabta).
+  bool get plansLoaded => _standardFromApi != null || _premiumFromApi != null;
+
+  /// Retry button ke liye.
+  Future<void> reload() => _loadPlans();
+
   @override
   void onInit() {
     super.onInit();
@@ -49,7 +56,12 @@ class VendorPlansController extends GetxController {
   Future<void> _loadPlans() async {
     isLoading.value = true;
     try {
-      final res = await _miscApi.getPlans();
+      final PlansResponse res;
+      try {
+        res = await _miscApi.getPlans();
+      } catch (_) {
+        return; // finally isLoading band karega → retry dikhega
+      }
       if (res.success) {
         subscription.value = res.subscription;
         for (final p in res.data) {
@@ -85,6 +97,12 @@ class VendorPlansController extends GetxController {
 
   Future<void> _subscribe(PlanModel plan, RxBool flag) async {
     if (flag.value) return;
+    // Server wala plan hi nahi (sirf fallback, bina id) — payment fail hota.
+    if ((plan.id ?? '').isEmpty) {
+      AppSnackbar.error(message: 'network_error_retry'.tr);
+      reload();
+      return;
+    }
     flag.value = true;
     try {
       // Pehli baar plan lete hi auto-payment khud lag jaata hai — user ko

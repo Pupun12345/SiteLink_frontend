@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/constants/app_dimens.dart';
 import '../../../../core/constants/k_text_style.dart';
 import '../../../../core/models/location_models.dart';
@@ -29,8 +30,7 @@ class EditVendorProfileView extends StatelessWidget {
         top: false,
         child: Obx(() {
           if (ctrl.isLoading.value) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary));
+            return const SkeletonPage(cards: 4);
           }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppDimens.lg),

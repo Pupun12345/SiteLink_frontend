@@ -11,6 +11,7 @@ import '../../../../core/services/api_client.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/post_share_service.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/theme/app_snackbar.dart';
 import '../../../../core/theme/job_roles_view.dart';
 import '../../../../core/utils/amenity_category_label.dart';
@@ -37,6 +38,12 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
   final _profileApi = ProfileApiService();
   late Map<String, dynamic> job;
   bool _loadingDetail = false;
+  /// Server se detail aa chuki hai?
+  bool _detailLoaded = false;
+  /// Notification / shared link se sirf `apiId` ke saath khula — detail
+  /// aane tak shimmer (pehle "Job", khaali fields aur Apply button dikhta tha).
+  bool get _onlyId =>
+      (widget.job['role'] ?? '').toString().isEmpty && !_detailLoaded;
   final _applying = false.obs;
   List<JobAmenity> _amenities = const [];
   bool? _isVerified; // null = abhi tak pata nahi
@@ -68,6 +75,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
     if (!mounted) return;
     setState(() {
       if (detail != null) {
+        _detailLoaded = true;
         // Shared deep link se aane par map me sirf `apiId` hota hai —
         // baaki sab yahin bharta hai, warna screen khaali dikhti.
         if ((job['role'] ?? '').toString().isEmpty) {
@@ -383,7 +391,11 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
           ),
         ],
       ),
-      body: SafeArea(
+      body: _onlyId
+          ? (_loadingDetail
+              ? const SkeletonPage(header: false, cards: 4)
+              : LoadErrorView(onRetry: _maybeFetchDetail))
+          : SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppDimens.lg),
@@ -593,7 +605,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
         ),
       ),
       // ── Fixed bottom action button (scroll nahi hota) ─────────────
-      bottomNavigationBar: Container(
+      bottomNavigationBar: _onlyId ? null : Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
           boxShadow: [

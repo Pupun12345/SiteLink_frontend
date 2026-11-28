@@ -18,6 +18,7 @@ import '../../../../core/services/video_compress_service.dart';
 import '../../../../core/theme/post_image_gallery.dart';
 import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../../core/theme/video_preview_player.dart';
 import '../controllers/worker_feed_controller.dart';
 import '../../../../core/models/community_feed_models.dart';
@@ -280,8 +281,10 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
   // ── Feed Body ──────────────────────────────────────────────────
   Widget _buildFeedBody() {
     return Obx(() {
-      if (feedCtrl.isLoading.value) {
-        return const Center(child: CustomCircularIndicator());
+      // Shimmer sirf pehli baar (list khaali) — pull-to-refresh par
+      // purani posts dikhti rahein, spinner se replace na hon.
+      if (feedCtrl.isLoading.value && feedCtrl.posts.isEmpty) {
+        return const SkeletonList(count: 4, media: true, padding: EdgeInsets.zero);
       }
 
       // Search filter
@@ -305,7 +308,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
               : feedCtrl.searchResults;
 
       if (filtered.isEmpty && searching && feedCtrl.isSearching.value) {
-        return const Center(child: CustomCircularIndicator());
+        return const SkeletonList(count: 3, media: true, padding: EdgeInsets.zero);
       }
 
       if (filtered.isEmpty) {
