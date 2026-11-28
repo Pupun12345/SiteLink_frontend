@@ -143,7 +143,12 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
                 })
               : SafeArea(
         top: false,
-        child: SingleChildScrollView(
+        // Neeche kheencho → plan + status dobara server se.
+        child: RefreshIndicator(
+          onRefresh: _loadPlan,
+          color: _ink,
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -395,7 +400,7 @@ class _WorkerPlansViewState extends State<WorkerPlansView> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

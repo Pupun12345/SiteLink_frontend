@@ -50,7 +50,12 @@ class VendorPlansView extends StatelessWidget {
   Widget _body(VendorPlansController ctrl) {
     return SafeArea(
         top: false,
-        child: SingleChildScrollView(
+        // Neeche kheencho → plans + status dobara server se.
+        child: RefreshIndicator(
+          onRefresh: ctrl.reload,
+          color: PlansTheme.ink,
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Obx(() {
             ctrl.isLoading.value; // plans load hone par rebuild trigger
@@ -89,7 +94,7 @@ class VendorPlansView extends StatelessWidget {
             );
           }),
         ),
-      );
+      ));
   }
 
   // ── Standard Plan card ────────────────────────────────────────────

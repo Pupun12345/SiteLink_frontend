@@ -37,7 +37,11 @@ class PostDetailView extends StatelessWidget {
         final post = ctrl.post.value;
         if (post == null) return _NotFound(message: ctrl.error.value);
 
-        return SingleChildScrollView(
+        return RefreshIndicator(
+          onRefresh: ctrl.reload,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -59,7 +63,7 @@ class PostDetailView extends StatelessWidget {
               const SizedBox(height: AppDimens.xl),
             ],
           ),
-        );
+        ));
       }),
     );
   }
@@ -120,6 +124,9 @@ class PostDetailController extends GetxController {
     _load();
   }
 
+  /// Pull-to-refresh.
+  Future<void> reload() => _load();
+
   Future<void> _load() async {
     if (postId.isEmpty) {
       isLoading.value = false;
@@ -127,7 +134,8 @@ class PostDetailController extends GetxController {
     }
     isLoading.value = true;
     final (fetched, message) = await _api.getPostById(postId);
-    post.value = fetched;
+    // Refresh fail ho to dikhi hui post mat hatao.
+    if (fetched != null || post.value == null) post.value = fetched;
     error.value = message;
     isLoading.value = false;
   }

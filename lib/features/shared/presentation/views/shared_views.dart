@@ -49,7 +49,21 @@ class NotificationsView extends StatelessWidget {
             return const SkeletonList(count: 6);
           }
           if (ctrl.notifications.isEmpty) {
-            return const _EmptyNotifications();
+            // Khaali list par bhi neeche kheench ke refresh ho sake.
+            return RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: ctrl.fetchNotifications,
+              child: LayoutBuilder(
+                builder: (_, box) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                        height: box.maxHeight,
+                        child: const _EmptyNotifications()),
+                  ],
+                ),
+              ),
+            );
           }
           return RefreshIndicator(
             color: AppColors.primary,

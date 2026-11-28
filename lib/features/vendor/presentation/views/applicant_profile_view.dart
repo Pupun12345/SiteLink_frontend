@@ -10,6 +10,7 @@ import '../../../../core/services/api_client.dart';
 import '../../../../core/theme/post_image_gallery.dart';
 import '../../../../core/theme/rating_badge.dart';
 import '../../../../core/theme/shared_widgets.dart';
+import '../../../../core/theme/skeleton.dart';
 import '../../../worker/presentation/controllers/worker_feed_controller.dart';
 import '../../../worker/presentation/views/comments_sheet.dart';
 import '../../../../core/utils/doc_preview.dart';
@@ -275,17 +276,12 @@ class _ApplicantProfileViewState extends State<ApplicantProfileView> {
                       fs: 13, fw: FontWeight.w700, c: AppColors.primary)),
           ]),
           const SizedBox(height: 12),
-          if (_loadingPosts)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.2, color: AppColors.primary),
-                ),
-              ),
+          if (_loadingPosts && _posts.isEmpty)
+            const Skeleton(
+              child: Column(children: [
+                SkListCard(media: true),
+                SkListCard(),
+              ]),
             )
           else if (_posts.isEmpty)
             Text('applicant_no_posts'.tr,

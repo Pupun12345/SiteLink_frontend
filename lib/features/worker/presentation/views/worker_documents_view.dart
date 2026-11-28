@@ -66,10 +66,10 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
       if (res.success && res.user != null) {
         _profile = res.user;
       } else {
-        _error = true;
+        _error = _profile == null; // refresh fail par purani list rahe
       }
     } catch (_) {
-      _error = true;
+      _error = _profile == null; // refresh fail par purani list rahe
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -326,7 +326,12 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
     // kiya ho (p.canReplaceDocument). Missing document upload aur naye
     // certificate jodna hamesha khula.
     final certs = p.experienceCertificate;
-    return ListView(
+    // Neeche kheencho → admin ka latest status (approve / reject).
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.primary,
+      child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppDimens.lg),
       children: [
         _StatusBanner(profile: p, onReuploadId: _uploadGovtId),
@@ -395,7 +400,7 @@ class _WorkerDocumentsViewState extends State<WorkerDocumentsView> {
           ),
         ]),
       ],
-    );
+    ));
   }
 }
 

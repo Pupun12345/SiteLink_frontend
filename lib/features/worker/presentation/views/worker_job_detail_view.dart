@@ -397,7 +397,12 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
               : LoadErrorView(onRetry: _maybeFetchDetail))
           : SafeArea(
         top: false,
-        child: SingleChildScrollView(
+        // Neeche kheencho → job ki latest detail + apply status.
+        child: RefreshIndicator(
+          onRefresh: _maybeFetchDetail,
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppDimens.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,7 +608,7 @@ class _WorkerJobDetailViewState extends State<WorkerJobDetailView> {
             ],
           ),
         ),
-      ),
+      )),
       // ── Fixed bottom action button (scroll nahi hota) ─────────────
       bottomNavigationBar: _onlyId ? null : Container(
         decoration: BoxDecoration(
